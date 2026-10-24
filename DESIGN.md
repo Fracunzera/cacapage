@@ -43,7 +43,7 @@ Estado: **borrador para crítica, iteración 3**. Nada de esto está implementad
 | 7 | **Decaimiento de datos** diseñado asumiendo que no hay recorrida periódica (§10). | Pedido explícito. |
 | 8 | **Entorno de prueba** en `caca.blucaro.site`: sin passkeys, cuentas descartables, noindex, dominio en una sola variable, banner (§15). | Decisión del producto. Corrección: el `noindex` no va en robots.txt (§15.3). |
 | 9 | **"Baño amigo"** evaluado como alternativa, sin adoptar (§18). | Pedido explícito. |
-| 9b | **Regla asimétrica de exposición** adoptada para v1 (§18.4, P-32). **Medallas** cada 5 registros con nombres graciosos (§17). | Decisiones del producto, posteriores a la primera versión de la iteración 3. |
+| 9b | **Regla asimétrica de exposición** adoptada para v1 (§18.4, P-32). **Medallas** cada 5 registros con nombres graciosos y **logro por el primer registro** (§17). | Decisiones del producto, posteriores a la primera versión de la iteración 3. |
 | 10 | Se unifican ediciones del wiki y confirmaciones en una tabla de **evidencias** con procedencia y fecha. Las fichas muestran fuente y fecha de cada dato. | Consecuencia de 3, 4 y 7: si cada dato lleva procedencia y fecha, la atribución vale para todo el wiki, no solo para el estado reciente. |
 
 ### Iteración 2 (resumen)
@@ -287,7 +287,7 @@ privadas.
 pausada_hasta: fecha | null }` (§7.3).
 
 **(i3)** `medallas_obtenidas`: `numero`, `obtenida_en`. Dentro de la bóveda;
-el servidor no las conoce (§17.6).
+el servidor no las conoce (§17.7).
 
 ### 6.2 Bóveda (servidor, cifrada)
 
@@ -1355,14 +1355,28 @@ viven los usuarios. Antes de reactivarlo hay que decidir qué mide.
 | | **Logros** | **Medallas** |
 |---|---|---|
 | Qué premian | Una hazaña: conquistar las YPF de la Ruta 3, el baño ajeno sin papel, el baño del laburo. | La constancia: **una medalla cada 5 registros**, con nombre gracioso. |
-| Catálogo | `data/curated/logros.json` | [`data/curated/medallas.json`](data/curated/medallas.json) |
+| Catálogo | [`data/curated/logros.json`](data/curated/logros.json) (por ahora, solo el de bienvenida) | [`data/curated/medallas.json`](data/curated/medallas.json) |
 | Ritmo | Irregular, a veces nunca. | Predecible: con un registro por día, una cada 5 días. Es la recompensa que vuelve seguido. |
 
 Las dos se calculan **en el dispositivo**, sobre el historial privado
 (`registros`), incluidos los registros en zonas privadas. El servidor no sabe
 cuántas medallas tiene nadie.
 
-### 17.2 La regla de las medallas
+### 17.2 El logro de bienvenida
+
+El primer registro, cualquiera sea (en casa, sin ubicación, offline), da el
+logro **"Bautismo de Porcelana"** (`primer-registro` en
+[`data/curated/logros.json`](data/curated/logros.json)). Existe para que quien
+llegó por el chiste reciba algo en el primer uso, sin esperar a la primera
+medalla en el quinto registro.
+
+- Aparece después de guardar el registro y después del puente, igual que una
+  medalla.
+- No es un conteo, así que **sí** se puede mostrar como insignia pública
+  (opt-in, P-20): solo dice que la persona registró al menos una vez.
+- Si después se borran todos los registros, el logro se conserva.
+
+### 17.3 La regla de las medallas
 
 - Medalla número *n* = registro número 5·*n*. Cuentan **todos** los registros
   propios, sin importar dónde fueron (casa, laburo, ruta).
@@ -1374,7 +1388,7 @@ cuántas medallas tiene nadie.
 - Cargar registros viejos a mano cuenta. Se puede trampear; como todo pasa en el
   dispositivo del propio usuario y no hay ranking público, no importa (Q-P5).
 
-### 17.3 Los nombres
+### 17.4 Los nombres
 
 Criterios para el catálogo:
 
@@ -1393,7 +1407,7 @@ de Plata con el Inodoro" · 60 "Resistencia al Viento Patagónico" · 100 "Trono
 de Bronce" · 125 "Pingüino Emperador" · 170 "Cacería del Baño Abierto en
 Domingo" · 200 "Trono de Oro". La lista completa está en `medallas.json`.
 
-### 17.4 Dónde se ven
+### 17.5 Dónde se ven
 
 | Lugar | ¿Se ve? | Cómo |
 |---|---|---|
@@ -1401,9 +1415,9 @@ Domingo" · 200 "Trono de Oro". La lista completa está en `medallas.json`.
 | "Mis registros" | Sí | Vitrina con las ganadas y "te faltan 3 para la próxima" (sin revelar el nombre: la sorpresa es parte del chiste). |
 | Tarjeta compartible | Si el usuario la genera | `/c/{token}` con el nombre de la medalla. Acto explícito, en el momento. Sin fecha ni lugar. El nombre ya implica la cantidad (cada medalla es un múltiplo de 5), y eso se avisa al generar la tarjeta. |
 | Feed de amigos | Solo si el usuario toca "Contarle a mis amigos" en esa medalla | Va por la cola diferida (1 a 6 h) y con fecha de día. Por default, no se anuncia. |
-| Perfil público (`/u/{seudonimo}`) | **No** | Ver §17.5. |
+| Perfil público (`/u/{seudonimo}`) | **No** | Ver §17.6. |
 
-### 17.5 Por qué las medallas no van al perfil público
+### 17.6 Por qué las medallas no van al perfil público
 
 Una medalla de conteo publicada en un perfil es **un contador acumulado de
 registros que cualquiera puede mirar cada semana**. Dos miradas separadas siete
@@ -1416,7 +1430,7 @@ Por la misma razón, el anuncio automático a amigos está apagado: si el usuari
 no les cuenta sus registros de casa a sus amigos, un "ganó una medalla hoy"
 automático les diría que registró algo ese día.
 
-### 17.6 Datos
+### 17.7 Datos
 
 En el dispositivo, dentro de la bóveda: `medallas_obtenidas` (`numero`,
 `obtenida_en`), y en `preferencias` el último umbral anunciado. En el servidor
@@ -1570,7 +1584,8 @@ recibe el comercio). La verificación y la activación son comandos del CLI.
 - Puente con tercera pregunta.
 - "Sigue igual" en la ficha.
 - Modo amigos con viajes a la vuelta.
-- Logros y **medallas cada 5 registros** (§17), con tarjetas compartibles.
+- Logros (incluido "Bautismo de Porcelana" por el primer registro) y **medallas
+  cada 5 registros** (§17), con tarjetas compartibles.
 - **Regla asimétrica de exposición de comercios** (§18.4, PRIVACY.md P-32): a un
   comercio no adherido nunca se lo muestra como "te dejan pasar sin consumir".
 - Push agregado en Android.

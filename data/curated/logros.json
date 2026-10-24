@@ -1,0 +1,16 @@
+{
+  "_comentario": "Catálogo de logros (DESIGN.md §17). Se evalúan en el dispositivo sobre el historial privado, incluidas las zonas privadas. El servidor no los conoce salvo que el usuario elija mostrar la insignia (P-20). Mismos criterios de nombres que medallas.json.",
+  "version": 1,
+  "logros": [
+    {
+      "id": "primer-registro",
+      "nombre": "Bautismo de Porcelana",
+      "descripcion": "Tu primer registro. Te damos la bienvenida al trono.",
+      "condicion": {
+        "tipo": "cantidad_registros",
+        "minimo": 1
+      },
+      "insignia_publica_permitida": true
+    }
+  ]
+}

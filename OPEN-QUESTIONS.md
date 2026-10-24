@@ -349,14 +349,13 @@ Adoptada para v1. Queda abierto medir cuánto valor útil se pierde: cuántos
 comercios no adheridos tienen reportes de "me dejaron pasar sin consumir" que no
 se muestran.
 
-**Q-N13 🟡 (i3) · Medallas: ritmo y primera recompensa.**
-Una cada 5 registros, sin fin, puede inflarse: con un registro por día son ~73
-por año y después de la 40 (200 registros) los nombres pasan a ser
-"Inmortalidad Sanitaria, nivel N". Además, la primera llega recién en el quinto
-registro: el usuario que vino por el chiste no recibe nada los primeros días.
-*Opciones:* sumar un logro por el primer registro ("Primera vez"), y espaciar
-las medallas después de las 40 con nombre (cada 10 o cada 25). Medir en el
-piloto si alguien llega a 200.
+**Q-N13 🟡 (i3) · Medallas: ritmo.**
+✅ Resuelto lo de la primera recompensa: el primer registro da el logro
+"Bautismo de Porcelana" (DESIGN.md §17.2).
+Sigue abierto: una medalla cada 5 registros, sin fin, puede inflarse. Con un
+registro por día son ~73 por año, y después de la 40 (200 registros) los nombres
+pasan a ser "Inmortalidad Sanitaria, nivel N". *Opción:* espaciarlas después de
+las 40 con nombre (cada 10 o cada 25). Medir en el piloto si alguien llega a 200.
 
 **Q-P10 🟡 (i3) · La tercera pregunta en contradicción de horario revela tipo de día y franja.**
 Es la única respuesta pública que dice "alguien estuvo acá un domingo a la
