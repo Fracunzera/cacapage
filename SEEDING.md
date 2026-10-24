@@ -191,7 +191,7 @@ baños **confirmados y completos** más ~30 probables marcados claramente como
 |---|---|---|
 | 1 | Importar de OSM (una vía): 5 `amenity=toilets` + 73 candidatos. | ~78 objetos crudos. |
 | 2 | Fusionar baños con su estación (< 50 m) y curar a mano (sacar almacenes, salitas, duplicados, sin nombre). | ~60 baños: 5 confirmados sin datos, ~55 probables. |
-| 3 | Recorrida: ~30 lugares de más tránsito, con una ficha por lugar. **Ubicación con el GPS del celular en el lugar** y cada dato levantado ahí, sin copiar nada de OSM (ADR 0002). Las fichas se cargan como archivos en `data/curated/`, no editando el wiki del entorno de prueba. | 30 confirmados con atributos completos, `procedencia = gps_campo`. |
+| 3 | Recorrida: ~30 lugares de más tránsito, con una ficha por lugar. **Ubicación con el GPS del celular en el lugar** y cada dato levantado ahí, sin copiar nada de OSM (ADR 0002). Se carga con la herramienta `/app/relevamiento` del entorno de prueba (DESIGN.md §15.6), que exporta archivos para `data/curated/recorridas/`; no se edita el wiki del entorno de prueba. | 30 confirmados con atributos completos, `procedencia = gps_campo`. |
 | 4 | Consultar a la Municipalidad por baños públicos propios (ubicación, horario, si cobran). **Lo hace el responsable del producto.** | 0 a N baños públicos de verdad, `procedencia = fuente_externa`. Si son 0, la capa útil pasa a ser "comercios que te dejan pasar" (cambia el texto, no el modelo). |
 | 5 | Lanzamiento. | ~60 puntos, la mitad confirmada y completa. |
 | 6 | El puente y las ediciones del wiki trabajan sobre los probables. | Confirmaciones de a poco. |

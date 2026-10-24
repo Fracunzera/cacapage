@@ -6,3 +6,6 @@ data/build/*
 !data/build/README.md
 *.pmtiles
 *.osm.pbf
+.svelte-kit/
+apps/web/build/
+test-results/

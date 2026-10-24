@@ -1,0 +1,41 @@
+/* Estilos base fuera de los componentes. Sin estilos en línea: la CSP es
+   style-src 'self' (svelte.config.js). */
+:root {
+	--fondo: #fbf7f2;
+	--texto: #2b1d14;
+	--suave: #6f5b4c;
+	--borde: #d9cbbd;
+	--marca: #5b3a29;
+	--ok: #1f7a3a;
+	--aviso: #a15c00;
+	--error: #b3261e;
+	color-scheme: light;
+}
+* {
+	box-sizing: border-box;
+}
+html,
+body {
+	margin: 0;
+	background: var(--fondo);
+	color: var(--texto);
+	font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	font-size: 17px;
+	line-height: 1.35;
+	-webkit-text-size-adjust: 100%;
+}
+.raiz {
+	display: contents;
+}
+.banner-prueba {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	margin: 0;
+	padding: 6px 12px;
+	background: #ffd84d;
+	color: #3a2a00;
+	font-size: 14px;
+	font-weight: 600;
+	text-align: center;
+}

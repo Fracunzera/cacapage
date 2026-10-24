@@ -1352,6 +1352,29 @@ indexación.
 Q-N4 deja de bloquear: el único que depende del dominio definitivo es la
 primera passkey.
 
+### 15.6 Herramienta de relevamiento (solo en prueba)
+
+Ruta `/app/relevamiento`, que existe solo con `ENTORNO=prueba` (con
+`produccion` responde 404). Sirve para cargar la recorrida de sembrado
+(SEEDING.md §5) parado en la vereda, con una mano y sin señal.
+
+- **Ubicación:** GPS del navegador siempre encendido; la ubicación se fija
+  cuando el usuario toca "Fijar ubicación acá", y solo con precisión de 30 m o
+  mejor. No se fija sola: si no, el baño siguiente heredaría la posición del
+  anterior.
+- **Campos:** nombre, categoría, acceso, cobra, horario (lun a vie, sábado,
+  domingos y feriados), accesible, cambiador. Todos con la opción
+  "desconocido", que es el valor inicial. Nada se rellena desde OSM (ADR 0002).
+- **Guardado:** IndexedDB en cada cambio, con transacciones `durability:
+  'strict'`. Cerrar el navegador no pierde nada.
+- **Offline:** el service worker guarda la página la primera vez que se abre
+  con señal.
+- **Exportación:** `recorrida-AAAA-MM-DD.json` con todo lo acumulado
+  (`formato: cacapage-recorrida`, `procedencia: gps_campo` en cada baño y en su
+  geometría). Exportar no borra.
+- Código: `apps/web/src/routes/app/relevamiento/` y
+  `apps/web/src/lib/relevamiento/`. Despliegue: `docs/despliegue-prueba.md`.
+
 ---
 
 ## 16. Postergado: mapa general

@@ -1,6 +1,7 @@
 # infra/caddy
 
-Configuración de Caddy (DESIGN.md §15 y §19). Sin implementar.
+Configuración de Caddy (DESIGN.md §15 y §19). Implementado: `Caddyfile.prueba`
+(entorno de prueba, ver `docs/despliegue-prueba.md`). El de producción, no.
 
 - El host sale de `ORIGEN_PUBLICO` (variable `{$ORIGEN_HOST}` en el
   `Caddyfile`). El dominio no se escribe en ningún archivo de esta carpeta.

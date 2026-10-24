@@ -1,0 +1,12 @@
+# Entorno de prueba (DESIGN.md §15). El dominio sale de ORIGEN_PUBLICO: no se
+# escribe en este archivo.
+{$ORIGEN_PUBLICO} {
+	encode zstd gzip
+
+	# noindex en todas las respuestas, también los estáticos que no pasan por
+	# los hooks de la app (DESIGN.md §15.3).
+	header ?X-Robots-Tag "noindex, nofollow"
+
+	# Sin directiva `log`: Caddy no escribe log de acceso (PRIVACY.md P-19).
+	reverse_proxy web:3000
+}

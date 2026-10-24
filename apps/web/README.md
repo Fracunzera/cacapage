@@ -17,4 +17,18 @@ service worker (solo caché: ninguna lógica de negocio, regla R5) y
 Lo sensible (coordenadas, zonas privadas, detección de domicilio, cifrado) corre
 en el cliente con `packages/core`, `packages/vault` y `packages/platform`.
 
-Sin implementar.
+## Qué está implementado
+
+Solo la herramienta de relevamiento (`/app/relevamiento`, DESIGN.md §15.6), que
+existe únicamente con `ENTORNO=prueba`. El resto de la app, no.
+
+```sh
+pnpm install
+pnpm --filter web check   # tipos
+pnpm --filter web test    # unitarias (modelo y almacenamiento)
+pnpm --filter web build
+pnpm --filter web e2e     # punta a punta en Chromium con GPS simulado
+ENTORNO=prueba node apps/web/build   # correr el build
+```
+
+Despliegue: `docs/despliegue-prueba.md`.

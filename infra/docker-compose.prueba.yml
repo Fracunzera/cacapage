@@ -1,0 +1,34 @@
+# Entorno de prueba en el VPS. Desde la raíz del repo:
+#   docker compose --env-file .env -f infra/docker-compose.prueba.yml up -d --build
+# Guía completa: docs/despliegue-prueba.md
+name: cacapage-prueba
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    environment:
+      ENTORNO: ${ENTORNO:?Falta ENTORNO en .env}
+      ORIGIN: ${ORIGEN_PUBLICO:?Falta ORIGEN_PUBLICO en .env}
+      PORT: "3000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.8.4
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ORIGEN_PUBLICO: ${ORIGEN_PUBLICO:?Falta ORIGEN_PUBLICO en .env}
+    volumes:
+      - ./caddy/Caddyfile.prueba:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
