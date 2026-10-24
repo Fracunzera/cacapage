@@ -40,42 +40,63 @@
 		min-width: 0;
 	}
 	legend {
-		font-weight: 700;
 		margin-bottom: 8px;
 		padding: 0;
+		font-weight: 600;
 	}
 	.opciones {
 		display: grid;
 		gap: 8px;
 	}
 	.col-2 {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 	.col-3 {
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 	.col-4 {
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(4, minmax(0, 1fr));
 	}
 	button {
 		min-height: 52px;
-		padding: 6px 8px;
-		border: 2px solid var(--borde);
+		padding: 4px;
+		border: 2px solid var(--tinta);
 		border-radius: 12px;
-		background: #fff;
-		color: var(--texto);
-		font: inherit;
-		font-size: 16px;
+		background: var(--papel);
+		color: var(--tinta);
+		font-size: 14.5px;
+		font-weight: 500;
 		line-height: 1.15;
+		overflow-wrap: break-word;
 		touch-action: manipulation;
 	}
+	/* "Desconocido" ocupa su propia fila: se distingue de las respuestas y nunca
+	   se corta en pantallas angostas. */
 	button.desconocido {
-		color: var(--suave);
+		grid-column: 1 / -1;
+		min-height: 46px;
+		border-style: dashed;
+		color: var(--tinta-suave);
+	}
+	/* Celulares muy angostos: tres columnas no entran sin cortar palabras. */
+	@media (max-width: 340px) {
+		.col-3 {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
 	}
 	button.elegida {
-		border-color: var(--marca);
-		background: var(--marca);
-		color: #fff;
+		background: var(--tinta);
+		color: var(--sol);
 		font-weight: 700;
+		border-style: solid;
+		box-shadow: 2px 2px 0 var(--sol);
+	}
+	/* Elegido por defecto: suave, para que resalten las respuestas reales. */
+	button.desconocido.elegida {
+		border-style: solid;
+		background: var(--celeste-claro);
+		color: var(--tinta);
+		box-shadow: none;
+		font-weight: 600;
 	}
 </style>

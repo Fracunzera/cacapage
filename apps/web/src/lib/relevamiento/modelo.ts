@@ -12,7 +12,7 @@ export const CATEGORIAS = [
 	['banio_publico', 'Baño público'],
 	['estacion_servicio', 'Estación de servicio'],
 	['gastronomia', 'Bar / resto / café'],
-	['supermercado', 'Supermercado'],
+	['supermercado', 'Súper'],
 	['shopping', 'Shopping / galería'],
 	['terminal', 'Terminal'],
 	['aeropuerto', 'Aeropuerto'],

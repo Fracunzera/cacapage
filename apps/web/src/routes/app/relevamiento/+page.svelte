@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Opciones from '$lib/relevamiento/Opciones.svelte';
+	import Logo from '$lib/ui/Logo.svelte';
 	import { abrirAlmacen, type Almacen } from '$lib/relevamiento/almacen';
 	import { seguirGps, type ErrorGps, type Lectura } from '$lib/relevamiento/gps';
 	import {
@@ -28,10 +29,10 @@
 	const CATEGORIA_OPCIONES = [...CATEGORIAS, [DESCONOCIDO, 'Desconocido']] as const;
 	const ACCESO_OPCIONES = [...ACCESOS, [DESCONOCIDO, 'Desconocido']] as const;
 	const MODOS_HORARIO = [
-		[DESCONOCIDO, 'Desconocido'],
 		['24h', '24 h'],
 		['cerrado', 'Cerrado'],
-		['rango', 'Horario']
+		['rango', 'Horario'],
+		[DESCONOCIDO, 'Desconocido']
 	] as const;
 	type ModoHorario = (typeof MODOS_HORARIO)[number][0];
 
@@ -214,14 +215,15 @@
 	<title>Relevamiento · cacapage</title>
 </svelte:head>
 
-<main class="relevamiento">
-	<header class="cabecera">
-		<h1>Relevamiento</h1>
-		<span class="contador" aria-live="polite">{relevados.length} guardados</span>
-	</header>
+<header class="tope">
+	<a href="/" class="volver" aria-label="Inicio"><Logo tamanio={32} conNombre={false} /></a>
+	<h1>Relevamiento</h1>
+	<span class="contador" aria-live="polite">{relevados.length} guardados</span>
+</header>
 
+<main class="relevamiento">
 	{#if !enLinea}
-		<p class="nota">Sin conexión: todo se guarda en el teléfono igual.</p>
+		<p class="nota">📵 Sin conexión: todo se guarda en el teléfono igual.</p>
 	{/if}
 	{#if persistente === false}
 		<p class="nota aviso">El navegador puede borrar estos datos si se queda sin espacio. Exportá seguido.</p>
@@ -231,7 +233,8 @@
 	{/if}
 
 	{#if borrador}
-		<section class="gps" class:ok={borrador.geom} aria-live="polite">
+		<section class="tarjeta gps" class:ok={borrador.geom} aria-live="polite">
+			<h2><span class="paso">1</span> Dónde está</h2>
 			{#if borrador.geom}
 				<p class="estado">📍 Ubicación fijada · ±{Math.round(borrador.geom.precision_m)} m</p>
 				<button type="button" class="secundario" onclick={retomarUbicacion}>Volver a tomar</button>
@@ -256,66 +259,77 @@
 			{/if}
 		</section>
 
-		<label class="campo">
-			<span>Nombre</span>
-			<input
-				type="text"
-				bind:value={borrador.nombre}
-				placeholder="Ej.: YPF Av. San Martín"
-				autocomplete="off"
-				autocapitalize="words"
-				enterkeyhint="done"
-			/>
-		</label>
+		<section class="tarjeta">
+			<h2><span class="paso">2</span> Qué lugar es</h2>
+			<label class="campo">
+				<span>Nombre</span>
+				<input
+					type="text"
+					bind:value={borrador.nombre}
+					placeholder="Ej.: YPF Av. San Martín"
+					autocomplete="off"
+					autocapitalize="words"
+					enterkeyhint="done"
+				/>
+			</label>
+			<Opciones etiqueta="Categoría" opciones={CATEGORIA_OPCIONES} bind:valor={borrador.categoria} columnas={3} />
+		</section>
 
-		<Opciones etiqueta="Categoría" opciones={CATEGORIA_OPCIONES} bind:valor={borrador.categoria} columnas={3} />
-		<Opciones etiqueta="Acceso" opciones={ACCESO_OPCIONES} bind:valor={borrador.acceso} columnas={3} />
-		<Opciones etiqueta="¿Cobra?" opciones={SI_NO} bind:valor={borrador.cobra} />
+		<section class="tarjeta">
+			<h2><span class="paso">3</span> Cómo es el baño</h2>
+			<Opciones etiqueta="Acceso" opciones={ACCESO_OPCIONES} bind:valor={borrador.acceso} columnas={2} />
+			<Opciones etiqueta="¿Cobra?" opciones={SI_NO} bind:valor={borrador.cobra} columnas={2} />
+			<Opciones etiqueta="¿Accesible (silla de ruedas)?" opciones={SI_NO} bind:valor={borrador.accesible} columnas={2} />
+			<Opciones etiqueta="¿Cambiador de bebés?" opciones={SI_NO} bind:valor={borrador.cambiador} columnas={2} />
+		</section>
 
-		<fieldset class="horario">
-			<legend>Horario</legend>
-			{#each DIAS as [dia, etiqueta] (dia)}
-				<div class="dia">
-					<div class="dia-titulo">
-						<span>{etiqueta}</span>
-						{#if dia !== 'habil'}
-							<button type="button" class="enlace" onclick={() => igualQueHabil(dia)}>Igual que lun a vie</button>
+		<section class="tarjeta">
+			<fieldset class="horario">
+				<legend><span class="paso">4</span> Horario</legend>
+				{#each DIAS as [dia, etiqueta] (dia)}
+					<div class="dia">
+						<div class="dia-titulo">
+							<span>{etiqueta}</span>
+							{#if dia !== 'habil'}
+								<button type="button" class="enlace" onclick={() => igualQueHabil(dia)}>Igual que lun a vie</button>
+							{/if}
+						</div>
+						<div class="modos" role="radiogroup" aria-label="Horario {etiqueta}">
+							{#each MODOS_HORARIO as [modo, texto] (modo)}
+								<button
+									type="button"
+									role="radio"
+									aria-checked={modoDe(dia) === modo}
+									class:elegida={modoDe(dia) === modo}
+									class:desconocido={modo === DESCONOCIDO}
+									onclick={() => elegirModo(dia, modo)}>{texto}</button
+								>
+							{/each}
+						</div>
+						{#if typeof borrador.horario[dia] === 'object'}
+							{@const rango = borrador.horario[dia] as { abre: string; cierra: string }}
+							<div class="rango">
+								<label>Abre <input type="time" bind:value={rango.abre} /></label>
+								<label>Cierra <input type="time" bind:value={rango.cierra} /></label>
+							</div>
 						{/if}
 					</div>
-					<div class="modos" role="radiogroup" aria-label="Horario {etiqueta}">
-						{#each MODOS_HORARIO as [modo, texto] (modo)}
-							<button
-								type="button"
-								role="radio"
-								aria-checked={modoDe(dia) === modo}
-								class:elegida={modoDe(dia) === modo}
-								onclick={() => elegirModo(dia, modo)}>{texto}</button
-							>
-						{/each}
-					</div>
-					{#if typeof borrador.horario[dia] === 'object'}
-						{@const rango = borrador.horario[dia] as { abre: string; cierra: string }}
-						<div class="rango">
-							<label>Abre <input type="time" bind:value={rango.abre} /></label>
-							<label>Cierra <input type="time" bind:value={rango.cierra} /></label>
-						</div>
-					{/if}
-				</div>
-			{/each}
-		</fieldset>
-
-		<Opciones etiqueta="¿Accesible (silla de ruedas)?" opciones={SI_NO} bind:valor={borrador.accesible} />
-		<Opciones etiqueta="¿Cambiador de bebés?" opciones={SI_NO} bind:valor={borrador.cambiador} />
+				{/each}
+			</fieldset>
+		</section>
 	{:else if !errorAlmacen}
 		<p class="nota">Abriendo…</p>
 	{/if}
 
 	<section class="relevados">
-		<h2>Guardados ({relevados.length})</h2>
+		<h2 class="titulo-lista">Guardados ({relevados.length})</h2>
 		<button type="button" class="exportar" onclick={exportar} disabled={relevados.length === 0}>
-			Descargar todo ({relevados.length})
+			⬇ Descargar todo ({relevados.length})
 		</button>
 		{#if ultimaExportacion}<p class="pista">Última descarga: {ultimaExportacion}.</p>{/if}
+		{#if relevados.length === 0}
+			<p class="vacio">Todavía no guardaste ningún baño. El primero es el más difícil.</p>
+		{/if}
 		<ul>
 			{#each relevados as r (r.id)}
 				<li>
@@ -337,7 +351,7 @@
 
 {#if borrador}
 	<footer class="barra">
-		{#if aviso}<p class="aviso-ok" role="status">{aviso}</p>{/if}
+		{#if aviso}<p class="aviso-ok" role="status">🎉 {aviso}</p>{/if}
 		{#if faltan.length && !aviso}<p class="falta">{faltan[0]}</p>{/if}
 		<button type="button" class="guardar" onclick={guardarBanio} disabled={faltan.length > 0 || !almacen}>
 			Guardar baño
@@ -346,92 +360,139 @@
 {/if}
 
 <style>
+	.tope {
+		position: sticky;
+		top: 0;
+		z-index: 15;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 16px;
+		background: var(--sol);
+		border-bottom: var(--borde);
+	}
+	.volver {
+		display: inline-flex;
+		color: inherit;
+	}
+	h1 {
+		flex: 1;
+		margin: 0;
+		font-size: 22px;
+		font-weight: 700;
+		letter-spacing: -0.01em;
+	}
+	.contador {
+		padding: 3px 10px;
+		border: 2px solid var(--tinta);
+		border-radius: 999px;
+		background: var(--crema);
+		font-size: 14px;
+		font-weight: 600;
+		white-space: nowrap;
+	}
 	.relevamiento {
 		max-width: 34rem;
 		margin: 0 auto;
-		padding: 12px 16px 170px;
+		padding: 16px 16px 180px;
 	}
-	.cabecera {
+	.tarjeta {
+		margin: 0 0 18px;
+		padding: 16px 14px 4px;
+		border: var(--borde);
+		border-radius: var(--radio);
+		background: var(--papel);
+		box-shadow: var(--sombra);
+	}
+	h2,
+	.horario legend {
 		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 12px;
+		align-items: center;
+		gap: 8px;
+		margin: 0 0 14px;
+		padding: 0;
+		font-size: 20px;
+		font-weight: 700;
 	}
-	h1 {
-		font-size: 24px;
-		margin: 8px 0 12px;
-	}
-	h2 {
-		font-size: 19px;
-		margin: 28px 0 10px;
-	}
-	.contador {
-		color: var(--suave);
-		font-weight: 600;
+	.paso {
+		display: inline-grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		border: 2px solid var(--tinta);
+		border-radius: 50%;
+		background: var(--celeste-claro);
+		font-size: 15px;
 	}
 	.nota {
-		margin: 0 0 12px;
-		padding: 8px 12px;
-		border-radius: 10px;
-		background: #efe6dc;
+		margin: 0 0 14px;
+		padding: 10px 12px;
+		border: 2px solid var(--tinta);
+		border-radius: 12px;
+		background: var(--celeste-claro);
 		font-size: 15px;
 	}
 	.nota.aviso {
-		background: #fff1d6;
-		color: var(--aviso);
+		background: var(--sol-claro);
 	}
 	.nota.error {
-		background: #fde4e2;
-		color: var(--error);
+		background: var(--rojo-claro);
+		color: var(--rojo);
 	}
 	.gps {
-		margin: 0 0 18px;
-		padding: 12px;
-		border: 2px solid var(--aviso);
-		border-radius: 14px;
-		background: #fff8ec;
+		padding-bottom: 14px;
+		background: var(--sol-claro);
 	}
 	.gps.ok {
-		border-color: var(--ok);
-		background: #eaf6ee;
+		background: var(--mate-claro);
 	}
 	.estado {
 		margin: 0;
-		font-weight: 700;
-	}
-	.estado.espera {
-		color: var(--aviso);
-	}
-	.estado.error {
-		color: var(--error);
+		font-weight: 600;
 	}
 	.gps.ok .estado {
-		color: var(--ok);
+		font-size: 19px;
+		color: var(--mate);
 	}
-	.gps button.secundario {
-		margin-top: 10px;
+	.estado.espera {
+		margin-top: 4px;
 	}
-	button.fijar {
+	.estado.error {
+		color: var(--rojo);
+	}
+	.pista {
+		margin: 6px 0 0;
+		color: var(--tinta-suave);
+		font-size: 14px;
+	}
+	button.fijar,
+	button.guardar {
 		display: block;
 		width: 100%;
 		min-height: 60px;
-		margin: 0 0 8px;
-		border: 0;
-		border-radius: 14px;
-		background: var(--marca);
-		color: #fff;
-		font: inherit;
-		font-size: 18px;
-		font-weight: 800;
+		border: var(--borde);
+		border-radius: var(--radio);
+		box-shadow: var(--sombra);
+		font-size: 19px;
+		font-weight: 700;
 		touch-action: manipulation;
 	}
-	button.fijar:disabled {
-		background: #b9b0a6;
+	button.fijar {
+		margin: 0 0 8px;
+		background: var(--tinta);
+		color: var(--sol);
 	}
-	.pista {
-		margin: 4px 0 0;
-		color: var(--suave);
-		font-size: 14px;
+	button.fijar:disabled,
+	button.guardar:disabled {
+		background: var(--gris);
+		color: var(--tinta);
+		box-shadow: none;
+		border-style: dashed;
+	}
+	button.fijar:active:not(:disabled),
+	button.guardar:active:not(:disabled) {
+		transform: translate(3px, 3px);
+		box-shadow: 1px 1px 0 var(--tinta);
 	}
 	.campo {
 		display: block;
@@ -439,61 +500,68 @@
 	}
 	.campo span {
 		display: block;
-		font-weight: 700;
 		margin-bottom: 8px;
+		font-weight: 600;
 	}
-	input[type='text'] {
+	input[type='text'],
+	.rango input {
 		width: 100%;
 		min-height: 52px;
 		padding: 10px 12px;
-		border: 2px solid var(--borde);
+		border: var(--borde);
 		border-radius: 12px;
-		font: inherit;
-		background: #fff;
+		background: var(--crema);
+		color: var(--tinta);
+		font-size: 17px;
 	}
 	.horario {
 		border: 0;
-		margin: 0 0 18px;
+		margin: 0;
 		padding: 0;
 		min-width: 0;
 	}
-	.horario legend {
-		font-weight: 700;
-		margin-bottom: 8px;
-		padding: 0;
-	}
 	.dia {
-		margin-bottom: 12px;
+		margin-bottom: 14px;
 	}
 	.dia-titulo {
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
 		margin-bottom: 6px;
-		font-size: 15px;
 		font-weight: 600;
 	}
 	.modos {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 6px;
 	}
 	.modos button {
 		min-height: 48px;
 		padding: 4px;
-		border: 2px solid var(--borde);
-		border-radius: 10px;
-		background: #fff;
-		font: inherit;
+		border: 2px solid var(--tinta);
+		border-radius: 12px;
+		background: var(--papel);
+		color: var(--tinta);
 		font-size: 14px;
-		color: var(--texto);
+		font-weight: 500;
 		touch-action: manipulation;
 	}
+	.modos button.desconocido {
+		grid-column: 1 / -1;
+		min-height: 44px;
+		border-style: dashed;
+		color: var(--tinta-suave);
+	}
 	.modos button.elegida {
-		border-color: var(--marca);
-		background: var(--marca);
-		color: #fff;
+		border-style: solid;
+		background: var(--tinta);
+		color: var(--sol);
 		font-weight: 700;
+	}
+	.modos button.desconocido.elegida {
+		background: var(--celeste-claro);
+		color: var(--tinta);
+		font-weight: 600;
 	}
 	.rango {
 		display: grid;
@@ -504,42 +572,50 @@
 	.rango label {
 		display: flex;
 		flex-direction: column;
-		font-size: 14px;
 		gap: 4px;
-	}
-	.rango input {
-		min-height: 48px;
-		padding: 6px 8px;
-		border: 2px solid var(--borde);
-		border-radius: 10px;
-		font: inherit;
-		background: #fff;
+		font-size: 14px;
+		font-weight: 600;
 	}
 	button.secundario,
 	button.exportar {
 		min-height: 48px;
 		padding: 8px 16px;
-		border: 2px solid var(--marca);
-		border-radius: 12px;
-		background: #fff;
-		color: var(--marca);
-		font: inherit;
+		border: var(--borde);
+		border-radius: var(--radio);
+		background: var(--papel);
+		color: var(--tinta);
+		box-shadow: var(--sombra-chica);
+		font-size: 16px;
 		font-weight: 700;
+	}
+	button.secundario {
+		margin-top: 12px;
 	}
 	button.exportar {
 		width: 100%;
+		background: var(--celeste);
 	}
 	button.exportar:disabled {
-		opacity: 0.5;
+		background: var(--gris);
+		box-shadow: none;
 	}
 	button.enlace {
+		padding: 6px 0;
 		border: 0;
 		background: none;
-		color: var(--marca);
-		font: inherit;
+		color: var(--tinta);
 		font-size: 14px;
+		font-weight: 600;
 		text-decoration: underline;
-		padding: 6px 0;
+		text-decoration-color: var(--sol);
+		text-decoration-thickness: 3px;
+	}
+	.titulo-lista {
+		margin-top: 28px;
+	}
+	.vacio {
+		margin: 14px 0 0;
+		color: var(--tinta-suave);
 	}
 	ul {
 		list-style: none;
@@ -551,60 +627,53 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 12px;
-		padding: 10px 0;
-		border-bottom: 1px solid var(--borde);
+		margin-bottom: 10px;
+		padding: 10px 12px;
+		border: 2px solid var(--tinta);
+		border-radius: 12px;
+		background: var(--papel);
 	}
 	li .pista {
 		display: block;
+		margin: 2px 0 0;
 	}
 	button.borrar {
 		min-height: 44px;
 		padding: 6px 12px;
-		border: 1px solid var(--borde);
+		border: 2px solid var(--rojo);
 		border-radius: 10px;
-		background: #fff;
-		color: var(--error);
-		font: inherit;
+		background: var(--papel);
+		color: var(--rojo);
 		font-size: 15px;
+		font-weight: 600;
 	}
 	.barra {
 		position: fixed;
 		left: 0;
 		right: 0;
 		bottom: 0;
-		padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-		background: rgba(251, 247, 242, 0.97);
-		border-top: 1px solid var(--borde);
+		padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+		background: var(--crema);
+		border-top: var(--borde);
 	}
 	.falta,
 	.aviso-ok {
 		max-width: 34rem;
 		margin: 0 auto 8px;
 		font-size: 14px;
+		font-weight: 600;
 	}
 	.falta {
-		color: var(--aviso);
+		color: var(--tinta-suave);
 	}
 	.aviso-ok {
-		color: var(--ok);
-		font-weight: 700;
+		color: var(--mate);
+		font-size: 16px;
 	}
 	button.guardar {
-		display: block;
-		width: 100%;
 		max-width: 34rem;
 		margin: 0 auto;
-		min-height: 60px;
-		border: 0;
-		border-radius: 14px;
-		background: var(--ok);
+		background: var(--mate);
 		color: #fff;
-		font: inherit;
-		font-size: 20px;
-		font-weight: 800;
-		touch-action: manipulation;
-	}
-	button.guardar:disabled {
-		background: #b9b0a6;
 	}
 </style>

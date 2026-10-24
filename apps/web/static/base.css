@@ -1,14 +1,24 @@
-/* Estilos base fuera de los componentes. Sin estilos en línea: la CSP es
+/* Identidad visual y estilos base. Sin estilos en línea: la CSP es
    style-src 'self' (svelte.config.js). */
 :root {
-	--fondo: #fbf7f2;
-	--texto: #2b1d14;
-	--suave: #6f5b4c;
-	--borde: #d9cbbd;
-	--marca: #5b3a29;
-	--ok: #1f7a3a;
-	--aviso: #a15c00;
-	--error: #b3261e;
+	--tinta: #3b2314;
+	--tinta-suave: #6e5242;
+	--crema: #fff8ec;
+	--papel: #ffffff;
+	--sol: #f6b40e;
+	--sol-claro: #ffe7a3;
+	--celeste: #74acdf;
+	--celeste-claro: #dcedfb;
+	--mate: #4f7a28;
+	--mate-claro: #e3f0d3;
+	--rojo: #c8372d;
+	--rojo-claro: #fde3df;
+	--gris: #bdb3a8;
+	--borde: 3px solid var(--tinta);
+	--sombra: 4px 4px 0 var(--tinta);
+	--sombra-chica: 3px 3px 0 var(--tinta);
+	--radio: 16px;
+	--fuente: 'Fredoka Variable', 'Fredoka', ui-rounded, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 	color-scheme: light;
 }
 * {
@@ -17,25 +27,33 @@
 html,
 body {
 	margin: 0;
-	background: var(--fondo);
-	color: var(--texto);
-	font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	background: var(--crema);
+	color: var(--tinta);
+	font-family: var(--fuente);
 	font-size: 17px;
-	line-height: 1.35;
+	line-height: 1.4;
 	-webkit-text-size-adjust: 100%;
+	-webkit-tap-highlight-color: transparent;
 }
 .raiz {
 	display: contents;
 }
+button,
+input {
+	font-family: inherit;
+}
+:focus-visible {
+	outline: 3px solid var(--celeste);
+	outline-offset: 2px;
+}
 .banner-prueba {
-	position: sticky;
-	top: 0;
-	z-index: 10;
 	margin: 0;
 	padding: 6px 12px;
-	background: #ffd84d;
-	color: #3a2a00;
-	font-size: 14px;
+	background: var(--tinta);
+	color: var(--sol);
+	font-family: var(--fuente);
+	font-size: 13px;
 	font-weight: 600;
+	letter-spacing: 0.02em;
 	text-align: center;
 }

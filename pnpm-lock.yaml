@@ -10,6 +10,9 @@ importers:
 
   apps/web:
     devDependencies:
+      '@fontsource-variable/fredoka':
+        specifier: 5.3.0
+        version: 5.3.0
       '@sveltejs/adapter-node':
         specifier: 5.5.7
         version: 5.5.7(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.2)(vite@7.3.7))(svelte@5.57.2)(typescript@5.9.3)(vite@7.3.7))
@@ -195,6 +198,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource-variable/fredoka@5.3.0':
+    resolution: {integrity: sha512-13w98iw2RcmYfZQRZPLSu+0YJK3HHm5A2XrpU26moFIAePmfiKfvkmEJUgkc8r5GNR+pbDijOueS1KdGAMAWmQ==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -931,6 +937,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@fontsource-variable/fredoka@5.3.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

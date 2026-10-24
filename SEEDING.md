@@ -57,7 +57,7 @@ oficiales** (Q-T10).
 | 2026-10-24 19:44-19:47 | overpass-api.de, overpass.kumi.systems | Cortada / timeout | — | — | |
 | 2026-10-24 19:58 | overpass-api.de | Conexión cortada | — | — | |
 | 2026-10-24 20:00 | overpass.kumi.systems | Timeout (95 s) | — | — | |
-| 2026-10-24 21:32 | overpass-api.de, overpass.kumi.systems | *Programado* | | | Reintento automático de la sesión. |
+| 2026-10-24 23:18-23:19 | overpass-api.de, overpass.kumi.systems | Cortada / timeout (65 s) | — | — | Reintento programado (estaba para las 21:32 y se ejecutó tarde). Sigue sin verificar. |
 
 Que fallen siempre los mismos dos servidores, mientras otro espejo responde,
 sugiere un problema de alcance desde el entorno de trabajo más que una caída de
