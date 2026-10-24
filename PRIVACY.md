@@ -55,7 +55,8 @@ individuales:**
 | Evidencias de atributos (incluida la tercera pregunta) | Público, indexado | "1 persona, hace 2 semanas: no cobra"; en contradicción de horario, además tipo de día y franja | Sin autor, semana, demora, sin `cuenta_id` a los 90 días (P-13, P-24). |
 | Historial del wiki | Público, indexado | Una edición: atributo, antes → después, mes | Sin seudónimo, mes (P-25). Riesgo residual: Q-P8. |
 | Insignias públicas | Público, opt-in | Que la persona completó un logro | Sin lugar ni fecha; las de ruta solo completas (P-20). |
-| Tarjetas compartibles | Quien reciba el link | Lo mismo que la insignia | Acto explícito del usuario en el momento. |
+| Tarjetas compartibles | Quien reciba el link | Lo mismo que la insignia; **(i3)** para medallas, el nombre implica la cantidad de registros (múltiplo de 5) | Acto explícito del usuario en el momento; sin fecha ni lugar (P-33). |
+| **(i3)** Anuncio de medalla a amigos | Amigos elegidos | Que hubo un registro ese día | Solo si el usuario lo pide para esa medalla; cola diferida (P-33). |
 
 **Regla para cualquier superficie nueva** (vista social, perfil público, liga,
 ranking, mapa general, estadísticas para comercios adheridos):
@@ -555,11 +556,12 @@ magic links son de personas reales**: la política de privacidad aplica igual,
 aunque las cuentas sean descartables, y el borrado al migrar tiene que ser real
 (incluidos los backups de ese entorno).
 
-### P-32 · (i3, propuesta) Regla asimétrica de exposición de comercios
+### P-32 · (i3) Regla asimétrica de exposición de comercios
 
-**Estado:** propuesta, pendiente de decisión (DESIGN.md §17.4).
+**Estado:** adoptada para v1, independiente de que se adopte "Baño amigo"
+(DESIGN.md §18.4).
 
-**Decisión propuesta.** Para un comercio que no adhirió a "Baño amigo", la ficha
+**Decisión.** Para un comercio que no adhirió a "Baño amigo", la ficha
 nunca dice "libre" ni "sin consumir", aunque haya reportes de usuarios en ese
 sentido: dice "baño para clientes" o "consultá". Solo un comercio adherido
 muestra "te dejan pasar sin consumir".
@@ -570,6 +572,24 @@ eligió.
 
 **Cuesta.** Se esconde un dato verdadero y útil. Si "Baño amigo" no se adopta,
 el atributo "acceso" de los comercios pierde casi todo su valor.
+
+### P-33 · (i3) Medallas: privadas por defecto y nunca en el perfil público
+
+**Decisión.** Una medalla cada 5 registros, calculada en el dispositivo sobre el
+historial privado (DESIGN.md §17). Se ven en "Mis registros". Se pueden
+compartir como tarjeta o contar a los amigos, **una por una y a pedido**. No se
+muestran en el perfil público. Los nombres no hablan del cuerpo ni de la salud.
+
+**Mitiga.** Una medalla de conteo en un perfil público es un contador acumulado
+que cualquiera puede mirar dos veces: la diferencia es la frecuencia intestinal
+de esa persona en ese período (P-02, art. 7). Un anuncio automático a amigos
+revelaría que hubo un registro ese día aunque el usuario no les cuente sus
+registros. Nombres sobre condiciones de salud podrían ser hirientes para quien
+las tiene.
+
+**Cuesta.** Lo más compartible ("¡llegué al Trono de Oro!") no se luce solo en
+el perfil: hay que compartirlo a mano. Sin anuncio automático, el modo amigos
+pierde un empujón social. El servidor no puede verificar ninguna medalla.
 
 ---
 
@@ -612,7 +632,7 @@ No es asesoramiento legal. Necesita revisión de un abogado (Q-L1).
 | Art. 5 | Consentimiento libre, expreso e informado, con prueba. | P-09, con consentimientos separados y versionados. |
 | Art. 6 | Informar finalidad, destinatarios, derechos. | Política en `docs/legal/`; **(i2)** el texto de la primera tarjeta del puente. |
 | Art. 7 | Datos sensibles; inc. 3 prohíbe bancos que los revelen. | Q-L1. P-02, P-03, P-04. |
-| Art. 9 | Seguridad. | DESIGN.md §18. |
+| Art. 9 | Seguridad. | DESIGN.md §19. |
 | Art. 12 | Transferencia internacional. | Mail transaccional, backups, **(i2)** servicios de push (Q-L5). |
 | Art. 14 | Acceso en 10 días corridos. | `GET /cuenta/exportar`. |
 | Art. 16 | Supresión en 5 días hábiles. | `DELETE /cuenta`, `DELETE /aportes/...` (P-18). |

@@ -8,6 +8,18 @@ iteración; **✅** lo resuelto.
 
 ---
 
+## Pendientes con dueño (i3)
+
+Decisiones o datos que **no** salen del diseño, sino del responsable del
+producto:
+
+| Pregunta | Qué falta | Dueño |
+|---|---|---|
+| **Q-O7** | Confirmar si hay recorrida cada 4 meses, según disponibilidad real. El diseño asume que no (DESIGN.md §10). | Responsable del producto |
+| **Q-D5** | Preguntar en la Municipalidad si hay baños públicos municipales (ubicación, horario, si cobran). Llevar la propuesta de "Baño amigo". | Responsable del producto |
+| **Q-N4** | Registrar el dominio definitivo (~10 días). | Responsable del producto |
+| **Q-L1, Q-L6** | Consulta con un abogado: Ley 25.326 art. 7 y licencia de la base (ADR 0002). | Responsable del producto |
+
 ## Producto y arranque en frío
 
 **Q-N1 🔴 (i2) · ¿Hay masa crítica para que la capa de baños se mueva sola?**
@@ -266,7 +278,7 @@ Sigue abierto para horario y "cobra": un horario de 2026 puede ser falso en 2028
 **Lo averigua el responsable del producto en la Municipalidad.** Si no hay
 ninguno, la capa útil pasa a ser "comercios que te dejan pasar al baño": cambia
 el texto de la web, no el modelo de datos. Llevar a esa reunión la propuesta de
-"Baño amigo" con respaldo municipal (DESIGN.md §17.6). Texto de la iteración 2:
+"Baño amigo" con respaldo municipal (DESIGN.md §18.6). Texto de la iteración 2:
 OSM no tiene ninguno. Si no existen, el producto es un mapa de "baños de lugares
 públicos" (estaciones, bares, supermercados), con todo lo que eso implica:
 dependen de la buena voluntad del comercio y de si consumís. Si existen y nadie
@@ -327,15 +339,24 @@ bases de datos como el europeo. La protección real son los términos de uso y
 medidas técnicas (ADR 0002, pregunta 7).
 
 **Q-N11 🟠 (i3) · "Baño amigo": ¿se adopta?**
-Evaluado en DESIGN.md §17, sin adoptar. Precedentes: los que funcionan
+Evaluado en DESIGN.md §18, sin adoptar. Precedentes: los que funcionan
 (Alemania, Reino Unido) están pagados por el municipio; uno sin incentivo
 (Brighton) llegó a 19 comercios. Necesita submarca sobria (Q-N3), verificación
 de comercios y renovación anual. Decisión ligada a Q-D5.
 
-**Q-N12 🟠 (i3) · Regla asimétrica de exposición de comercios (P-32).**
-Recomendada para v1 aunque no se adopte "Baño amigo". Esconde un dato verdadero
-("me dejaron pasar sin consumir") para no exponer a comercios que no lo
-eligieron. Pendiente de decisión.
+**Q-N12 ✅ (i3) · Regla asimétrica de exposición de comercios (P-32).**
+Adoptada para v1. Queda abierto medir cuánto valor útil se pierde: cuántos
+comercios no adheridos tienen reportes de "me dejaron pasar sin consumir" que no
+se muestran.
+
+**Q-N13 🟡 (i3) · Medallas: ritmo y primera recompensa.**
+Una cada 5 registros, sin fin, puede inflarse: con un registro por día son ~73
+por año y después de la 40 (200 registros) los nombres pasan a ser
+"Inmortalidad Sanitaria, nivel N". Además, la primera llega recién en el quinto
+registro: el usuario que vino por el chiste no recibe nada los primeros días.
+*Opciones:* sumar un logro por el primer registro ("Primera vez"), y espaciar
+las medallas después de las 40 con nombre (cada 10 o cada 25). Medir en el
+piloto si alguien llega a 200.
 
 **Q-P10 🟡 (i3) · La tercera pregunta en contradicción de horario revela tipo de día y franja.**
 Es la única respuesta pública que dice "alguien estuvo acá un domingo a la

@@ -48,7 +48,9 @@ Arriba del mapa: **Mis registros / Baños públicos**.
 
 - **Mis registros** (privado, requiere cuenta): cada registro es un *evento*
   (vos + momento + lugar). Vive cifrado en tu dispositivo y se sincroniza
-  cifrado: el servidor guarda bytes que no puede leer. Ahí están tus logros y el
+  cifrado: el servidor guarda bytes que no puede leer. Ahí están tus logros, tus
+  medallas (una cada 5 registros, con nombres como "Sommelier de Papel
+  Higiénico" o "Resistencia al Viento Patagónico") y el
   feed de tus amigos, que ven en qué baño público estuviste (los viajes, recién
   cuando volvés) y que estuviste "en casa" sin saber dónde queda.
 - **Baños públicos** (público, sin login, indexado por Google): cada baño es un

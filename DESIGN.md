@@ -21,9 +21,10 @@ Estado: **borrador para crítica, iteración 3**. Nada de esto está implementad
 14. [PWA ahora, app nativa después](#14-pwa-ahora-app-nativa-después)
 15. [Entornos: prueba y definitivo](#15-entornos-prueba-y-definitivo)
 16. [Postergado: mapa general](#16-postergado-mapa-general)
-17. [En evaluación: "Baño amigo"](#17-en-evaluación-baño-amigo)
-18. [Operación en el VPS](#18-operación-en-el-vps)
-19. [Alcance de v1 y después](#19-alcance-de-v1-y-después)
+17. [Logros y medallas](#17-logros-y-medallas)
+18. [En evaluación: "Baño amigo"](#18-en-evaluación-baño-amigo)
+19. [Operación en el VPS](#19-operación-en-el-vps)
+20. [Alcance de v1 y después](#20-alcance-de-v1-y-después)
 
 ---
 
@@ -41,7 +42,8 @@ Estado: **borrador para crítica, iteración 3**. Nada de esto está implementad
 | 6 | **Tercera pregunta del puente**, opcional, una por registro, solo para horario, cobro y acceso, que se pausa después de dos salteos seguidos (§7.3). | Decisión del producto. |
 | 7 | **Decaimiento de datos** diseñado asumiendo que no hay recorrida periódica (§10). | Pedido explícito. |
 | 8 | **Entorno de prueba** en `caca.blucaro.site`: sin passkeys, cuentas descartables, noindex, dominio en una sola variable, banner (§15). | Decisión del producto. Corrección: el `noindex` no va en robots.txt (§15.3). |
-| 9 | **"Baño amigo"** evaluado como alternativa, sin adoptar (§17). | Pedido explícito. |
+| 9 | **"Baño amigo"** evaluado como alternativa, sin adoptar (§18). | Pedido explícito. |
+| 9b | **Regla asimétrica de exposición** adoptada para v1 (§18.4, P-32). **Medallas** cada 5 registros con nombres graciosos (§17). | Decisiones del producto, posteriores a la primera versión de la iteración 3. |
 | 10 | Se unifican ediciones del wiki y confirmaciones en una tabla de **evidencias** con procedencia y fecha. Las fichas muestran fuente y fecha de cada dato. | Consecuencia de 3, 4 y 7: si cada dato lleva procedencia y fecha, la atribución vale para todo el wiki, no solo para el estado reciente. |
 
 ### Iteración 2 (resumen)
@@ -283,6 +285,9 @@ privadas.
 
 **(i3)** Nuevo en `preferencias`: `tercera_pregunta = { salteos_seguidos: n,
 pausada_hasta: fecha | null }` (§7.3).
+
+**(i3)** `medallas_obtenidas`: `numero`, `obtenida_en`. Dentro de la bóveda;
+el servidor no las conoce (§17.6).
 
 ### 6.2 Bóveda (servidor, cifrada)
 
@@ -1343,18 +1348,100 @@ viven los usuarios. Antes de reactivarlo hay que decidir qué mide.
 
 ---
 
-## 17. En evaluación: "Baño amigo"
+## 17. Logros y medallas
+
+### 17.1 Dos cosas distintas
+
+| | **Logros** | **Medallas** |
+|---|---|---|
+| Qué premian | Una hazaña: conquistar las YPF de la Ruta 3, el baño ajeno sin papel, el baño del laburo. | La constancia: **una medalla cada 5 registros**, con nombre gracioso. |
+| Catálogo | `data/curated/logros.json` | [`data/curated/medallas.json`](data/curated/medallas.json) |
+| Ritmo | Irregular, a veces nunca. | Predecible: con un registro por día, una cada 5 días. Es la recompensa que vuelve seguido. |
+
+Las dos se calculan **en el dispositivo**, sobre el historial privado
+(`registros`), incluidos los registros en zonas privadas. El servidor no sabe
+cuántas medallas tiene nadie.
+
+### 17.2 La regla de las medallas
+
+- Medalla número *n* = registro número 5·*n*. Cuentan **todos** los registros
+  propios, sin importar dónde fueron (casa, laburo, ruta).
+- **De 5 a 200:** 40 medallas con nombre propio (`medallas.json`).
+- **Después de 200:** cada 5 registros, "Inmortalidad Sanitaria, nivel *N*",
+  más medallas especiales con nombre en 300, 500 y 1000.
+- Si el usuario borra registros y baja de un umbral, **la medalla se conserva**:
+  quitarla sería castigar el borrado, y borrar tiene que ser gratis (P-18).
+- Cargar registros viejos a mano cuenta. Se puede trampear; como todo pasa en el
+  dispositivo del propio usuario y no hay ranking público, no importa (Q-P5).
+
+### 17.3 Los nombres
+
+Criterios para el catálogo:
+
+1. **Rioplatenses y locales**: el viento patagónico, el pingüino, el guanaco, la
+   meseta, el río Gallegos, el mate, el bidet, la mochila del inodoro.
+2. **Sin género gramatical de persona.** No sabemos (ni queremos saber) el género
+   de nadie, así que los nombres nombran la hazaña o el objeto ("Capitanía de la
+   Cisterna"), no a la persona ("Capitán de la Cisterna").
+3. **Nada sobre el cuerpo ni sobre la salud** (P-02): nada de diarrea,
+   estreñimiento ni chistes que un diagnóstico pueda volver hirientes.
+4. **Nada de marcas, política, religión ni personas reales.** En Río Gallegos un
+   chiste político no es neutro.
+
+Muestra: 5 "Debut en el Trono" · 20 "Sommelier de Papel Higiénico" · 25 "Bodas
+de Plata con el Inodoro" · 60 "Resistencia al Viento Patagónico" · 100 "Trono
+de Bronce" · 125 "Pingüino Emperador" · 170 "Cacería del Baño Abierto en
+Domingo" · 200 "Trono de Oro". La lista completa está en `medallas.json`.
+
+### 17.4 Dónde se ven
+
+| Lugar | ¿Se ve? | Cómo |
+|---|---|---|
+| Al registrar | Sí | Si el registro completa un múltiplo de 5, una animación corta con el nombre de la medalla, **después** de guardar el registro y del puente (no los demora ni los tapa). |
+| "Mis registros" | Sí | Vitrina con las ganadas y "te faltan 3 para la próxima" (sin revelar el nombre: la sorpresa es parte del chiste). |
+| Tarjeta compartible | Si el usuario la genera | `/c/{token}` con el nombre de la medalla. Acto explícito, en el momento. Sin fecha ni lugar. El nombre ya implica la cantidad (cada medalla es un múltiplo de 5), y eso se avisa al generar la tarjeta. |
+| Feed de amigos | Solo si el usuario toca "Contarle a mis amigos" en esa medalla | Va por la cola diferida (1 a 6 h) y con fecha de día. Por default, no se anuncia. |
+| Perfil público (`/u/{seudonimo}`) | **No** | Ver §17.5. |
+
+### 17.5 Por qué las medallas no van al perfil público
+
+Una medalla de conteo publicada en un perfil es **un contador acumulado de
+registros que cualquiera puede mirar cada semana**. Dos miradas separadas siete
+días dicen cuántas veces fue al baño esa persona en esa semana: frecuencia
+intestinal, que es lo más cercano a un dato de salud que tiene el sistema (P-02,
+Ley 25.326 art. 7). Las insignias públicas (P-20) no tienen ese problema porque
+no son conteos.
+
+Por la misma razón, el anuncio automático a amigos está apagado: si el usuario
+no les cuenta sus registros de casa a sus amigos, un "ganó una medalla hoy"
+automático les diría que registró algo ese día.
+
+### 17.6 Datos
+
+En el dispositivo, dentro de la bóveda: `medallas_obtenidas` (`numero`,
+`obtenida_en`), y en `preferencias` el último umbral anunciado. En el servidor
+no hay tabla de medallas. Cambios mínimos en lo que ya existe:
+
+- `feed_amigos`: nuevo campo `tipo` (`registro`, `medalla`) y `medalla_numero`
+  (nullable). Un ítem de tipo `medalla` no tiene `banio_id` ni etiqueta.
+- `POST /tarjetas`: `{ tipo: 'insignia' | 'medalla', id }` → devuelve el token
+  de `/c/{token}`. El servidor guarda solo el tipo, el id y la cuenta (para que
+  el dueño pueda borrar la tarjeta).
+
+---
+
+## 18. En evaluación: "Baño amigo"
 
 **Estado:** en evaluación, **no adoptado**. Esta sección es para decidir.
 
-### 17.1 La idea
+### 18.1 La idea
 
 En vez de publicar "acá te dejan pasar gratis" (la forma más rápida de que el
 comercio deje de hacerlo), convertirlo en **reputación**: un distintivo de
 "Baño amigo" que el comercio quiera tener, visible en su ficha, que puede pedir
 por un canal simple y dejar cuando quiera.
 
-### 17.2 Precedentes (y qué enseñan)
+### 18.2 Precedentes (y qué enseñan)
 
 - **Nette Toilette (Alemania, desde 2000):** las ciudades pagan a los comercios
   unos 30 a 100 € por mes para que abran el baño al público, y el comercio pone
@@ -1372,7 +1459,7 @@ no hay baños públicos municipales, "Baño amigo" con respaldo municipal (aunqu
 sea sin pago, con el sello de la Municipalidad) es una propuesta concreta para
 llevarle.
 
-### 17.3 Qué agrega al modelo
+### 18.3 Qué agrega al modelo
 
 **`propio.adhesiones`**
 
@@ -1391,10 +1478,10 @@ Endpoints nuevos: `POST /adhesiones` (formulario público "¿Es tu comercio?" en
 ficha, sin cuenta de usuario), `POST /adhesiones/{id}/baja` (con un token que
 recibe el comercio). La verificación y la activación son comandos del CLI.
 
-### 17.4 Qué cambia en el producto
+### 18.4 Qué cambia en el producto
 
-1. **Regla asimétrica de exposición** (la recomiendo **aunque no se adopte el
-   resto**): para un comercio **no adherido**, la ficha nunca dice "libre" ni
+1. **Regla asimétrica de exposición** (**adoptada para v1**, aunque no se
+   adopte el resto): para un comercio **no adherido**, la ficha nunca dice "libre" ni
    "sin consumir". Dice "baño para clientes" o "consultá", aunque haya reportes
    de usuarios de que dejaron pasar. Solo un comercio adherido muestra "te dejan
    pasar sin consumir". Costo: se esconde un dato verdadero. Beneficio: el
@@ -1410,7 +1497,7 @@ recibe el comercio). La verificación y la activación son comandos del CLI.
    de adquisición que tiene el proyecto. Cada vidriera es un cartel.
 5. **Filtro "Baños amigos"** en el mapa.
 
-### 17.5 Qué cuesta
+### 18.5 Qué cuesta
 
 | Rubro | Costo |
 |---|---|
@@ -1422,11 +1509,11 @@ recibe el comercio). La verificación y la activación son comandos del CLI.
 | Privacidad | **Presión previsible:** un comercio adherido va a pedir "¿cuánta gente vino por ustedes?". La respuesta tiene que ser "nada individual"; como mucho, un agregado mensual con k ≥ 3 cuentas elegibles, en rangos. Está en el invariante de superficies. |
 | Riesgo | Sin pago ni respaldo municipal, pocas adhesiones (Brighton: 19). Un programa con 2 comercios se ve peor que no tener programa. |
 
-### 17.6 Recomendación
+### 18.6 Recomendación
 
-- **Adoptar en v1, independiente del resto** (pendiente de tu decisión): la
-  regla asimétrica de exposición (§17.4, punto 1; PRIVACY.md P-32). Cuesta poco
-  en código y cierra el riesgo original; su costo es esconder un dato verdadero.
+- **Adoptada para v1, independiente del resto:** la regla asimétrica de
+  exposición (§18.4, punto 1; PRIVACY.md P-32). Cuesta poco en código y cierra
+  el riesgo original; su costo es esconder un dato verdadero.
 - **No meter "Baño amigo" en v1.** Llevarlo como propuesta a la Municipalidad
   junto con la consulta de Q-D5. Si hay respaldo municipal, piloto con 5
   comercios después del lanzamiento.
@@ -1436,7 +1523,7 @@ recibe el comercio). La verificación y la activación son comandos del CLI.
 
 ---
 
-## 18. Operación en el VPS
+## 19. Operación en el VPS
 
 - Docker Compose: `caddy`, `web`, `worker` (cron), `postgres`.
 - Caddy: TLS automático; `log` desactivado para `/api/*` y `/tiles/*`; en el resto,
@@ -1472,7 +1559,7 @@ recibe el comercio). La verificación y la activación son comandos del CLI.
 - Backups de `propio` y `enlace` por separado de `osm` (`osm` se regenera desde
   el extracto).
 
-## 19. Alcance de v1 y después
+## 20. Alcance de v1 y después
 
 **v1 (piloto Río Gallegos, PWA)**
 
@@ -1483,7 +1570,9 @@ recibe el comercio). La verificación y la activación son comandos del CLI.
 - Puente con tercera pregunta.
 - "Sigue igual" en la ficha.
 - Modo amigos con viajes a la vuelta.
-- Logros y tarjetas compartibles.
+- Logros y **medallas cada 5 registros** (§17), con tarjetas compartibles.
+- **Regla asimétrica de exposición de comercios** (§18.4, PRIVACY.md P-32): a un
+  comercio no adherido nunca se lo muestra como "te dejan pasar sin consumir".
 - Push agregado en Android.
 - Exportación y borrado de cuenta.
 - Entorno de prueba en `caca.blucaro.site` mientras llega el dominio definitivo.
@@ -1495,9 +1584,7 @@ recibe el comercio). La verificación y la activación son comandos del CLI.
 **Postergado o en evaluación**
 
 - Mapa general (§16).
-- "Baño amigo" (§17), según la respuesta de la Municipalidad.
-- Regla asimétrica de exposición de comercios (§17.4, PRIVACY.md P-32):
-  recomendada para v1, pendiente de decisión.
+- "Baño amigo" (§18), según la respuesta de la Municipalidad.
 - Ligas entre amigos (Q-N9).
 - Más ciudades sobre la Ruta 3.
 - Devolución manual a OSM (ADR 0001).

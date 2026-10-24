@@ -1,6 +1,6 @@
 # infra/caddy
 
-Configuración de Caddy (DESIGN.md §15 y §18). Sin implementar.
+Configuración de Caddy (DESIGN.md §15 y §19). Sin implementar.
 
 - El host sale de `ORIGEN_PUBLICO` (variable `{$ORIGEN_HOST}` en el
   `Caddyfile`). El dominio no se escribe en ningún archivo de esta carpeta.

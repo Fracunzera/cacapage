@@ -1,0 +1,226 @@
+{
+  "_comentario": "Catálogo de medallas (DESIGN.md §17). Una medalla cada 5 registros. Se evalúa en el dispositivo; el servidor no conoce las medallas de nadie. Criterios de nombres: rioplatenses y locales, sin género gramatical de persona, nada sobre el cuerpo ni la salud (P-02), sin marcas, política, religión ni personas reales.",
+  "version": 1,
+  "cada": 5,
+  "medallas": [
+    {
+      "numero": 1,
+      "registros": 5,
+      "nombre": "Debut en el Trono"
+    },
+    {
+      "numero": 2,
+      "registros": 10,
+      "nombre": "Aprendizaje de Plomería"
+    },
+    {
+      "numero": 3,
+      "registros": 15,
+      "nombre": "Abono Mensual al Bidet"
+    },
+    {
+      "numero": 4,
+      "registros": 20,
+      "nombre": "Sommelier de Papel Higiénico"
+    },
+    {
+      "numero": 5,
+      "registros": 25,
+      "nombre": "Bodas de Plata con el Inodoro"
+    },
+    {
+      "numero": 6,
+      "registros": 30,
+      "nombre": "Peregrinaje del Azulejo"
+    },
+    {
+      "numero": 7,
+      "registros": 35,
+      "nombre": "Ciudadanía Ilustre del Baño"
+    },
+    {
+      "numero": 8,
+      "registros": 40,
+      "nombre": "Doctorado Honoris Causa en Descarga"
+    },
+    {
+      "numero": 9,
+      "registros": 45,
+      "nombre": "Lectura Completa de la Etiqueta del Shampoo"
+    },
+    {
+      "numero": 10,
+      "registros": 50,
+      "nombre": "Medio Centenario"
+    },
+    {
+      "numero": 11,
+      "registros": 55,
+      "nombre": "Ingeniería en Mochilas"
+    },
+    {
+      "numero": 12,
+      "registros": 60,
+      "nombre": "Resistencia al Viento Patagónico"
+    },
+    {
+      "numero": 13,
+      "registros": 65,
+      "nombre": "Mate en el Trono"
+    },
+    {
+      "numero": 14,
+      "registros": 70,
+      "nombre": "Custodia del Último Rollo"
+    },
+    {
+      "numero": 15,
+      "registros": 75,
+      "nombre": "Tres Cuartos de Leyenda"
+    },
+    {
+      "numero": 16,
+      "registros": 80,
+      "nombre": "Capitanía de la Cisterna"
+    },
+    {
+      "numero": 17,
+      "registros": 85,
+      "nombre": "Embajada del Bidet"
+    },
+    {
+      "numero": 18,
+      "registros": 90,
+      "nombre": "Zen del Botón Doble"
+    },
+    {
+      "numero": 19,
+      "registros": 95,
+      "nombre": "Casi Centenario"
+    },
+    {
+      "numero": 20,
+      "registros": 100,
+      "nombre": "Trono de Bronce"
+    },
+    {
+      "numero": 21,
+      "registros": 105,
+      "nombre": "Expedición a Baños Ajenos"
+    },
+    {
+      "numero": 22,
+      "registros": 110,
+      "nombre": "Crítica Gastronómica Inversa"
+    },
+    {
+      "numero": 23,
+      "registros": 115,
+      "nombre": "La Ruta del Papel"
+    },
+    {
+      "numero": 24,
+      "registros": 120,
+      "nombre": "El Anillo del Inodoro"
+    },
+    {
+      "numero": 25,
+      "registros": 125,
+      "nombre": "Pingüino Emperador"
+    },
+    {
+      "numero": 26,
+      "registros": 130,
+      "nombre": "Travesía de la Meseta"
+    },
+    {
+      "numero": 27,
+      "registros": 135,
+      "nombre": "Fiscalía de la Descarga"
+    },
+    {
+      "numero": 28,
+      "registros": 140,
+      "nombre": "Patrimonio Sanitario"
+    },
+    {
+      "numero": 29,
+      "registros": 145,
+      "nombre": "Leyenda de Barrio"
+    },
+    {
+      "numero": 30,
+      "registros": 150,
+      "nombre": "Trono de Plata"
+    },
+    {
+      "numero": 31,
+      "registros": 155,
+      "nombre": "Colección de Azulejos"
+    },
+    {
+      "numero": 32,
+      "registros": 160,
+      "nombre": "Arbitraje del Doble Hoja"
+    },
+    {
+      "numero": 33,
+      "registros": 165,
+      "nombre": "Navegación del Río Gallegos"
+    },
+    {
+      "numero": 34,
+      "registros": 170,
+      "nombre": "Cacería del Baño Abierto en Domingo"
+    },
+    {
+      "numero": 35,
+      "registros": 175,
+      "nombre": "Guanaco Errante"
+    },
+    {
+      "numero": 36,
+      "registros": 180,
+      "nombre": "Sabiduría de la Mochila"
+    },
+    {
+      "numero": 37,
+      "registros": 185,
+      "nombre": "Corona de Azulejo"
+    },
+    {
+      "numero": 38,
+      "registros": 190,
+      "nombre": "Viento en Contra, Descarga a Favor"
+    },
+    {
+      "numero": 39,
+      "registros": 195,
+      "nombre": "A un Paso de la Inmortalidad"
+    },
+    {
+      "numero": 40,
+      "registros": 200,
+      "nombre": "Trono de Oro"
+    }
+  ],
+  "despues_de_200": {
+    "cada": 5,
+    "plantilla": "Inmortalidad Sanitaria, nivel {nivel}",
+    "nivel": "(registros - 200) / 5"
+  },
+  "especiales": [
+    {
+      "registros": 300,
+      "nombre": "Trono de Platino"
+    },
+    {
+      "registros": 500,
+      "nombre": "Monumento al Inodoro Desconocido"
+    },
+    {
+      "registros": 1000,
+      "nombre": "Mil y Una Descargas"
+    }
+  ]
+}
