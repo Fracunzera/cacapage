@@ -42,6 +42,37 @@ indicaste. Los datos son los mismos de OSM: el espejo informa
 `overpass-api.de` responda vale la pena repetir la consulta y comparar, aunque
 no espero diferencias.
 
+### 1.1 Registro de corridas
+
+Cada vez que se corre la consulta de baños, se anota acá: desde qué instancia,
+cuándo, y qué dio. **Estado: el dato no está verificado contra los servidores
+oficiales** (Q-T10).
+
+| Fecha y hora (UTC) | Instancia | Resultado | `timestamp_osm_base` | Elementos | Notas |
+|---|---|---|---|---|---|
+| 2026-10-24 19:11 | overpass-api.de | Conexión cortada | — | — | Primer intento (bbox levemente distinto, -51.57). |
+| 2026-10-24 19:12-19:15 | overpass-api.de, overpass.kumi.systems, overpass.private.coffee | Cortada / timeout / timeout | — | — | |
+| 2026-10-24 19:31-19:34 | overpass-api.de, overpass.kumi.systems, overpass.private.coffee | Cortada / timeout / timeout | — | — | Consulta exacta pedida. |
+| **2026-10-24 19:34** | **maps.mail.ru** (espejo público) | **HTTP 200** | 2026-10-24T19:32:55Z | **5** | **Fuente del archivo crudo.** SHA-256 abajo. |
+| 2026-10-24 19:44-19:47 | overpass-api.de, overpass.kumi.systems | Cortada / timeout | — | — | |
+| 2026-10-24 19:58 | overpass-api.de | Conexión cortada | — | — | |
+| 2026-10-24 20:00 | overpass.kumi.systems | Timeout (95 s) | — | — | |
+| 2026-10-24 21:32 | overpass-api.de, overpass.kumi.systems | *Programado* | | | Reintento automático de la sesión. |
+
+Que fallen siempre los mismos dos servidores, mientras otro espejo responde,
+sugiere un problema de alcance desde el entorno de trabajo más que una caída de
+los servidores. La verificación más rápida es correr la consulta desde otra
+máquina y comparar los ids:
+
+```
+curl -s https://overpass-api.de/api/interpreter \
+  --data-urlencode 'data=[out:json][timeout:60];nwr[amenity=toilets](-51.70,-69.35,-51.55,-69.13);out ids;'
+```
+
+Ids esperados: 6765403662, 6821671319, 7333713861, 12617116019, 12617116028.
+**Si el resultado difiere, se frena todo lo que depende de este número hasta
+revisarlo.**
+
 **Archivo crudo:** [`data/osm-toilets-rio-gallegos.json`](data/osm-toilets-rio-gallegos.json),
 sin modificar. SHA-256
 `88e0d970c231d341f5ee6a7459a75d210534412774fdfa8bfde2b984910ffb4d`.
@@ -160,10 +191,14 @@ baños **confirmados y completos** más ~30 probables marcados claramente como
 |---|---|---|
 | 1 | Importar de OSM (una vía): 5 `amenity=toilets` + 73 candidatos. | ~78 objetos crudos. |
 | 2 | Fusionar baños con su estación (< 50 m) y curar a mano (sacar almacenes, salitas, duplicados, sin nombre). | ~60 baños: 5 confirmados sin datos, ~55 probables. |
-| 3 | Recorrida: ~30 lugares de más tránsito, con una ficha por lugar. | 30 confirmados con atributos completos (`origen = curado`). |
-| 4 | Consultar a la Municipalidad por baños públicos propios (ubicación, horario, si cobran). | 0 a N baños públicos de verdad. |
+| 3 | Recorrida: ~30 lugares de más tránsito, con una ficha por lugar. **Ubicación con el GPS del celular en el lugar** y cada dato levantado ahí, sin copiar nada de OSM (ADR 0002). Las fichas se cargan como archivos en `data/curated/`, no editando el wiki del entorno de prueba. | 30 confirmados con atributos completos, `procedencia = gps_campo`. |
+| 4 | Consultar a la Municipalidad por baños públicos propios (ubicación, horario, si cobran). **Lo hace el responsable del producto.** | 0 a N baños públicos de verdad, `procedencia = fuente_externa`. Si son 0, la capa útil pasa a ser "comercios que te dejan pasar" (cambia el texto, no el modelo). |
 | 5 | Lanzamiento. | ~60 puntos, la mitad confirmada y completa. |
 | 6 | El puente y las ediciones del wiki trabajan sobre los probables. | Confirmaciones de a poco. |
+
+**Sobre la hoja de ruta:** usar la lista de OSM para decidir qué lugares visitar
+puede leerse como derivación aunque cada dato se levante en la calle (Q-L9).
+Para reducirlo, la recorrida incluye también lugares que no están en OSM.
 
 **Lo que la recorrida no debería hacer:** cargar estos datos en OSM de forma
 masiva como parte del proyecto. Si se quieren devolver, es otra decisión,

@@ -5,10 +5,12 @@ el actor del modelo de amenazas de [DESIGN.md §2](DESIGN.md#2-modelo-de-amenaza
 y qué cuesta en experiencia de usuario. Si una decisión no cuesta nada, no
 debería estar en esta lista.
 
-**Iteración 2.** Las decisiones nuevas o modificadas llevan **(i2)**. Los
-cambios vienen de tres fuentes: las dos capas con toggle y el puente, la
-crítica adversarial de la iteración 1 (los caminos A-D del ataque de
-desanonimización) y el dato de OSM ([SEEDING.md](SEEDING.md)).
+**Iteración 3.** Las decisiones nuevas o modificadas llevan **(i2)** o **(i3)**.
+La iteración 2 incorporó las dos capas con toggle y el puente, la crítica
+adversarial de la iteración 1 (caminos A-D del ataque de desanonimización) y el
+dato de OSM ([SEEDING.md](SEEDING.md)). La iteración 3 agrega el **invariante de
+superficies**, la atribución en lugar del umbral, la tercera pregunta del
+puente, el entorno de prueba y la postergación del mapa general.
 
 Actores: **A1** público · **A2** conocido con contexto · **A3** dump/backup ·
 **A4** operador curioso · **A5** pedido judicial · **A6** terceros de red ·
@@ -25,6 +27,49 @@ Actores: **A1** público · **A2** conocido con contexto · **A3** dump/backup �
 5. **(i2) Un lugar no es una persona.** La capa de baños es pública y no
    necesita k-anonimato para existir. Lo que necesita protección es lo que
    cruza desde la capa de registros: las observaciones del puente.
+6. **(i3) Atribución antes que umbral.** Un dato se muestra con quién lo dice
+   (sin identificar a nadie: "1 persona", "según la recorrida") y cuándo. Eso
+   resuelve que la palabra de uno no se lea como verdad. **No** resuelve la
+   privacidad de quien aportó: para eso están el invariante de superficies y las
+   decisiones P-13, P-14 y P-24.
+
+---
+
+## Invariante de superficies (i3)
+
+> **Sin agregado, lo único público es el wiki de baños.** Todo el diseño de
+> k-anonimato existía para que lo público derivado de registros fuera un
+> agregado. En v1 no hay agregados de eventos (el mapa general está postergado,
+> DESIGN.md §16). Por lo tanto, ninguna superficie fuera de la bóveda puede
+> mostrar un registro individual, salvo las inventariadas acá, cada una con sus
+> protecciones.
+
+**Inventario de todo lo que, fuera de la bóveda, deriva de registros o de actos
+individuales:**
+
+| Superficie | Quién la ve | Qué deriva de un acto individual | Protecciones |
+|---|---|---|---|
+| Bóveda | Solo el dueño | Todo | Cifrado de punta a punta (P-03, P-04). |
+| Feed de amigos | Amigos elegidos (mutuos) | Registro individual: baño o etiqueta, día, franja | P-07 (etiqueta de zona), P-10 (viajes a la vuelta), P-21 (30 días), P-29 (noche). **Es la única superficie social con registros individuales.** |
+| Estado reciente de un baño | Público, indexado | Observación individual del puente: "1 persona, esta semana: limpio" | Sin autor, semana (no día), ≥ 24 h de demora, una por persona y ventana, nunca en zona privada (P-13, P-14, P-24). **Es un dato individual publicado, no un agregado.** |
+| Evidencias de atributos (incluida la tercera pregunta) | Público, indexado | "1 persona, hace 2 semanas: no cobra"; en contradicción de horario, además tipo de día y franja | Sin autor, semana, demora, sin `cuenta_id` a los 90 días (P-13, P-24). |
+| Historial del wiki | Público, indexado | Una edición: atributo, antes → después, mes | Sin seudónimo, mes (P-25). Riesgo residual: Q-P8. |
+| Insignias públicas | Público, opt-in | Que la persona completó un logro | Sin lugar ni fecha; las de ruta solo completas (P-20). |
+| Tarjetas compartibles | Quien reciba el link | Lo mismo que la insignia | Acto explícito del usuario en el momento. |
+
+**Regla para cualquier superficie nueva** (vista social, perfil público, liga,
+ranking, mapa general, estadísticas para comercios adheridos):
+
+1. O es un **agregado** con k ≥ 3 cuentas elegibles distintas, en rangos y
+   actualizado en el lote nocturno;
+2. o es individual y pasa por **las mismas protecciones que el feed de amigos**
+   (destinatarios elegidos, etiqueta de zona, viajes a la vuelta, vencimiento);
+3. y en ambos casos se agrega a esta tabla y se repite el ejercicio de ataque
+   de desanonimización antes de implementarla.
+
+Una superficie que no está en esta tabla no existe. Si alguien la agrega sin
+pasar por acá, reintroduce el problema que este documento entero intenta
+resolver.
 
 ---
 
@@ -57,20 +102,43 @@ autocuidado.
 
 ### P-03 · La capa de registros está cifrada de punta a punta
 
-Sin cambios. Llave AES-GCM 256 generada en el dispositivo, envuelta por PRF de
-passkey y/o código de recuperación.
+**Decisión.** El historial se cifra en el dispositivo con una llave AES-GCM 256
+generada ahí. El servidor guarda la llave solo **envuelta**: con una llave
+derivada de la extensión PRF de la passkey (si el autenticador la soporta) y/o
+con un código de recuperación que el usuario guarda.
 
-**Mitiga.** A3, A4 sobre lo guardado, A5. Borrar la cuenta destruye las llaves
-(crypto-shredding).
+**Mitiga.** A3, A4 sobre datos guardados, A5. Borrar la cuenta es destruir las
+llaves envueltas (crypto-shredding): los backups quedan con bytes ilegibles.
 
-**Cuesta.** Perder todas las formas de desenvolver la llave es perder el
-historial. Fricción del código de recuperación. Desalojo del almacenamiento en
-Safari (Q-T2). **(i2)** La app nativa futura mejora el desalojo y L1, pero el
-camino de passkeys con PRF dentro de un WebView no está verificado (Q-T7).
+**Cuesta.** Es la decisión más cara de esta lista.
+- Si el usuario pierde todas las formas de desenvolver la llave, **pierde el
+  historial** y nadie lo puede recuperar. Hay que decirlo claro y va a pasar.
+- Pedir que guarden un código de recuperación es fricción en el alta; muchos lo
+  van a saltear.
+- En iOS/Safari, el almacenamiento de un sitio no instalado se puede borrar
+  después de 7 días sin uso. Sin PRF ni código, eso es pérdida de historial
+  (Q-T2).
+- No hay "olvidé mi contraseña" del lado servidor: soporte no puede ayudar.
+- Las estadísticas personales se calculan en el cliente (bien para privacidad,
+  peor para celulares lentos con años de historial).
+- No protege contra un servidor comprometido que sirva JS malicioso
+  (DESIGN.md §2, L1).
+
+**(i2)** La app nativa futura mejora el desalojo del almacenamiento y la
+limitación L1, pero el camino de passkeys con PRF dentro de un WebView no está
+verificado (Q-T7).
 
 ### P-04 · La bóveda no revela cuántos registros hay ni cuándo
 
-Sin cambios. Páginas mensuales opacas, padding de 4 KB, sin timestamps.
+**Decisión.** Páginas mensuales con identificador opaco, padding a múltiplos de
+4 KB, sin timestamps en las filas (solo número de secuencia).
+
+**Mitiga.** A3/A4: sin esto, el cifrado es casi decorativo, porque la cantidad y
+el momento de las filas cifradas **son** la frecuencia intestinal.
+
+**Cuesta.** Más bytes transferidos y guardados por sincronización (se reescribe
+la página del mes entera). Mezclar cambios hechos en dos dispositivos es más
+complejo.
 
 ### P-05 · El lugar se sugiere; el usuario lo confirma
 
@@ -157,24 +225,60 @@ amigos es menos "en vivo" justo en los registros más graciosos (los de viaje).
 
 ### P-11 · Passkeys como login principal
 
-Sin cambios. **(i2)** Agregado: **el dominio tiene que ser el definitivo antes
-del lanzamiento**, porque cambiarlo invalida todas las passkeys (DESIGN.md
-§13.2, R7).
+**Decisión.** WebAuthn con passkeys descubribles. Al alta solo se pide un
+seudónimo. Se pide la extensión PRF para la bóveda.
+
+**Mitiga.** A3/A4/A5: no hay mail, teléfono ni nombre que vincule el seudónimo
+con una persona. A6: no hay proveedor de identidad que se entere.
+
+**Cuesta.** Mucha gente no sabe qué es una passkey y desconfía de "entrar con la
+huella" en una web. Celulares viejos o navegadores raros pueden no tenerlas.
+Sin PRF, la bóveda depende del código de recuperación. Perder el celular sin
+passkey sincronizada (Google Password Manager / iCloud) es perder la cuenta.
+
+**(i2)** El dominio tiene que ser el definitivo antes de la **primera
+passkey**, porque cambiarlo las invalida todas (DESIGN.md §14.2, R7).
+
+**(i3)** En el entorno de prueba no hay passkeys (P-31).
 
 ### P-12 · Mail solo como HMAC, sin Google OAuth
 
-Sin cambios.
+**Decisión.** El login por magic link guarda `HMAC-SHA256(pimienta, mail)`. El
+mail en claro existe solo en memoria para enviar el link. No hay Google OAuth en
+v1.
+
+**Mitiga.** A3: el dump no tiene mails. Con la pimienta fuera de la base, no se
+puede probar un mail contra el HMAC. A6: Google no se entera de que la cuenta
+existe.
+
+**Cuesta.** No se le puede escribir a nadie: ni avisos de cambios en los
+términos, ni aviso de incidente de seguridad, ni "volvé". Si la pimienta se
+pierde, todos los logins por mail se rompen. Sin el botón "Entrar con Google",
+que es el de menor fricción en Argentina (casi todo el mundo tiene Android y
+Gmail). El proveedor de mail transaccional ve las direcciones (Q-L5).
+
+**(i3)** En el entorno de prueba, el magic link es el único método de login.
 
 ### P-13 · Tiempo generalizado en todo lo que sale del dispositivo
 
 **Decisión.** **(i2)** Observaciones del puente: solo semana (sin franja ni tipo
 de día). Ediciones del wiki: mes. Amigos: día + franja.
 
+**(i3)** Dos agregados:
+- El estado reciente y las evidencias se muestran relativos a la semana ("esta
+  semana", "hace 2 semanas"), nunca "hace 3 días": el día no se guarda.
+- **Excepción acotada:** la respuesta a la tercera pregunta del puente en caso
+  de **contradicción de horario** ("según el mapa cierra los domingos, ¿estaba
+  abierto?") viaja con `{ tipo_dia, franja }`, porque sin eso no sirve. Es el
+  único dato público que dice "alguien estuvo en este baño un domingo a la noche
+  de la semana X". No se pregunta en madrugada ni noche (P-29).
+
 **Mitiga.** A1/A2: reconstruir rutinas. A3/A4: el servidor no tiene horarios
 exactos.
 
 **Cuesta.** **(i2)** Las observaciones no sirven para "¿a qué hora está limpio?".
-El horario del baño sale del wiki, no de las observaciones.
+El horario del baño sale del wiki, no de las observaciones. **(i3)** "Hace 3
+días" sería más claro que "esta semana"; no se hace para no guardar el día.
 
 ### P-14 · (i2) Envío diferido y publicación nocturna, y qué cubre cada uno
 
@@ -196,33 +300,64 @@ superficie tiene su protección explícita.
 
 ### P-15 · Sin texto libre público ni imágenes en v1
 
-Sin cambios. **(i2)** Aplica también al wiki: los atributos son estructurados;
-no hay campo "notas". Ver Q-W3 sobre indicaciones como "pedir la llave en caja".
+**Decisión.** Lo público son atributos estructurados (8 casilleros). Los
+comentarios son privados. No hay subida de imágenes.
+
+**Mitiga.** Moderación (una persona no puede moderar texto libre), difamación
+de comercios o personas con nombre y apellido, doxxing ("en lo de Pérez de la
+calle tal"), metadatos EXIF con ubicación.
+
+**Cuesta.** Lo más divertido de una reseña es el texto. Sin texto, lo público es
+seco; el humor queda en lo privado, el modo amigos y las tarjetas de logros.
+
+**(i2)** Aplica también al wiki: los atributos son estructurados; no hay campo
+"notas". Ver Q-W3 sobre indicaciones como "pedir la llave en caja".
 
 ### P-16 · Cero terceros en el navegador
 
-**Decisión.** Sin cambios. **(i2)** Excepción declarada: el servicio de push del
-navegador (FCM para Chrome en Android, el de Mozilla o Apple en otros). Es
-inevitable si hay push. Se mitiga con P-26.
+**Decisión.** Tiles, fuentes, scripts y estilos servidos desde el propio
+dominio. Sin analytics de terceros, sin CDN, sin píxeles. CSP
+`default-src 'self'`.
 
-### P-17 · (i2) Umbrales: lo que queda después de sacar los agregados de eventos
+**Mitiga.** A6: el proveedor de tiles es el más grave, porque en el momento de
+registrar el mapa está centrado en el usuario, así que el pedido de tiles revela
+su ubicación a un tercero junto con su IP. También reduce la superficie de L1.
 
-**Decisión.** Sin contadores de visitas, sin heatmap y sin ranking en v1. Los
-umbrales que quedan:
+**Cuesta.** Hay que generar y servir PMTiles propios (trabajo de pipeline y
+ancho de banda del VPS). Sin analytics no sabés bien cómo se usa el producto.
 
-| Qué | Umbral |
+**(i2)** Excepción declarada: el servicio de push del navegador (FCM para
+Chrome en Android, el de Mozilla o Apple en otros). Es inevitable si hay push.
+Se mitiga con P-26.
+
+### P-17 · (i3) Atribución en lugar de umbral, y lo que queda de los umbrales
+
+**Decisión.** Sin agregados de eventos en v1 (sin contadores de visitas, sin
+ranking; el mapa general está postergado). **El estado reciente y los atributos
+se muestran por atribución**: "1 persona, esta semana: limpio"; "4 de 5
+personas, últimos 30 días: limpio"; "Cobra: no · según 1 persona, hace 2
+semanas"; "según la recorrida, noviembre 2026". Límite antifraude: una
+observación por persona, por baño y por ventana de 30 días (reemplaza a la
+anterior). Lo que queda como umbral:
+
+| Qué | Regla |
 |---|---|
-| Baño confirmado o probable, atributos del wiki | Ninguno (lugar público). |
-| Estado reciente (puente) | ≥ 1 observación publicada, sin autor, por semana, con ≥ 24 h de demora. |
-| Probable → confirmado | ≥ 2 cuentas elegibles distintas. |
-| Atributo "confirmado" | ≥ 2 personas distintas con el mismo valor en 180 días. |
+| Baño confirmado o probable | Se muestra siempre (lugar público). |
+| Estado reciente y atributos | Siempre, con procedencia, fecha y frescura. |
+| Probable → confirmado | Evidencia de 2 cuentas elegibles distintas, o 1 de `gps_campo` o `fuente_externa`. |
+| Rótulo "confirmado por varias personas" | ≥ 2 personas elegibles coincidentes en 180 días. |
 | Elegibilidad | Cuenta de ≥ 7 días y ≥ 3 días activos (cualquier sincronización). |
 
-**Mitiga.** A7: una cuenta sola no confirma nada. La condición de "5 registros"
-y los umbrales sobre eventos desaparecen con las superficies que protegían.
+**Mitiga.** Que la palabra de una persona se lea como verdad (la atribución lo
+dice). A7: una cuenta sola no infla un baño ("4 de 5" son personas) ni cambia
+estados. La condición de "5 registros" y los umbrales sobre eventos
+desaparecieron con las superficies que protegían.
 
-**Cuesta.** Mostrar estado reciente con una sola observación es menos protector
-que con dos (Q-P9). Los primeros usuarios tardan una semana en poder confirmar.
+**Cuesta.** La atribución no protege a quien aportó: una sola observación sigue
+diciendo "alguien usó este baño esta semana". Eso lo cubren P-13, P-14 y P-24, y
+queda inventariado en el invariante de superficies. Las fichas son más largas
+(cada dato con su fuente y fecha). Los primeros usuarios tardan una semana en
+poder confirmar.
 
 **Por qué cambió la elegibilidad:** la regla de la iteración 1 (14 días y 5 días
 con aportes públicos) era inalcanzable con ~4 aportes publicables cada tres
@@ -231,45 +366,89 @@ viera ya.
 
 ### P-18 · Borrado de cuenta real
 
-**Decisión.** Como en la iteración 1. **(i2)** Además: las observaciones se
-borran (las de menos de 90 días; las más viejas ya no tienen autor); las
-ediciones del wiki quedan **sin `cuenta_id`** (un wiki no puede deshacer las
-correcciones de quien se va sin romper el historial de los demás); las
-suscripciones push se borran.
+**Decisión.** `DELETE /cuenta` borra en el acto: cuenta, credenciales, HMAC de
+mail, sesiones, consentimientos, llaves envueltas, páginas de bóveda, aportes
+de todo tipo, amistades, feed, insignias, denuncias hechas. Los agregados se
+recalculan esa noche (un lugar que tenía 3 personas puede dejar de mostrar
+contadores). Los backups expiran en 30 días; como las llaves envueltas también
+se borran, la bóveda de los backups no se puede descifrar ni antes de esos 30
+días. Se ofrece, como opt-in explícito al borrar, donar los reportes de baño
+disociados (sin `cuenta_id`).
 
-**Mitiga.** Art. 16.
+**Mitiga.** Derecho de supresión (art. 16). A3/A5 a futuro.
 
-**Cuesta.** Las ediciones quedan aunque la persona se haya ido. Hay que
-declararlo en los términos.
+**Cuesta.** Irreversible, sin período de gracia. Si se dona, el lugar conserva
+los atributos; si no (default), el mapa útil pierde datos cada vez que alguien
+se va.
+
+**(i2)** Además: las observaciones se borran (las de menos de 90 días; las más
+viejas ya no tienen autor); las ediciones del wiki quedan **sin `cuenta_id`** (un
+wiki no puede deshacer las correcciones de quien se va sin romper el historial
+de los demás); las suscripciones push se borran. Costo: las ediciones quedan
+aunque la persona se haya ido; hay que declararlo en los términos.
+
+**(i3)** Las evidencias (incluidas las de "Sigue igual" y la tercera pregunta)
+siguen la misma regla que las ediciones: quedan sin `cuenta_id`.
 
 ### P-19 · Sin logs que vinculen personas con momentos
 
-Sin cambios.
+**Decisión.** Sin log de acceso en `/api/*` y `/tiles/*`. En el resto, IP
+truncada y 7 días. Sesiones sin IP ni user agent. Rate limit en memoria. Fechas
+en las tablas con precisión de día salvo donde hace falta más (vencimientos).
+
+**Mitiga.** A3/A4/A5: el log de acceso es donde los sistemas "anónimos" suelen
+dejar todo lo que dicen no guardar.
+
+**Cuesta.** Depurar incidentes es más difícil. Un abuso se investiga con menos
+datos. El rate limit se reinicia si se reinicia el proceso.
 
 ### P-20 · Insignias públicas opt-in, sin fechas, las de ruta solo completas
 
-Sin cambios.
+**Decisión.** Mostrar una insignia es opcional. Nunca dice cuándo ni dónde. Las
+insignias de progreso en un corredor (Ruta 3) solo se muestran completas.
+
+**Mitiga.** A2: un progreso que avanza en vivo ("7/12 YPF de la Ruta 3") es un
+rastreador de viajes.
+
+**Cuesta.** Lo más compartible ("me faltan 2 YPF") no se puede mostrar en
+público. Sí se puede compartir como tarjeta puntual, decidida por el usuario en
+ese momento (es un acto explícito, igual que publicar).
 
 ### P-21 · El feed de amigos vence a los 30 días
 
-Sin cambios.
+**Decisión.** Borrado automático. Cortar una amistad borra del feed del otro lo
+que le habías mostrado.
 
-### P-22 · ~~Rangos en el ranking de macrozonas~~ — suspendida (i2)
+**Mitiga.** A2 cuando la relación cambia (ex parejas). A3: limita lo que hay
+para filtrar.
 
-Sin ranking en v1 (DESIGN.md §9). Si vuelve, tiene que volver con rangos y
+**Cuesta.** No hay "historia compartida" larga entre amigos.
+
+### P-22 · ~~Rangos en el ranking de macrozonas~~ — postergada (ver X-02)
+
+Sin ranking en v1 (DESIGN.md §16). Si vuelve, tiene que volver con rangos y
 **sin el campo `faltan` exacto** (ver D-12).
 
 ### P-23 · Mayoría de edad declarada (provisoria)
 
-Sin cambios.
+**Decisión.** v1 solo para mayores de 18, por declaración en el alta.
+
+**Mitiga.** Tratamiento de datos de menores con ubicación, que es el escenario
+legal y reputacional más feo posible para un proyecto así.
+
+**Cuesta.** El público adolescente es probablemente el que más viraliza. Una
+declaración no verifica nada. Está en discusión (Q-L3).
 
 ### P-24 · (i2) El puente publica observaciones anónimas que vencen
 
 **Decisión.** La respuesta al puente se convierte en una observación
 `{ banio_id, semana, estado_banio?, habia_papel? }`. Se guarda con `cuenta_id`
 para deduplicar y frenar spam, y **la fila entera se borra a los 90 días**;
-queda solo un resumen mensual sin autor. Lo público muestra "últimos 30 días:
-mayormente limpio (4 reportes)", nunca la lista de observaciones.
+queda solo un resumen mensual sin autor. **(i3)** Una por persona, por baño y por
+ventana de 30 días (una nueva reemplaza a la anterior). Lo público muestra la
+atribución ("4 de 5 personas, últimos 30 días: limpio"), nunca la lista de
+observaciones. Las respuestas a la tercera pregunta son evidencias con la misma
+regla: `cuenta_id` a null a los 90 días.
 
 **Mitiga.** A1/A8: el comercio no puede saber quién dijo "evitalo". A3/A4: la
 ventana en que el servidor sabe "la cuenta X estuvo en el baño Y la semana Z"
@@ -281,10 +460,11 @@ resumen mensual no deja auditar un patrón sospechoso viejo.
 
 ### P-25 · (i2) Wiki: leer sin login, editar con cuenta, historial sin seudónimos
 
-**Decisión.** Las fichas de baños son públicas e indexables. Editar requiere
-cuenta y consentimiento `editar_wiki`. El historial público muestra mes,
-atributo, valor anterior y nuevo, sin seudónimo. Internamente se guarda
-`cuenta_id` para poder revertir vandalismo.
+**Decisión.** Las fichas de baños son públicas e indexables. Editar (o
+confirmar con "Sigue igual") requiere cuenta y consentimiento `editar_wiki`. El
+historial público muestra mes, atributo, valor anterior y nuevo, procedencia,
+sin seudónimo. Internamente se guarda `cuenta_id` para poder revertir
+vandalismo.
 
 **Mitiga.** A7: sin cuenta no hay forma de frenar vandalismo sin guardar IPs, y
 no guardar IPs es P-19. A1/A2: un historial con seudónimo y fecha ("lu_rg editó
@@ -355,7 +535,50 @@ existir; cruzarla con seudónimos anula P-11 y P-12 para esas personas.
 **Cuesta.** No se puede agradecer ni avisar a los testers desde la app; hay que
 hacerlo por fuera.
 
+### P-31 · (i3) Entorno de prueba sin passkeys y con cuentas descartables
+
+**Decisión.** En `caca.blucaro.site` (`ENTORNO=prueba`): sin passkeys (el código
+se niega a habilitarlas en ese entorno), login solo por magic link, código de
+recuperación obligatorio para la bóveda, base de datos propia que se borra
+entera al migrar, sin migración de usuarios, banner permanente, `noindex` por
+cabecera y meta, secretos propios. El dominio aparece en una sola variable
+(`ORIGEN_PUBLICO`). Detalle en DESIGN.md §15.
+
+**Mitiga.** Que las passkeys queden atadas a un dominio que se va a abandonar
+(no migran). Que alguien cargue datos reales creyendo que quedan. Que Google
+indexe el contenido bajo el dominio equivocado.
+
+**Cuesta.** El flujo más importante (alta con passkey y PRF) no se prueba en ese
+entorno: se prueba en `localhost`. Quien use el entorno de prueba pierde todo al
+migrar, incluidas sus PWA instaladas y sus suscripciones push. **Los mails de los
+magic links son de personas reales**: la política de privacidad aplica igual,
+aunque las cuentas sean descartables, y el borrado al migrar tiene que ser real
+(incluidos los backups de ese entorno).
+
+### P-32 · (i3, propuesta) Regla asimétrica de exposición de comercios
+
+**Estado:** propuesta, pendiente de decisión (DESIGN.md §17.4).
+
+**Decisión propuesta.** Para un comercio que no adhirió a "Baño amigo", la ficha
+nunca dice "libre" ni "sin consumir", aunque haya reportes de usuarios en ese
+sentido: dice "baño para clientes" o "consultá". Solo un comercio adherido
+muestra "te dejan pasar sin consumir".
+
+**Mitiga.** A8 y el riesgo de producto: publicar que un comercio deja pasar
+gratis es la forma más rápida de que deje de hacerlo, y el comercio no lo
+eligió.
+
+**Cuesta.** Se esconde un dato verdadero y útil. Si "Baño amigo" no se adopta,
+el atributo "acceso" de los comercios pierde casi todo su valor.
+
 ---
+
+## Decisiones postergadas (i3)
+
+| Id | Qué | Por qué se posterga | Condición para volver |
+|---|---|---|---|
+| X-01 | **Mapa general** (heatmap). Era un requisito explícito del producto. | Con 5 baños y 20 usuarios, 2 a 4 celdas de ~40 encendidas: se ve roto. | DESIGN.md §16: un uso que el wiki no cubra y ≥ 50 cuentas elegibles activas en 90 días. Debe ser agregado con k ≥ 3 personas, multirresolución y en rangos, y pasar por el invariante de superficies. |
+| X-02 | Ranking de macrozonas (ex P-22). | Vacío con pocos usuarios y con un historial de fuga (D-12). | Igual que X-01, solo en rangos y sin `faltan`. |
 
 ## Decisiones descartadas
 
@@ -364,7 +587,7 @@ hacerlo por fuera.
 | D-01 | Capa privada en claro en el servidor. | La ven A3, A4, A5. | P-01, P-03, P-04. |
 | D-02 | Snap automático a POI < 40 m. | Falla abierto con la casa pegada a un comercio. | P-05, P-06. |
 | D-03 | Jitter determinístico por usuario. | Se revierte con un punto conocido. | P-10. |
-| D-04 | Heatmap H3/geohash con 5 registros / 3 usuarios. | Mide lo equivocado; la condición de registros no protege y apaga el mapa. | Sin heatmap en v1 (P-17). |
+| D-04 | **Regla** del heatmap original: H3/geohash con 5 registros / 3 usuarios por celda. (El mapa general en sí no está descartado: está postergado, X-01.) | La condición de registros no protege (protege la cantidad de personas) y apaga la mitad de las celdas; geohash 7 es demasiado fino. | Si vuelve el mapa general: k ≥ 3 personas, sin condición de registros (X-01). |
 | D-05 | Zonas y detección de domicilio en el servidor. | Lista de domicilios. | P-07, P-08. |
 | D-06 | Google OAuth. | Señal a Google, mail y nombre. | P-11, P-12. |
 | D-07 | Tiles de `tile.openstreetmap.org`. | Política de uso; filtra la ubicación a un tercero. | P-16. |
@@ -374,6 +597,7 @@ hacerlo por fuera.
 | D-11 | **(i2)** Edición del wiki sin login. | Sin cuenta, frenar vandalismo exige guardar IPs. | P-25. |
 | D-12 | **(i2)** `faltan` exacto en el ranking de macrozonas. | Publicaba el conteo exacto por zona cada mes y anulaba los rangos; con pocos usuarios, revelaba la zona de quien se sumaba (camino B de la crítica). | Ranking fuera de v1; si vuelve, solo en rangos. |
 | D-13 | **(i2)** Contadores de visitas por lugar. | Vacíos con 20 usuarios y principal fuente de eventos con autor en el servidor. | Observaciones del puente (P-24). |
+| D-14 | **(i3)** Umbral de 2 cuentas para mostrar el estado reciente (o declararlo excepción con 1). | El umbral existía para que la palabra de uno no se leyera como verdad; mostrar quién y cuándo lo resuelve sin esperar. | Atribución (P-17). |
 
 ---
 
@@ -384,11 +608,11 @@ No es asesoramiento legal. Necesita revisión de un abogado (Q-L1).
 | Artículo | Qué exige | Cómo se atiende |
 |---|---|---|
 | Art. 2 | Define datos sensibles (incluye salud) y dato disociado. | P-02. Lo público es dato disociado (P-13, P-24, P-25). **(i2)** La capa de baños no tiene datos personales salvo el `cuenta_id` interno de ediciones y observaciones. |
-| Art. 4 | Datos adecuados, no excesivos; destruirlos cuando no hacen falta. | P-01, P-12, P-19, P-21, **(i2)** P-24 (90 días), P-28. |
+| Art. 4 | Datos adecuados, no excesivos; destruirlos cuando no hacen falta. | P-01, P-12, P-19, P-21, **(i2)** P-24 (90 días), P-28, **(i3)** P-31 (borrado del entorno de prueba). |
 | Art. 5 | Consentimiento libre, expreso e informado, con prueba. | P-09, con consentimientos separados y versionados. |
 | Art. 6 | Informar finalidad, destinatarios, derechos. | Política en `docs/legal/`; **(i2)** el texto de la primera tarjeta del puente. |
 | Art. 7 | Datos sensibles; inc. 3 prohíbe bancos que los revelen. | Q-L1. P-02, P-03, P-04. |
-| Art. 9 | Seguridad. | DESIGN.md §14. |
+| Art. 9 | Seguridad. | DESIGN.md §18. |
 | Art. 12 | Transferencia internacional. | Mail transaccional, backups, **(i2)** servicios de push (Q-L5). |
 | Art. 14 | Acceso en 10 días corridos. | `GET /cuenta/exportar`. |
 | Art. 16 | Supresión en 5 días hábiles. | `DELETE /cuenta`, `DELETE /aportes/...` (P-18). |

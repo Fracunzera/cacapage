@@ -2,8 +2,9 @@
 
 Cada ítem dice qué está abierto, por qué importa y qué lo resolvería.
 Gravedad estimada: **🔴 bloquea el lanzamiento**, **🟠 hay que decidirlo antes de
-implementar esa parte**, **🟡 se puede decidir más adelante**. **(i2)** marca lo
-nuevo o modificado en la iteración 2; **✅** lo resuelto.
+implementar esa parte**, **🟡 se puede decidir más adelante**, **⏳ pendiente con
+fecha o con dueño**. **(i2)**/**(i3)** marcan lo nuevo o modificado en cada
+iteración; **✅** lo resuelto.
 
 ---
 
@@ -31,13 +32,16 @@ cagaste". Mitigación posible: las fichas `/b/{slug}` con tono sobrio y el chist
 solo en la capa de registros.
 *Lo resuelve:* decidir el tono de las fichas públicas antes de diseñarlas.
 
-**Q-N4 🔴 (i2) · Nombre y dominio definitivos, antes de la primera passkey.**
-Subió de gravedad. Las passkeys quedan atadas al dominio: cambiarlo después del
-lanzamiento invalida todas las cuentas. Y la app nativa futura necesita ese
-dominio para Digital Asset Links y Universal Links.
-*Lo resuelve:* elegir y registrar el dominio antes del primer usuario.
+**Q-N4 ⏳ (i3) · Nombre y dominio definitivos, antes de la primera passkey.**
+Bajó de bloqueante a pendiente con fecha: el dominio definitivo se registra en
+unos 10 días (estimado: principios de noviembre de 2026). Mientras tanto se usa
+`caca.blucaro.site` como entorno de prueba sin passkeys (DESIGN.md §15). Lo único
+que sigue dependiendo del dominio definitivo es la primera passkey, y por eso la
+app nativa (Digital Asset Links, Universal Links). Nada más se bloquea.
 
 **Q-N5 🟠 · ¿Qué pasa cuando un comercio se queja?**
+**(i3)** "Baño amigo" (Q-N11) y la regla asimétrica (P-32) son respuestas
+parciales.
 **(i2)** Ahora con más superficie: "evitalo" en el estado reciente de un baño con
 nombre de comercio, indexado por Google. El dueño puede además editar el wiki de
 su propio local (Q-W2).
@@ -141,7 +145,10 @@ seguido ve cuándo cambió.
 *Opciones:* aplicar las ediciones también en el lote nocturno; o aceptar que una
 edición del wiki es un acto público y decirlo en la interfaz.
 
-**Q-P9 🟡 (i2) · Estado reciente con una sola observación.**
+**Q-P9 ✅ (i3) · Estado reciente con una sola observación.**
+Resuelto por atribución (P-17): "1 persona, esta semana: limpio". Lo que sigue
+abierto es solo la privacidad de quien aportó, ya inventariada en el invariante
+de superficies. Texto original:
 Mostrar "1 reporte esta semana: evitalo" dice que alguien usó ese baño esa
 semana. Sin autor y con demora es poco, pero para un comercio chico con pocos
 clientes puede apuntar a alguien (A8). Con un mínimo de 2, en el arranque casi
@@ -167,7 +174,14 @@ requisito de 12 testers, pero exige una entidad registrada.
 **(i2)** Se suman los servicios de push (FCM en Android): el endpoint de cada
 suscripción es un identificador del dispositivo ante Google.
 
-**Q-L6 🟠 (i2) · ODbL: la importación de una vía no evita el share-alike.**
+**Q-L6 🔴 (i3) · ODbL: ¿derivada o colectiva?**
+Pasó a [ADR 0002](docs/adr/0002-licencia-base-derivada-vs-colectiva.md), con tres
+arquitecturas y siete preguntas concretas para un abogado. Mientras tanto, el
+esquema preserva las tres opciones. Bloquea el lanzamiento porque define bajo qué
+licencia se publica `banios-propio.json` desde el primer día. Texto de la
+iteración 2:
+
+**(i2) ODbL: la importación de una vía no evita el share-alike.**
 Subió de gravedad. Que no escribamos en OSM resuelve "no ensuciar OSM", pero
 mezclar datos de OSM con correcciones de usuarios en la misma tabla de baños y
 mostrarla en público la convierte muy probablemente en una base de datos
@@ -248,7 +262,11 @@ RN3.
 **(i2)** Resuelto para limpieza y papel (son observaciones que vencen, P-27).
 Sigue abierto para horario y "cobra": un horario de 2026 puede ser falso en 2028.
 
-**Q-D5 🔴 (i2) · ¿Existen baños públicos municipales en Río Gallegos?**
+**Q-D5 ⏳ (i3) · ¿Existen baños públicos municipales en Río Gallegos?**
+**Lo averigua el responsable del producto en la Municipalidad.** Si no hay
+ninguno, la capa útil pasa a ser "comercios que te dejan pasar al baño": cambia
+el texto de la web, no el modelo de datos. Llevar a esa reunión la propuesta de
+"Baño amigo" con respaldo municipal (DESIGN.md §17.6). Texto de la iteración 2:
 OSM no tiene ninguno. Si no existen, el producto es un mapa de "baños de lugares
 públicos" (estaciones, bares, supermercados), con todo lo que eso implica:
 dependen de la buena voluntad del comercio y de si consumís. Si existen y nadie
@@ -262,6 +280,8 @@ real. El sembrado desde OSM refleja lo que alguien mapeó, no lo que existe.
 la recorrida; no intentar completar el rubro antes del lanzamiento.
 
 **Q-D7 🟡 (i2) · ¿El horario de la estación es el horario del baño?**
+**(i3)** La contradicción detectada en el cliente (DESIGN.md §7.3, caso 1) lo
+corrige solo cuando alguien está ahí a una hora que el horario dice cerrada.
 El diseño toma el horario de la estación para su baño. Una YPF 24 h puede cerrar
 el baño de noche o pedir la llave en caja.
 
@@ -286,3 +306,53 @@ recorrida.
 **Q-O6 🟡 (i2) · Conseguir 15-20 testers para Google Play.**
 Hacen falta 12 inscriptos durante 14 días seguidos, y si uno se da de baja el
 reloj puede reiniciarse. Con 20 usuarios activos en la PWA, eso es casi todos.
+
+## Iteración 3: nuevas
+
+**Q-O7 ⏳ (i3) · ¿Hay recorrida periódica cada 4 meses?**
+Pendiente del responsable del producto, según su disponibilidad real. El diseño
+asume que **no** la hay (DESIGN.md §10): degrada solo, y si se confirma, suma
+(§10.7).
+
+**Q-L9 🟠 (i3) · Usar la lista de OSM como hoja de ruta de la recorrida.**
+Aunque cada dato se levante con GPS en la calle, elegir qué lugares visitar a
+partir de OSM puede leerse como derivación (ADR 0002, arquitectura C', pregunta
+4). Mitigación: la recorrida también releva lugares que no están en OSM y datos
+que OSM no tiene.
+
+**Q-L10 🟡 (i3) · ¿Qué protege de verdad a la base frente a una copia?**
+Con cualquier arquitectura, los hechos (un horario, si cobra) se pueden copiar
+leyendo las fichas públicas. En Argentina no hay un derecho específico sobre
+bases de datos como el europeo. La protección real son los términos de uso y
+medidas técnicas (ADR 0002, pregunta 7).
+
+**Q-N11 🟠 (i3) · "Baño amigo": ¿se adopta?**
+Evaluado en DESIGN.md §17, sin adoptar. Precedentes: los que funcionan
+(Alemania, Reino Unido) están pagados por el municipio; uno sin incentivo
+(Brighton) llegó a 19 comercios. Necesita submarca sobria (Q-N3), verificación
+de comercios y renovación anual. Decisión ligada a Q-D5.
+
+**Q-N12 🟠 (i3) · Regla asimétrica de exposición de comercios (P-32).**
+Recomendada para v1 aunque no se adopte "Baño amigo". Esconde un dato verdadero
+("me dejaron pasar sin consumir") para no exponer a comercios que no lo
+eligieron. Pendiente de decisión.
+
+**Q-P10 🟡 (i3) · La tercera pregunta en contradicción de horario revela tipo de día y franja.**
+Es la única respuesta pública que dice "alguien estuvo acá un domingo a la
+noche de la semana X" (P-13). Si en el piloto aporta poco, se saca.
+
+**Q-W5 🟡 (i3) · Calidad de "Sigue igual" y de la tercera pregunta.**
+Tocar "Sí" sin saber es fácil. "No sé" tiene el mismo peso visual que las otras
+opciones para reducirlo, pero no hay forma de medir cuánto pasa salvo por
+contradicciones posteriores.
+
+**Q-T10 ⏳ (i3) · Verificar el dato de OSM contra los servidores oficiales.**
+Pendiente: `overpass-api.de` y `overpass.kumi.systems` no respondieron desde el
+entorno de trabajo en ninguno de los intentos del 24/10/2026 (SEEDING.md §1.1).
+Si al reintentar el resultado no es 5 baños con los mismos ids, se avisa antes
+de seguir. Alternativa más rápida: correr la consulta desde otra máquina.
+
+**Q-D8 🟡 (i3) · La antigüedad de los datos de OSM.**
+La frescura de un dato de OSM se calcula con `check_date` o, si no hay, con la
+última modificación del objeto. Esa fecha dice cuándo alguien tocó el objeto,
+no cuándo verificó el horario: puede sobreestimar la frescura.

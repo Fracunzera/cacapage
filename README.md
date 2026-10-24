@@ -9,8 +9,10 @@ está limpio, cuál tiene cambiador, cuál es accesible.
 
 El chiste es la puerta de entrada. Lo útil es lo que hace que la gente vuelva.
 
-**Estado:** diseño, iteración 2. Todavía no hay código. Este repo existe para
-criticar el diseño antes de escribir una sola línea.
+**Estado:** diseño, iteración 3. Todavía no hay código. Este repo existe para
+criticar el diseño antes de escribir una sola línea. Mientras llega el dominio
+definitivo, el entorno de prueba va a vivir en `caca.blucaro.site`: sin
+passkeys, con cuentas que se borran al migrar.
 
 ---
 
@@ -53,13 +55,17 @@ Arriba del mapa: **Mis registros / Baños públicos**.
   *lugar*, editado como un wiki. Si está abierto el domingo, si cobra, si es
   accesible, si tiene cambiador, y cómo estuvo últimamente.
 - **El puente:** después de registrar en un baño de la base, dos toques
-  opcionales ("¿cómo estaba?", "¿había papel?") alimentan la capa pública, sin
-  tu nombre, sin hora y con un día de demora. Es lo único que cruza.
+  opcionales ("¿cómo estaba?", "¿había papel?"), y a veces una tercera pregunta
+  saltable si un dato de ese baño está viejo ("¿sigue siendo gratis?"),
+  alimentan la capa pública sin tu nombre, sin hora exacta y con un día de
+  demora. Es lo único que cruza. Cada dato se muestra con quién lo dice y
+  cuándo ("1 persona, esta semana: limpio").
 
 La base de baños se siembra desde OpenStreetMap con una importación **de una
 sola vía**: nada de lo que hagan los usuarios se escribe en OSM automáticamente.
 OSM solo tiene 5 baños en Río Gallegos, así que el mapa del lanzamiento sale
-sobre todo de una recorrida a mano ([SEEDING.md](SEEDING.md)).
+sobre todo de una recorrida a mano ([SEEDING.md](SEEDING.md)). Bajo qué licencia
+se publica la base está en evaluación ([ADR 0002](docs/adr/0002-licencia-base-derivada-vs-colectiva.md)).
 
 El detalle está en [DESIGN.md](DESIGN.md) y las decisiones de privacidad, con
 lo que cuesta cada una, en [PRIVACY.md](PRIVACY.md).
@@ -79,7 +85,7 @@ lo que cuesta cada una, en [PRIVACY.md](PRIVACY.md).
 | [PRIVACY.md](PRIVACY.md) | Cada decisión de privacidad como decisión: qué riesgo mitiga y qué cuesta. Incluye las descartadas. |
 | [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Lo que está sin resolver o es riesgoso. |
 | [SEEDING.md](SEEDING.md) | Qué hay en OSM para Río Gallegos (medido) y con qué arranca el mapa. |
-| [docs/adr/](docs/adr/) | Registros de decisiones de arquitectura. ADR 0001: importación de OSM de una sola vía. |
+| [docs/adr/](docs/adr/) | Registros de decisiones de arquitectura. ADR 0001: importación de OSM de una sola vía. ADR 0002: licencia de la base (derivada vs. colectiva), pendiente de consulta legal. |
 | [docs/legal/](docs/legal/) | Borradores de términos, política de privacidad y textos de consentimiento (vacío por ahora). |
 
 ## Estructura del repo
@@ -90,6 +96,7 @@ cacapage/
 ├── DESIGN.md               ← diseño completo
 ├── PRIVACY.md              ← decisiones de privacidad
 ├── OPEN-QUESTIONS.md       ← pendientes y riesgos
+├── .env.example            ← variables de entorno (el dominio vive solo acá)
 ├── SEEDING.md              ← datos de OSM medidos y plan de sembrado
 ├── apps/
 │   ├── web/                ← SvelteKit: fichas públicas con SSR, app sin SSR

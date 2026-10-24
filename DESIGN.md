@@ -1,6 +1,6 @@
 # DESIGN.md — Documento de diseño
 
-Estado: **borrador para crítica, iteración 2**. Nada de esto está implementado.
+Estado: **borrador para crítica, iteración 3**. Nada de esto está implementado.
 
 Índice:
 
@@ -13,51 +13,55 @@ Estado: **borrador para crítica, iteración 2**. Nada de esto está implementad
 6. [Modelo de datos](#6-modelo-de-datos)
 7. [El puente, en detalle](#7-el-puente-en-detalle)
 8. [Pipeline de anonimización, paso a paso](#8-pipeline-de-anonimización-paso-a-paso)
-9. [Umbrales y arranque en frío](#9-umbrales-y-arranque-en-frío)
-10. [Pipeline de importación de OSM (una sola vía)](#10-pipeline-de-importación-de-osm-una-sola-vía)
-11. [Endpoints](#11-endpoints)
-12. [Jobs del worker](#12-jobs-del-worker)
-13. [PWA ahora, app nativa después](#13-pwa-ahora-app-nativa-después)
-14. [Operación en el VPS](#14-operación-en-el-vps)
-15. [Alcance de v1 y después](#15-alcance-de-v1-y-después)
+9. [Umbrales, atribución y arranque en frío](#9-umbrales-atribución-y-arranque-en-frío)
+10. [Decaimiento de datos](#10-decaimiento-de-datos)
+11. [Pipeline de importación de OSM (una sola vía)](#11-pipeline-de-importación-de-osm-una-sola-vía)
+12. [Endpoints](#12-endpoints)
+13. [Jobs del worker](#13-jobs-del-worker)
+14. [PWA ahora, app nativa después](#14-pwa-ahora-app-nativa-después)
+15. [Entornos: prueba y definitivo](#15-entornos-prueba-y-definitivo)
+16. [Postergado: mapa general](#16-postergado-mapa-general)
+17. [En evaluación: "Baño amigo"](#17-en-evaluación-baño-amigo)
+18. [Operación en el VPS](#18-operación-en-el-vps)
+19. [Alcance de v1 y después](#19-alcance-de-v1-y-después)
 
 ---
 
 ## 0. Historial de cambios
 
-### Iteración 2
+### Iteración 3
 
-Disparadores: el conteo real de OSM ([SEEDING.md](SEEDING.md)), cuatro
-decisiones de producto tomadas (dos capas con toggle, puente, sembrado de una
-vía, PWA primero) y la crítica adversarial de la iteración 1.
-
-**El dato que cambia todo:** OSM tiene **5** `amenity=toilets` en Río Gallegos,
-**todos a 21-39 m de una estación de servicio**, sin nombre, sin horario, sin
-accesibilidad. No hay ningún baño público municipal mapeado. Sembrar "desde
-OSM" con `amenity=toilets` da 5 puntos mudos.
-
-| # | Cambio | Por qué |
+| # | Cambio | Origen |
 |---|---|---|
-| 1 | La base de baños es un **wiki de lugares**, separada de los **registros** (eventos). Toggle "Mis registros / Baños públicos". | Decisión tomada. Coincide con lo que ya separaba el diseño (reporte de lugar vs. visita), ahora como dos capas explícitas. |
-| 2 | La base de baños incluye **baños probables** (estaciones de servicio, terminal, aeropuerto, hospital, supermercados grandes, gastronomía) marcados como "sin confirmar", además de los 5 `amenity=toilets`. | Con 5 baños la capa pública está vacía y el puente casi nunca se dispara (solo pregunta en lugares que ya están en la base). Ver §9 y SEEDING.md. |
-| 3 | **Limpieza y papel no son atributos del wiki**: son observaciones con fecha que vencen. El wiki tiene atributos estables (acceso, si cobra, horario, accesible, cambiador). | Un wiki es "el último que edita gana", y eso aplicado a "¿está limpio?" es falso al día siguiente. Lo que el usuario llamó "limpieza" como atributo se modela como observación del puente (§6.4, §7). |
-| 4 | **Leer el wiki es público, sin login e indexable. Editarlo requiere cuenta** (seudónima). | "Sin login" para editar significa que no hay forma de frenar vandalismo sin guardar IPs, y no guardar IPs es una decisión de privacidad (P-19). Si la intención era permitir edición anónima, no estoy de acuerdo: ver Q-W1. |
-| 5 | **Sin contadores de visitas por lugar, sin ranking de macrozonas y sin heatmap en v1.** La tabla `visitas` desaparece. | Con 20 usuarios estaban todos vacíos (crítica de la iteración 1 y §9). Además eran la principal fuente de eventos con autor en el servidor (limitación L3). |
-| 6 | Las observaciones del puente se guardan con `cuenta_id` **solo 90 días** y después se borran; queda un resumen mensual sin autor. | Cierra en parte la limitación L3 de la iteración 1 (Q-P3). |
-| 7 | Importación de OSM **de una sola vía**, explícita en el diseño, en un ADR y en el código cuando exista. | Decisión tomada. Además: la importación de una vía no evita la cláusula share-alike de ODbL (§10.7, Q-L6). |
-| 8 | Arquitectura **PWA primero, empaquetable con Capacitor sin reescribir**: capa de plataforma con interfaces, rutas de app sin SSR, API con token además de cookie, lógica offline fuera del service worker, dominio de passkeys definitivo desde el día uno. | Decisión tomada (§13). |
-| 9 | Correcciones de la crítica de la iteración 1: sin `faltan` exacto; viajes visibles para amigos recién a la vuelta; en madrugada y noche no hay preselección ni reglas recordadas; precisión GPS mínima de 50 m; registros en zona privada siempre con la etiqueta de la zona; detección de domicilio desde la primera noche; elegibilidad que se puede alcanzar. | Cada una cierra un camino del ataque de desanonimización o un error de cálculo. Detalle en PRIVACY.md. |
+| 1 | El **mapa general** (heatmap) pasa de "eliminado" a **postergado**, con condiciones de reactivación (§16). | Decisión del producto: era un requisito explícito; v1 sale sin él. |
+| 2 | **Invariante de superficies** en PRIVACY.md: sin agregado, lo único público es el wiki de baños; toda superficie que derive de registros está inventariada. | Pedido explícito, para que una vista social en v2 no reintroduzca el problema. |
+| 3 | **Estado reciente por atribución, no por umbral**: "1 persona, esta semana: limpio" / "4 de 5, últimos 30 días: limpio". Una observación por persona, por baño y por ventana. | Decisión del producto. Ajuste mío: la fecha va con granularidad de semana, no "hace 3 días" (§9.2). |
+| 4 | **Almacenamiento que preserva las opciones de licencia**: esquemas `osm`, `propio` y `enlace`; campo `procedencia` NOT NULL sin default en todas las filas; geometría con procedencia propia; dos archivos públicos que une el cliente. | ADR 0002. `procedencia` es requisito del producto; agregué el valor `fuente_externa`. |
+| 5 | **Recorrida con GPS de campo**; los formularios propios no se rellenan desde OSM. | Decisión del producto + ADR 0002 §5. |
+| 6 | **Tercera pregunta del puente**, opcional, una por registro, solo para horario, cobro y acceso, que se pausa después de dos salteos seguidos (§7.3). | Decisión del producto. |
+| 7 | **Decaimiento de datos** diseñado asumiendo que no hay recorrida periódica (§10). | Pedido explícito. |
+| 8 | **Entorno de prueba** en `caca.blucaro.site`: sin passkeys, cuentas descartables, noindex, dominio en una sola variable, banner (§15). | Decisión del producto. Corrección: el `noindex` no va en robots.txt (§15.3). |
+| 9 | **"Baño amigo"** evaluado como alternativa, sin adoptar (§17). | Pedido explícito. |
+| 10 | Se unifican ediciones del wiki y confirmaciones en una tabla de **evidencias** con procedencia y fecha. Las fichas muestran fuente y fecha de cada dato. | Consecuencia de 3, 4 y 7: si cada dato lleva procedencia y fecha, la atribución vale para todo el wiki, no solo para el estado reciente. |
 
-### Iteración 1 (respecto de la propuesta original)
+### Iteración 2 (resumen)
 
-Resumen de lo que ya se había cambiado y sigue vigente: el servidor nunca
-recibe coordenadas (el pipeline corre en el cliente); historial cifrado de
-punta a punta; snap a lugar como sugerencia con confirmación; whitelist de
-categorías publicables; sin jitter; zonas privadas y detección de domicilio
-solo en el dispositivo; passkeys y mail como HMAC, sin Google OAuth; tiempo
-generalizado y publicación diferida; tiles propios; logros calculados en el
-cliente. El razonamiento completo de cada uno está en PRIVACY.md (decisiones
-P-xx y descartadas D-xx).
+OSM tiene 5 `amenity=toilets` en Río Gallegos, todos en estaciones de servicio
+(SEEDING.md). Dos capas con toggle (Registros = evento privado, Baños = lugar en
+un wiki público). Base de baños con probables. Limpieza y papel como
+observaciones que vencen, no como atributos. Leer el wiki sin login, editar con
+cuenta. Sin contadores de visitas, ranking ni heatmap en v1. Importación de OSM
+de una sola vía (ADR 0001). PWA empaquetable con Capacitor. Correcciones de la
+crítica adversarial: sin `faltan` exacto, viajes a amigos recién a la vuelta,
+madrugada y noche sin preselección, precisión GPS mínima de 50 m.
+
+### Iteración 1 (resumen)
+
+El servidor nunca recibe coordenadas; historial cifrado de punta a punta; snap
+como sugerencia con confirmación; whitelist de categorías; sin jitter; zonas
+privadas y detección de domicilio solo en el dispositivo; passkeys y mail como
+HMAC; tiempo generalizado y publicación diferida; tiles propios. El detalle está
+en PRIVACY.md.
 
 ---
 
@@ -66,22 +70,24 @@ P-xx y descartadas D-xx).
 **Objetivos**
 
 - O1. Registrar en menos de 10 segundos, con una mano, aunque no haya señal.
-- O2. Una capa de baños públicos que se vea poblada el día uno y que Google
-  indexe ("baño abierto domingo Río Gallegos").
-- O3. Que el chiste alimente el dato útil sin formularios (el puente).
-- O4. Que ni otro usuario, ni un amigo, ni alguien con un dump de la base pueda
-  saber dónde vive un usuario o cuándo no está en casa.
+- O2. Una capa de baños que se vea poblada el día uno y que Google indexe.
+- O3. Que el chiste alimente el dato útil sin que se sienta un formulario.
+- O4. Que ni otro usuario, ni un amigo, ni alguien con un dump pueda saber dónde
+  vive un usuario o cuándo no está en casa.
 - O5. Que lo opere una persona sola en un VPS.
-- O6. Que la misma base de código se pueda empaquetar como app nativa sin
-  reescribirla.
+- O6. Que la misma base de código se pueda empaquetar como app nativa.
+- O7. **(i3)** Que los datos se degraden bien solos: ningún atributo depende de
+  un refresco manual del equipo para seguir siendo útil, y un dato viejo nunca se
+  muestra como vigente.
+- O8. **(i3)** Que la decisión de licencia (derivada o colectiva) se pueda
+  tomar después sin rehacer la base.
 
 **No-objetivos**
 
-- No es una app de salud: nada sobre el cuerpo (P-02).
+- No es una app de salud (P-02).
 - No es una red social: sin fotos, sin texto libre público, sin seguidores.
-- No escribe en OpenStreetMap. Nunca de forma automática (§10).
-- No protege contra un operador que se vuelva malicioso y modifique el código
-  servido (§2, L1).
+- No escribe en OpenStreetMap, nunca de forma automática (ADR 0001).
+- No protege contra un operador malicioso que modifique el código servido (L1).
 
 ## 2. Modelo de amenazas
 
@@ -101,44 +107,43 @@ Actores (sin cambios respecto de la iteración 1, más A8):
 **Limitaciones declaradas:**
 
 - **L1. Cripto en una web.** El servidor sirve el JS que cifra. Un servidor
-  comprometido puede robar llaves. Una app nativa firmada mejora esto (§13.5),
+  comprometido puede robar llaves. Una app nativa firmada mejora esto (§14.5),
   pero solo para quien la instale.
 - **L2. Metadatos de tráfico.** El servidor ve cuándo se conecta cada cuenta.
   Achicado con envío diferido y sin logs de acceso.
 - **L3. Observaciones con autor durante 90 días.** Para frenar spam y deduplicar,
-  las observaciones del puente y las ediciones del wiki guardan `cuenta_id`.
-  Las observaciones lo pierden a los 90 días; las ediciones lo conservan para
-  poder revertir vandalismo (Q-P3).
+  las observaciones del puente y las evidencias del wiki guardan `cuenta_id`.
+  Las observaciones y las evidencias del puente y de la tercera pregunta lo
+  pierden a los 90 días; las ediciones del wiki lo conservan para poder
+  revertir vandalismo (Q-P3).
+
+**(i3)** A8 suma un caso: un comercio adherido a "Baño amigo" (si se adopta)
+podría pedir datos de "cuánta gente vino". La respuesta está en el invariante de
+superficies de PRIVACY.md.
 
 ## 3. Las dos capas y el puente
 
 Una sola web, un solo mapa, un toggle arriba: **Mis registros / Baños
-públicos**. Son dos capas con modelos de datos distintos porque son cosas
-distintas:
+públicos**.
 
 | | **Registro** | **Baño** |
 |---|---|---|
 | Qué es | Un **evento**: usuario + momento + lugar. | Un **lugar**: existe, persiste, tiene atributos. |
-| Modelo | Log que se acumula. | Wiki: estado vigente + historial de ediciones. |
-| Quién lo ve | Solo su dueño (y, si quiere, sus amigos, sin ubicación de casa). | Todo el mundo, sin login, indexado por buscadores. |
-| Quién lo escribe | Su dueño. | Cualquier usuario con cuenta. |
-| Dónde vive | En el dispositivo; en el servidor, cifrado (bóveda). | En el servidor, en claro. |
-| Requiere login | Sí, para sincronizar. Registrar offline sin cuenta es posible pero se pierde si se borra el navegador (Q-N8). | No para leer. Sí para editar. |
-| Vida útil | La que quiera el dueño. | Indefinida. Las observaciones vencen (90 días). |
+| Modelo | Log que se acumula. | Wiki con evidencias: cada dato con procedencia y fecha. |
+| Quién lo ve | Su dueño (y sus amigos, con protecciones). | Todo el mundo, sin login, indexado. |
+| Quién lo escribe | Su dueño. | Usuarios con cuenta, la recorrida, fuentes externas, OSM (de una vía). |
+| Dónde vive | En el dispositivo; en el servidor, cifrado. | En el servidor, en claro, en los esquemas `osm`, `propio` y `enlace`. |
+| Vida útil | La que quiera el dueño. | Indefinida, con decaimiento por atributo (§10). |
 
-Lo que pasa de una capa a la otra es **solo** esto, y siempre por acción del
-usuario:
+Lo que cruza de Registros a Baños, siempre por acción del usuario:
 
-1. **El puente** (§7): después de registrar en un lugar que está en la base de
-   baños, dos toques opcionales: "¿cómo estaba?" (limpio / aceptable /
-   evitalo) y "¿había papel?". Se convierte en una **observación** anónima
-   sobre el baño. Si el baño era "probable", la observación además cuenta como
-   evidencia de que el baño existe.
-2. **Una edición del wiki**: el usuario corrige un atributo de un baño (horario,
-   si cobra, accesible). No necesita haber registrado nada.
+1. **El puente** (§7): "¿cómo estaba?" y "¿había papel?", más una tercera
+   pregunta ocasional sobre un atributo dudoso.
+2. **Una edición o una confirmación del wiki** desde la ficha del baño ("Sigue
+   igual").
 
-Nada más cruza. El registro en sí (cuándo, con qué frecuencia, desde dónde)
-nunca pasa a la capa pública.
+Nada más cruza. El inventario completo de lo que deriva de registros está en
+PRIVACY.md, "Invariante de superficies".
 
 **Qué muestra el toggle:**
 
@@ -154,69 +159,88 @@ nunca pasa a la capa pública.
 Las dos capas comparten el mapa base y el catálogo de baños: en "Mis
 registros" los baños aparecen tenues para dar contexto.
 
+**(i3)** En "Baños públicos", cada pin se dibuja además según la frescura de
+sus datos (§10.4), y los filtros nunca usan datos vencidos.
+
 ## 4. Arquitectura
 
 ```
-┌────────────────────────── Cliente (PWA hoy · Capacitor mañana) ───────────────────────────┐
-│                                                                                           │
-│  UI (SvelteKit, rutas /app/* sin SSR)            Páginas públicas SSR (/b/{slug}, /c/...)  │
-│        │                                         ← solo en la web, indexables             │
-│        ▼                                                                                  │
-│  packages/core ── pipeline de anonimización, franjas, puente, logros, validación          │
-│  packages/vault ─ cifrado de la capa de registros                                         │
-│        │                                                                                  │
-│        ▼                                                                                  │
-│  packages/platform (interfaces) ── geolocalización · almacenamiento · passkeys · push     │
-│        │                            · compartir · segundo plano                            │
-│        ├─ impl web (hoy):     Geolocation API · IndexedDB · WebAuthn · Web Push · Web Share │
-│        └─ impl nativa (luego): plugins Capacitor · Credential Manager / ASAuthorization ·  │
-│                                FCM/APNs · share nativo                                    │
-│                                                                                           │
-│  Cola de salida (IndexedDB, manejada por la app, NO por el service worker)                │
-└───────────────────────────────┬───────────────────────────────────────────────────────────┘
-                                │ HTTPS · cookie (web) o bearer (nativo)
-                                ▼
-┌─────────────────────────────────────── VPS ───────────────────────────────────────────────┐
-│ Caddy ── apps/web (SvelteKit adapter-node: SSR público + API /api/v1)                     │
-│              │                                                                            │
-│              ▼                                                                            │
-│          Postgres + PostGIS                                                               │
-│            ├─ CAPA REGISTROS:  boveda_paginas (cifrado) · feed_amigos (30 d)               │
-│            ├─ CAPA BAÑOS:      banios · banio_atributos · ediciones_banio ·                │
-│            │                   observaciones (90 d, con autor) · estado_reciente (sin autor)│
-│            ├─ IMPORTACIÓN OSM: importaciones_osm · conflictos_osm   (solo lectura de OSM) │
-│            └─ CUENTAS:         cuentas · credenciales · consentimientos · push_suscripciones│
-│                                                                                           │
-│ apps/worker (cron) ── import OSM (descarga, nunca sube) · vencimientos · agregados ·      │
-│                       bundles · backups                                                    │
-│ estáticos ── banios.v{n}.json · *.pmtiles · logros.v{n}.json · /.well-known/*             │
-└───────────────────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────── Cliente (PWA hoy · Capacitor mañana) ──────────────────────────┐
+│ UI /app/* (sin SSR) · packages/core · packages/vault · packages/platform                  │
+│ Une en memoria: banios-osm.v{n}.json (ODbL) + banios-propio.v{n}.json (licencia a definir)│
+│ Cola de salida en IndexedDB (la maneja la app, no el service worker)                      │
+└──────────────────────────────┬───────────────────────────────────────────────────────────┘
+                               │ HTTPS · cookie __Host- (web) o bearer (nativo)
+                               ▼
+┌────────────────────────────────────── VPS ───────────────────────────────────────────────┐
+│ Caddy ── apps/web (SSR público /b/* + API /api/v1) ── config: ORIGEN_PUBLICO, ENTORNO     │
+│              │                                                                           │
+│              ▼  Postgres + PostGIS                                                       │
+│   ┌──────────────── esquema osm ────────────────┐  ┌──────── esquema enlace ────────┐    │
+│   │ objetos, fusiones (solo derivado de OSM)    │◄─┤ banio_osm (propio ↔ osm)       │    │
+│   │ procedencia = 'osm'; lo regenera la import. │  │ procedencia por fila           │    │
+│   └─────────────────────────────────────────────┘  └───────────────┬────────────────┘    │
+│   ┌──────────────── esquema propio ─────────────────────────────────▼─────────────────┐  │
+│   │ banios · evidencias · atributos_vigentes · observaciones (90 d) · estado_reciente │  │
+│   │ propuestas · procedencia NOT NULL sin default, nunca 'osm'                        │  │
+│   └───────────────────────────────────────────────────────────────────────────────────┘  │
+│   cuentas · bóveda (cifrada) · feed_amigos (30 d) · push · consentimientos               │
+│                                                                                          │
+│ apps/worker (cron): import OSM (solo descarga) · publicación nocturna · frescura ·       │
+│                     bundles · métrica de supervivencia a C · backups                     │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Lo que no cambia: **ninguna coordenada de usuario llega al servidor**. El
-cliente baja el catálogo de baños entero (confirmados + probables; para Río
-Gallegos, unos 60-70 puntos después de curar, ver SEEDING.md) y resuelve todo
-localmente.
+Lo que no cambia: **ninguna coordenada de usuario llega al servidor**.
 
 ## 5. Stack
 
-Sin cambios de fondo respecto de la iteración 1, con estos ajustes por la PWA y
-el camino a Capacitor:
+| Pieza | Elección | Por qué | Alternativa razonable |
+|---|---|---|---|
+| Frontend + API | **SvelteKit** (TypeScript, adapter-node), un solo proceso | Una persona, un deploy. SSR para que los links compartidos tengan vista previa (crítico para el viral). Bundles chicos para Android baratos en 4G patagónico. | Vite + Preact SPA y una API Fastify aparte. Más piezas, sin SSR fácil. |
+| Mapa | **MapLibre GL JS** + **PMTiles** autoalojado | Tiles vectoriales: se puede dar estilo propio (identidad local), un solo archivo estático servido con range requests, sin servidor de tiles. Sin terceros. | **Leaflet + protomaps-leaflet** sobre el mismo PMTiles. Más liviano (~40 KB contra ~200+ KB de MapLibre), menos lindo. Si el peso en celulares baratos resulta un problema, se cambia sin tocar los datos. Lo que no es negociable es la fuente de los tiles (PRIVACY.md D-07). |
+| Offline | Service worker + IndexedDB | La Ruta 3 en Santa Cruz tiene tramos largos sin señal. Registrar offline y mandar después coincide con el envío diferido que igual queremos por privacidad. | — |
+| Cripto cliente | **WebCrypto** (AES-GCM 256, HKDF) | Nativo, sin dependencias. | libsodium-wasm si hiciera falta algo que WebCrypto no tiene. |
+| Auth | **WebAuthn/passkeys** (`@simplewebauthn`), magic link de respaldo | Sin datos personales; la extensión PRF permite derivar la llave de la bóveda (P-03, P-11). | — |
+| Índice espacial cliente | **h3-js** | Agrupar registros para detectar domicilio. | Distancia haversine directa; con pocos miles de registros alcanza. |
+| Base | **Postgres 16+ con PostGIS 3** | Se mantiene. Aunque el servidor ya no recibe coordenadas de usuarios, PostGIS sigue siendo útil para importar OSM, filtrar por categoría y corredor (Ruta 3), y para las macrozonas si vuelve el ranking. | — |
+| Acceso a datos | SQL plano en migraciones + query builder tipado (Kysely) | Migraciones legibles; tipos sin ORM pesado. | Drizzle. |
+| Worker | Node + cron del sistema | Cinco jobs nocturnos no justifican una cola. | — |
+| Proxy | **Caddy** | TLS automático, configuración corta, fácil apagar logs por ruta. | nginx + certbot. |
+| Mail (solo magic link) | Proveedor transaccional | Mandar mail desde la IP de un VPS a Hotmail/Outlook o Gmail termina en spam. Costo: un tercero ve las direcciones (ver Q-L5). Si las passkeys alcanzan, se elimina. | SMTP propio con SPF/DKIM/DMARC; probable fracaso de entregabilidad. |
+| Analytics | Ninguno en v1, o contador propio sin cookies y sin IP | Cualquier analytics de terceros es A6. | Umami/Plausible autoalojado. |
+| Despliegue | Docker Compose en el VPS, backups con restic | Simple y reproducible. | — |
+
+Todo en un monorepo TypeScript (pnpm workspaces) para que el cliente y el
+servidor compartan los mismos esquemas de validación y la misma lógica de
+franjas y semanas.
+
+**Ajustes de la iteración 2**, por la PWA y el camino a Capacitor:
 
 | Pieza | Elección | Nota de esta iteración |
 |---|---|---|
-| Frontend + API | SvelteKit (TS) | **Dos tipos de rutas**: públicas con SSR (wiki de baños, tarjetas compartibles, para SEO y vista previa en WhatsApp) y de app bajo `/app/*`, solo CSR, compilables con `adapter-static` para meterlas en Capacitor (§13). |
+| Frontend + API | SvelteKit (TS) | **Dos tipos de rutas**: públicas con SSR (wiki de baños, tarjetas compartibles, para SEO y vista previa en WhatsApp) y de app bajo `/app/*`, solo CSR, compilables con `adapter-static` para meterlas en Capacitor (§14). |
 | PWA | Web App Manifest + service worker (Workbox o a mano) | El service worker solo cachea assets y tiles. **Ninguna lógica de negocio en el service worker.** |
 | Push | Web Push con VAPID (Android, e iOS si la PWA está instalada) | Servidor con abstracción de transporte para sumar FCM/APNs en la app nativa. |
 | Mapa | MapLibre GL JS + PMTiles propio | Igual. |
-| Auth | Passkeys (WebAuthn) + magic link | **Dominio definitivo antes del lanzamiento**: las passkeys quedan atadas a él (§13.3, Q-N4). |
+| Auth | Passkeys (WebAuthn) + magic link | **Dominio definitivo antes del lanzamiento**: las passkeys quedan atadas a él (§14.3, Q-N4). |
 | Empaquetado futuro | Capacitor | No se instala en v1; la arquitectura lo prevé. |
-| Import OSM | osmium-tool + script propio | Fuente: extracto de Geofabrik. Overpass solo para exploración manual (§10.1). |
+| Import OSM | osmium-tool + script propio | Fuente: extracto de Geofabrik. Overpass solo para exploración manual (§11.1). |
+
+**(i3)** Ajustes:
+
+- **Tres esquemas de Postgres** (`osm`, `propio`, `enlace`) en la misma base
+  (ADR 0002 §5).
+- **Mapa base sin puntos de interés**: el estilo de PMTiles no dibuja comercios
+  ni estaciones de OSM, solo calles, edificios, agua y nombres de calles. Así
+  nadie "marca un baño" tocando un punto de OSM (ADR 0002, arquitectura C). Los
+  baños los dibuja la capa propia.
+- **Configuración por entorno** con `ORIGEN_PUBLICO` y `ENTORNO` (§15).
 
 ## 6. Modelo de datos
 
-Convenciones: nombres en castellano, `snake_case`. Ninguna tabla del servidor
-guarda coordenadas de usuarios, IPs ni user agents.
+Convenciones: castellano, `snake_case`. Ninguna tabla guarda coordenadas de
+usuarios, IPs ni user agents.
 
 ### 6.1 Capa REGISTROS — en el dispositivo (IndexedDB)
 
@@ -243,29 +267,110 @@ No es una tabla del servidor: vive en el cliente y se sincroniza cifrada.
 rango 100-1000), `rol` (`casa`, `laburo`, `otra`), `origen` (`manual`,
 `sugerida_noche`, `sugerida_laburo`), `creada_en`.
 
-**`preferencias`**, **`cola_salida`**, **`descartes_sugerencia`**: como en la
-iteración 1. Nueva preferencia: `puente_activo` (default `true`; apagarlo hace
-que nunca se pregunte).
+**`preferencias`**: reglas de publicación recordadas (p. ej. "contarle siempre a
+mis amigos cuando estoy en una estación de servicio"; no se aplican en madrugada
+ni noche, P-29), estado del onboarding (`casa_definida: si | no_quiero`),
+progreso de logros cacheado y `puente_activo` (default `true`; apagarlo hace que
+nunca se pregunte).
+
+**`cola_salida`**: aportes generalizados pendientes de envío (§8, paso 9).
+
+**`descartes_sugerencia`**: grupos de registros que el usuario dijo que no son
+su casa ni su laburo, para no volver a preguntar.
 
 Los **logros** se calculan acá, sobre `registros`, incluidas las zonas
 privadas.
 
+**(i3)** Nuevo en `preferencias`: `tercera_pregunta = { salteos_seguidos: n,
+pausada_hasta: fecha | null }` (§7.3).
+
 ### 6.2 Bóveda (servidor, cifrada)
 
-Sin cambios: `boveda_paginas` (páginas mensuales con id opaco, padding a 4 KB,
-secuencia sin timestamps) y `boveda_llaves` (llave envuelta por PRF de passkey
-y/o código de recuperación).
+El servidor guarda bytes que no puede leer. Para no revelar cuántos registros
+hay ni cuándo se hicieron (L2):
 
-### 6.3 Cuentas
+- Los registros se agrupan en **páginas mensuales** (`2026-10`), más una página
+  de `zonas_y_preferencias`. Lo que ve el servidor es "esta cuenta tiene 14
+  páginas", no "esta cuenta tiene 412 registros".
+- Cada página se rellena (padding) al múltiplo de 4 KB siguiente antes de
+  cifrar.
+- Las filas no tienen timestamps: la sincronización usa un número de secuencia.
 
-Como en la iteración 1 (`cuentas`, `credenciales_passkey`, `logins_mail`,
-`tokens_magic_link`, `sesiones`, `consentimientos`), con estos cambios:
+**`boveda_paginas`**
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `cuenta_id` | uuid FK | |
+| `pagina_id` | texto | Identificador opaco elegido por el cliente: `HMAC(llave, "2026-10")`, para que el servidor no sepa a qué mes corresponde. |
+| `seq` | bigint | Secuencia global, para "dame lo que cambió desde N". |
+| `version` | int | Concurrencia optimista entre dispositivos. |
+| `nonce` | bytea (12) | |
+| `cifrado` | bytea | AES-GCM 256. |
+
+PK `(cuenta_id, pagina_id)`.
+
+**`boveda_llaves`**: la llave de bóveda envuelta, una fila por forma de
+desenvolverla.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `cuenta_id` | uuid FK | |
+| `metodo` | enum | `passkey_prf` (envuelta con una llave derivada por PRF de esa credencial), `recuperacion` (envuelta con una llave derivada del código de recuperación con un KDF lento). |
+| `credencial_id` | bytea, nullable | Solo para `passkey_prf`. |
+| `envuelta` | bytea | |
+| `parametros` | jsonb | Sal, parámetros del KDF. |
+
+Sin PRF ni código de recuperación, la llave vive solo en ese navegador: si se
+borra, el historial se pierde (P-03 detalla el costo).
+
+### 6.3 Cuentas y autenticación
+
+**`cuentas`**
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | uuid | |
+| `seudonimo` | citext único | 3-24 caracteres, `[a-z0-9_]`, lista de palabras reservadas. Obligatorio. |
+| `creada_en` | date | Día, no hora. Se usa para la elegibilidad anti-Sybil (§9.4). |
+| `mayor_de_edad` | bool | Declaración al registrarse (ver Q-L3). |
+| `estado` | enum | `activa`, `suspendida`. |
+| `dias_con_aportes` | smallint | Contador para elegibilidad (§9.4). Se incrementa por lote recibido, a lo sumo una vez por día. |
+
+No hay nombre, mail, teléfono, fecha de nacimiento ni foto.
+
+**`credenciales_passkey`**: `id`, `cuenta_id`, `credencial_id` (bytea único),
+`clave_publica` (bytea), `contador_firma`, `transportes` (text[]), `soporta_prf`
+(bool), `creada_en` (date). Sin "último uso".
+
+**`logins_mail`**: `cuenta_id` (único), `mail_hmac` (bytea único) =
+`HMAC-SHA256(PIMIENTA, normalizar(mail))`. La pimienta vive en una variable de
+entorno, no en la base. El mail en claro existe solo en memoria durante el
+pedido, para mandar el link.
+
+**`tokens_magic_link`**: `token_hash` (bytea), `mail_hmac`, `vence_en`
+(timestamptz, 15 min), `usado` (bool). Se purga cada hora.
+
+**`sesiones`**: `id_hash`, `cuenta_id`, `vence_en`. Sin IP, sin user agent.
+Cookie `HttpOnly`, `Secure`, `SameSite=Lax`.
+
+**`consentimientos`**: prueba del consentimiento exigida por la Ley 25.326
+(art. 5).
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `cuenta_id` | uuid FK | |
+| `tipo` | enum | `terminos`, `publicar_lugares`, `publicar_zona`, `amigos`, `insignias_publicas`. |
+| `version_texto` | texto | Remite al texto exacto en `docs/legal/`. |
+| `otorgado_en` | date | |
+| `revocado_en` | date, nullable | |
+
+**Cambios de la iteración 2:**
 
 - **`cuentas`**: se reemplaza `dias_con_aportes` por `dias_activos` (smallint):
   días distintos con al menos una sincronización, sea cual sea su contenido.
   Elegibilidad = `creada_en ≤ hoy − 7` y `dias_activos ≥ 3` (§9.3).
 - **`sesiones`**: nuevo campo `tipo` (`cookie`, `bearer`). Las sesiones bearer
-  son para la app nativa futura (§13.2).
+  son para la app nativa futura (§14.2).
 - **`consentimientos.tipo`**: `terminos`, `puente`, `editar_wiki`, `amigos`,
   `insignias_publicas`, `push`.
 
@@ -280,66 +385,116 @@ Como en la iteración 1 (`cuentas`, `credenciales_passkey`, `logins_mail`,
 | `claves` | jsonb cifrado en reposo | `p256dh`, `auth` para Web Push. |
 | `creada_en` | date | |
 
-### 6.4 Capa BAÑOS — wiki público (servidor, en claro)
+### 6.4 Capa BAÑOS — principios de almacenamiento (i3)
 
-Tres tipos de dato con tres reglas distintas:
+1. **Tres esquemas.** `osm` es una copia regenerable de OSM; `propio` es todo lo
+   demás; `enlace` es lo único que los une. Detalle y motivo en
+   [ADR 0002](docs/adr/0002-licencia-base-derivada-vs-colectiva.md).
+2. **`procedencia` en cada fila**, tipo enum `procedencia_t = ('osm',
+   'gps_campo', 'aporte_usuario', 'fuente_externa')`, **NOT NULL y sin
+   DEFAULT**. En `propio`, un CHECK impide `'osm'`. Una inserción que no diga de
+   dónde viene el dato falla.
+3. **Lo derivado de OSM vive en `osm`.** Si un valor se calculó a partir de OSM
+   (la fusión baño ↔ estación, un nombre generado con la calle de OSM), va en
+   `osm`, no en `propio`.
+4. **Ningún formulario rellena `propio` con valores de OSM.**
+5. **Los dos lados se unen en la presentación**: en las páginas SSR y en el
+   cliente, nunca en un archivo descargable único.
 
-| Tipo | Ejemplos | Regla | Tabla |
-|---|---|---|---|
-| **Identidad del lugar** | nombre, ubicación, categoría, existe/no existe | Wiki con historial; semilla desde OSM. | `banios` |
-| **Atributos estables** | acceso, cobra, horario, accesible, cambiador, operador | Wiki: último valor vigente + historial + "confirmado" si dos personas coinciden. | `banio_atributos`, `ediciones_banio` |
-| **Observaciones** | cómo estaba, había papel | Eventos anónimos que vencen; se muestra un resumen reciente. | `observaciones`, `estado_reciente` |
+### 6.5 Esquema `osm`
 
-**`banios`**
+**`osm.objetos`** — lo importado, tal cual.
 
 | Campo | Tipo | Notas |
 |---|---|---|
-| `id` | bigint | Estable. |
-| `slug` | texto único | Para la URL pública indexable: `/b/ypf-av-san-martin-rio-gallegos`. |
-| `nombre` | texto | De OSM, o generado ("YPF — Av. San Martín"). |
-| `geom` | geography(Point, 4326) | Del lugar, no de un usuario. |
-| `categoria` | enum | `banio_publico`, `estacion_servicio`, `terminal`, `aeropuerto`, `hospital`, `supermercado`, `gastronomia`, `shopping`, `oficina_publica`, `parque`, `museo`, `estadio`, `educacion_superior`, `otro`. |
-| `marca` | texto, nullable | `YPF`, `Axion`, `ACA`, `La Anónima`... |
-| `existencia` | enum | `confirmado`, `probable`, `no_hay`, `cerrado_definitivo`. |
-| `origen` | enum | `osm_toilets` (era `amenity=toilets`), `osm_probable` (lugar de OSM de categoría con baño probable), `curado` (cargado por el equipo), `usuario` (propuesto por un usuario). |
-| `osm_tipo`, `osm_id` | texto, bigint, nullable | Referencia al objeto de OSM de origen. Si un `amenity=toilets` está a < 50 m de un lugar de OSM de la whitelist, se fusionan en un solo baño (§10.4). |
-| `osm_ids_fusionados` | jsonb | Todos los objetos de OSM que aportaron a este baño. |
-| `corredores` | text[] | `{RN3}`. |
-| `publicable` | bool | `false` para lo que nunca debe aparecer (override manual). |
+| `osm_tipo`, `osm_id` | texto, bigint | PK compuesta. |
+| `procedencia` | `procedencia_t` | Siempre `'osm'`. Explícito, sin default. |
+| `geom` | geography(Point, 4326) | Nodo o centroide. |
+| `tags` | jsonb | Solo los relevantes (§11.3). |
+| `osm_timestamp` | timestamptz | Última modificación del objeto en OSM. Alimenta la frescura (§10.3). |
+| `check_date` | date, nullable | Tags `check_date` y `check_date:*` si existen. |
+| `importacion_id` | FK | |
+
+**`osm.candidatos`** — lo que la importación interpreta como baño o probable.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | bigint | Id interno del lado OSM, regenerable. |
+| `procedencia` | `procedencia_t` | `'osm'`. |
+| `objetos` | jsonb | Lista de `(osm_tipo, osm_id)` que lo forman (p. ej. baño + estación fusionados). |
+| `categoria`, `nombre`, `marca` | | Interpretados de los tags. |
+| `existencia_osm` | enum | `confirmado` (había `amenity=toilets`) o `probable`. |
+| `atributos_osm` | jsonb | `acceso`, `cobra`, `horario`, `accesible`, `cambiador`, `operador` según los tags (§11.4). |
+| `geom` | geography(Point) | |
+
+### 6.6 Esquema `enlace`
+
+**`enlace.banio_osm`**
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `banio_id` | FK a `propio.banios` | |
+| `osm_candidato_id` | FK a `osm.candidatos` | |
+| `osm_objetos` | jsonb | Copia de los ids de OSM al momento de enlazar, para reenlazar si el candidato se regenera con otro id. |
+| `procedencia` | `procedencia_t` | Cómo se decidió el enlace: `aporte_usuario` (alguien confirmó que es el mismo lugar), `gps_campo` (la recorrida lo verificó en la calle) u `osm` (enlace automático en la importación). |
 | `creado_en` | date | |
 
-**`banio_atributos`** — el valor vigente de cada atributo.
+Pasar a la arquitectura C = `DROP SCHEMA enlace, osm`.
+
+### 6.7 Esquema `propio`
+
+**`propio.banios`** — identidad del lugar, con id propio.
 
 | Campo | Tipo | Notas |
 |---|---|---|
-| `banio_id` | bigint FK | |
-| `atributo` | enum | `acceso` (`libre`, `clientes`, `pedir_llave`, `con_costo`), `cobra` (bool), `horario` (estructura por tipo de día, ver abajo), `accesible` (bool), `cambiador` (bool), `operador` (texto corto, de OSM). |
-| `valor` | jsonb | Validado por esquema según atributo. |
-| `fuente` | enum | `osm`, `usuario`, `curado`. |
-| `confirmaciones` | smallint | Personas distintas que dieron este mismo valor en los últimos 180 días. `≥ 2` → "confirmado". |
-| `actualizado_mes` | date | Primer día del mes de la última edición. |
+| `id` | bigint | Id propio, estable. Nunca un id de OSM. |
+| `slug` | texto único | `/b/{slug}`. |
+| `procedencia` | `procedencia_t` | De la fila: quién dio de alta este baño en `propio`. |
+| `nombre` | texto, nullable | Solo si se levantó en la calle o lo dio una fuente externa. Si es null, la presentación usa el de OSM vía `enlace`. |
+| `categoria` | enum | Igual que la iteración 2. |
+| `geom` | geography(Point), nullable | Solo con procedencia propia. |
+| `geom_procedencia` | enum, nullable | `gps_campo`, `fuente_externa`, `aporte_usuario_mapa` (marcado a mano en el mapa base sin puntos de interés). NOT NULL si `geom` no es null. |
+| `publicable` | bool | |
+| `creado_en` | date | |
 
-PK `(banio_id, atributo)`.
+Un probable de OSM no tiene fila en `propio.banios` hasta que llegue la primera
+evidencia propia (observación, edición, recorrida). Ahí se crea la fila (sin
+`nombre` ni `geom` si la evidencia no los trae) y su enlace.
 
-**Horario**: `{ habil: {abre, cierra} | "24h" | "cerrado", sabado: …,
-domingo_feriado: … }`, más `osm_opening_hours` en crudo si vino de OSM. La
-granularidad por tipo de día es la que sirve para "¿está abierto el domingo?"
-y la que un usuario puede cargar en tres toques.
-
-**`ediciones_banio`** — historial del wiki.
+**`propio.evidencias`** — **(i3)** reemplaza a `ediciones_banio`. Cada dato
+sobre un atributo o sobre la existencia, con procedencia y fecha.
 
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | bigint | |
-| `banio_id` | bigint FK | |
-| `atributo` | enum o `existencia`, `nombre`, `ubicacion` | |
-| `valor_anterior`, `valor_nuevo` | jsonb | |
-| `cuenta_id` | uuid FK, nullable | Interno, para revertir vandalismo. Nunca expuesto. Null si la edición vino de OSM o del equipo. |
-| `fuente` | enum | `usuario`, `osm_import`, `curado`, `reversion`. |
-| `mes` | date | Público: el historial muestra "marzo 2027: cobra → no". Sin día, sin seudónimo. |
-| `estado` | enum | `vigente`, `revertida`. |
+| `banio_id` | FK | |
+| `atributo` | enum | `existencia`, `acceso`, `cobra`, `horario`, `accesible`, `cambiador`, `nombre`, `ubicacion`. |
+| `valor` | jsonb | Validado por esquema según atributo. Para `existencia`: `hay`, `no_hay`, `cerrado_definitivo`. |
+| `tipo` | enum | `edicion` (cambia el valor), `confirmacion` (dice "sigue igual"), `implicita` (el puente: alguien usó el baño → existe), `contradiccion` (la tercera pregunta dice que el valor vigente está mal). |
+| `procedencia` | `procedencia_t` | Sin default. |
+| `canal` | enum | `wiki`, `sigue_igual`, `puente`, `tercera_pregunta`, `recorrida`, `fuente_externa`. |
+| `fecha` | date | Granularidad según canal: semana (lunes) para `puente` y `tercera_pregunta`; mes para `wiki` y `sigue_igual`; día para `recorrida` y `fuente_externa`. |
+| `contexto` | jsonb, nullable | Solo para `tercera_pregunta` con contradicción de horario: `{ tipo_dia, franja }` (§7.3 y PRIVACY.md P-13). |
+| `cuenta_id` | uuid, nullable | Interno. Para `aporte_usuario`. **Se borra (pasa a null) a los 90 días** en `puente` y `tercera_pregunta`; se conserva en `wiki` para revertir vandalismo (Q-P3). |
+| `estado` | enum | `pendiente` (espera el lote nocturno), `vigente`, `revertida`. |
 
-**`observaciones`** — lo que entra por el puente. Se borran a los 90 días.
+El historial público de la ficha es esta tabla filtrada (sin `cuenta_id`).
+
+**`propio.atributos_vigentes`** — derivada cada noche de `evidencias` (y, en
+arquitecturas A/B, de `osm.candidatos` vía `enlace`).
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `banio_id`, `atributo` | | PK. |
+| `valor` | jsonb | El de la evidencia más reciente de tipo `edicion`, o el de OSM si no hay propias. |
+| `fuente_valor` | `procedencia_t` | De dónde sale el valor mostrado. |
+| `ultima_evidencia` | date | La más reciente que coincide con el valor (edición, confirmación o implícita). |
+| `personas_90d` | smallint | Personas distintas que lo confirmaron en 90 días. |
+| `contradicciones_90d` | smallint | |
+| `frescura` | enum | `vigente`, `dudoso`, `vencido` (§10). |
+
+**`propio.observaciones`** — lo que entra por el puente (limpieza y papel). Se
+borran a los 90 días.
 
 | Campo | Tipo | Notas |
 |---|---|---|
@@ -352,73 +507,86 @@ y la que un usuario puede cargar en tres toques.
 | `lote` | date | Para la publicación diferida. |
 | `estado` | enum | `pendiente`, `publicada`. |
 
-Único `(cuenta_id, banio_id, semana)`. No guarda franja ni tipo de día: la
-observación responde "¿cómo está este baño últimamente?", no "¿a qué hora va
-la gente?".
+Sin franja ni tipo de día: la observación responde "¿cómo está este baño
+últimamente?", no "¿a qué hora va la gente?".
 
-**`estado_reciente`** — lo que se muestra, recalculado cada noche sin autor.
+**(i3)** Cambios:
+
+- **Una por persona, por baño y por ventana de 30 días.** Si la misma cuenta
+  responde de nuevo dentro de la ventana, **reemplaza** su observación anterior
+  (se conserva la más reciente). Así, "4 de 5" son 5 personas, no 5 respuestas
+  de una persona.
+- Columna `procedencia` (`aporte_usuario`), NOT NULL sin default.
+
+**`propio.estado_reciente`** — **(i3)** pasa de "predominante" a atribución:
 
 | Campo | Tipo | Notas |
 |---|---|---|
-| `banio_id` | bigint FK | |
-| `ventana` | enum | `30d`, `90d`. |
-| `n_observaciones` | smallint | |
-| `predominante` | enum, nullable | El estado más reportado. |
-| `papel_pct` | smallint, nullable | % de observaciones con papel. |
-| `actualizado` | date | |
+| `banio_id`, `ventana` | | `30d`. |
+| `personas` | smallint | Personas distintas con observación en la ventana. |
+| `limpio`, `aceptable`, `evitalo` | smallint | Cuántas personas eligieron cada uno. |
+| `con_papel`, `sin_papel` | smallint | |
+| `semana_mas_reciente` | date | Para "esta semana", "hace 2 semanas". |
 
-**`resumen_mensual`** — historia larga sin autor: `banio_id`, `mes`,
+**`propio.resumen_mensual`** — historia larga sin autor: `banio_id`, `mes`,
 `n_limpio`, `n_aceptable`, `n_evitalo`, `n_con_papel`, `n_sin_papel`. Es lo
 único que queda de las observaciones después de 90 días.
 
-**`propuestas_banio`** — un usuario propone un baño que no está: `id`,
+**`propio.propuestas_banio`** — un usuario propone un baño que no está: `id`,
 `cuenta_id`, `nombre`, `categoria`, `ubicacion_aprox` (punto que el usuario
 **marca a mano en el mapa**, nunca su GPS), `estado` (`pendiente`,
 `aceptada`, `rechazada`). Pasa a `banios` con `existencia = probable` cuando
 otra persona la confirma o el equipo la revisa.
 
-### 6.5 Amigos
+**(i3)** Con `procedencia = aporte_usuario` y `geom_procedencia =
+aporte_usuario_mapa`. El formulario no autocompleta nada desde OSM (ADR 0002 §5).
 
-Como en la iteración 1 (`amistades`, `invitaciones_amistad`, `feed_amigos` con
-vencimiento de 30 días), con dos cambios:
+### 6.8 Amigos
 
-- `feed_amigos.lugar_id` pasa a `banio_id`.
-- Nuevo valor de `etiqueta`: los registros en zona privada siempre llevan la
-  etiqueta de la zona (`casa`, `laburo`, `otra_zona_privada`), nunca la que
-  eligió el usuario (cierra el camino D de la crítica).
+**`amistades`**: `cuenta_a`, `cuenta_b` (con `cuenta_a < cuenta_b`),
+`creada_en` (date). Mutua.
 
-### 6.6 Insignias, moderación
+**`invitaciones_amistad`**: `token_hash`, `emisor_id`, `vence_en` (48 h),
+`usada`. Se comparte por link.
 
-Sin cambios: `insignias_publicas` (opt-in, sin fecha, las de ruta solo
-completas), `denuncias` (ahora con `objetivo_tipo = edicion | observacion |
-propuesta | seudonimo`).
+**`feed_amigos`**: lo que ven los amigos. Se borra a los 30 días.
 
-### 6.7 Importación de OSM
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | uuid | |
+| `autor_id` | uuid FK | |
+| `banio_id` | bigint FK, nullable | Solo si es publicable y no está en zona privada. Si no, null. |
+| `etiqueta` | enum | `casa`, `laburo`, `otra_zona_privada`, `casa_ajena`, `banio_publico`, `ruta`, `naturaleza`, `otro`. Sin ubicación cuando `banio_id` es null: "Fulano cagó en casa". **(i2)** Los registros en zona privada llevan siempre la etiqueta de la zona, nunca la que eligió el usuario (cierra el camino D de la crítica). |
+| `dia` | date | Más preciso que en lo público, a propósito: entre amigos el chiste es "hoy". |
+| `franja` | enum | |
+| `vence_en` | date | `dia + 30`. |
 
-**`importaciones_osm`**: `id`, `fecha`, `fuente` (URL del extracto),
-`osm_base` (timestamp del extracto), `sha256`, `n_nuevos`, `n_actualizados`,
-`n_desaparecidos`, `n_conflictos`, `estado`.
+**(i2)** Los ítems de viaje (baño a más de 30 km de la zona casa, o etiqueta
+`ruta`) llegan recién a la vuelta (§8, paso 7).
 
-**`conflictos_osm`**: `id`, `importacion_id`, `banio_id`, `atributo`,
-`valor_osm_nuevo`, `valor_local`, `estado` (`abierto`, `resuelto_local`,
-`resuelto_osm`). Se generan cuando OSM cambia un atributo que nuestros usuarios
-ya habían editado (§10.5).
+### 6.9 Insignias públicas (opt-in)
 
-### 6.8 Lo que se fue
+**`insignias_publicas`**: `cuenta_id`, `insignia_id` (del catálogo
+`logros.json`), sin fecha. El cliente declara la insignia y el servidor no la
+puede verificar porque no tiene el historial (ver Q-P5). Una insignia nunca
+muestra cuándo ni en qué lugares se logró. Las insignias de ruta
+("Conquistador de la Ruta 3") solo se pueden mostrar cuando están **completas**,
+nunca el progreso: un progreso que avanza en vivo es un rastreador de viajes.
 
-- `visitas`, `stats_lugar`, `aportes_zona`, `stats_macrozona`, `stats_ciudad`,
-  `macrozonas`: fuera de v1 (§9).
-- `lugares` se reemplaza por `banios`: el catálogo para hacer snap **es** la
-  base de baños (confirmados + probables). Lo que no puede tener baño no está en
-  el catálogo y no se puede elegir.
-- `reportes_banio` se separa en atributos estables (wiki) y observaciones (puente).
+### 6.10 Moderación
+
+**`denuncias`**: `id`, `objetivo_tipo` (`seudonimo`, `evidencia`, `observacion`,
+`propuesta`, `adhesion`),
+`objetivo_id`, `motivo` (enum), `denunciante_id`, `creada_en` (date), `estado`.
+La administración en v1 es un CLI en el servidor, no un panel web (una superficie
+de ataque menos).
+
+Los límites de frecuencia (rate limit) viven en memoria del proceso, no en la
+base.
 
 ---
 
 ## 7. El puente, en detalle
-
-**Objetivo:** que el chiste alimente el dato útil sin formularios, sin bloquear
-el registro y sin abrir un canal de eventos de la capa privada a la pública.
 
 ### 7.1 Cuándo aparece
 
@@ -432,9 +600,7 @@ demora), si se cumplen **todas**:
 4. `preferencias.puente_activo = true`.
 5. No respondió ya el puente para ese baño esa semana.
 
-### 7.2 Cómo se ve
-
-Una tarjeta abajo, que no tapa el mapa, con dos filas de botones grandes:
+### 7.2 Las dos preguntas de siempre
 
 ```
   ¿Cómo estaba el baño de YPF Av. San Martín?
@@ -457,22 +623,75 @@ Una tarjeta abajo, que no tapa el mapa, con dos filas de botones grandes:
   `consentimientos` con la versión del texto).
 - "No preguntar más" apaga `puente_activo`.
 
-### 7.3 Qué viaja
+### 7.3 La tercera pregunta (i3)
+
+Debajo de las dos de siempre, separada, **como mucho una por registro**:
+
+```
+  Una más, si sabés: ¿sigue siendo gratis?
+  [ Sí, gratis ]  [ Ahora cobra ]  [ No sé ]                         Saltar
+```
+
+**Cuándo aparece:** solo si el baño tiene un atributo que hace caminar de
+balde en estado `dudoso` o `vencido` (§10), o en contradicción. Solo esos
+atributos: **horario, cobra, acceso**. Nunca limpieza ni papel, que ya cubre la
+pregunta normal. Nunca accesible ni cambiador (cambian poco y se refrescan desde
+la ficha).
+
+**Cuál, si hay varios.** Orden de prioridad (el más consecuente primero):
+
+1. **Contradicción de horario detectada en el cliente.** El cliente sabe la hora
+   del registro y el horario cargado. Si el horario dice "cerrado los domingos" y
+   el usuario está ahí un domingo, la pregunta es "Según el mapa, acá cierra los
+   domingos. ¿Estaba abierto?". Es la más valiosa: el dato está mal **ahora**.
+2. Horario `vencido`.
+3. Acceso `vencido` o `dudoso` ("¿Te dejaron pasar sin consumir?").
+4. Cobra `vencido` o `dudoso`.
+5. Horario `dudoso`.
+
+Existencia y "estaba abierto" no se preguntan: el registro ya los prueba
+(evidencia `implicita`).
+
+**Formas de las preguntas:**
+
+| Atributo | Pregunta | Respuestas |
+|---|---|---|
+| Horario (contradicción) | "Según el mapa, acá cierra los {tipo de día} a esta hora. ¿Estaba abierto?" | Sí / No / No sé |
+| Horario (dudoso o vencido) | "¿El horario sigue siendo este? {resumen de una línea}" | Sí / Cambió / No sé |
+| Acceso | "¿Te dejaron pasar sin consumir?" | Sí / Solo clientes / No sé |
+| Cobra | "¿Sigue siendo gratis?" (o "¿Sigue cobrando?") | Sí / No / No sé |
+
+"Cambió" no abre un formulario: registra una `contradiccion` que pasa el
+atributo a `dudoso` y deja un acceso discreto "corregir el horario" en la ficha.
+
+**Saltear:** "Saltar" con un toque, del mismo peso visual que "No sé", sin
+mensaje de vuelta. Que la tarjeta se cierre sola **cuenta como salteo**. **Dos
+salteos seguidos pausan la tercera pregunta 30 días**
+(`preferencias.tercera_pregunta.pausada_hasta`). Responder cualquier cosa,
+incluido "No sé", reinicia el contador.
+
+**Privacidad:** la respuesta viaja por la misma cola diferida, con fecha
+generalizada a la semana. **Solo** en el caso 1 (contradicción de horario) se
+manda además `{ tipo_dia, franja }`, porque sin eso la respuesta no sirve. Es el
+único dato público que dice "alguien estuvo en este baño un domingo a la noche
+de la semana X". En madrugada y noche (P-29), el caso 1 no se pregunta: el costo
+de privacidad es más alto justo ahí.
+
+### 7.4 Qué efecto tiene
+
+- Las respuestas de las dos preguntas de siempre actualizan `estado_reciente`.
+- El registro deja una evidencia `implicita` de existencia, y con ella un
+  probable puede pasar a confirmado (§9.3).
+- La tercera pregunta deja una evidencia `confirmacion` o `contradiccion` sobre
+  el atributo, que mueve su frescura (§10).
+
+### 7.5 Qué viaja
 
 La respuesta se generaliza y entra en la misma cola diferida que todo lo demás:
 `{ banio_id, semana, estado_banio?, habia_papel? }`. Sin franja, sin día, sin
 seudónimo visible. El servidor la publica en el lote nocturno (≥ 24 h).
 
-### 7.4 Qué efecto tiene
-
-- Actualiza `estado_reciente` del baño esa noche.
-- Si el baño era `probable`: **cada observación es evidencia de que el baño
-  existe** (alguien lo usó). Con observaciones de **2 cuentas elegibles
-  distintas** el baño pasa a `confirmado`. Es el mecanismo principal para
-  convertir los probables sembrados en confirmados (§9.4).
-- No toca los atributos del wiki. Que alguien diga "evitalo" no edita nada.
-
-### 7.5 Por qué limpieza y papel no son atributos del wiki
+### 7.6 Por qué limpieza y papel no son atributos del wiki
 
 Son estados que cambian de un día para el otro. Un wiki muestra el último valor
 como si fuera la verdad; "limpio" editado en marzo es falso en abril. Como
@@ -527,116 +746,212 @@ Registrar está permitido desde el primer segundo.
     unicidad. Estado `pendiente`, `lote = hoy`. Sin log de acceso.
 11. **Publicación nocturna** (04:00): `pendiente → publicada` si `lote ≤ ayer`.
 12. **Agregados**: `estado_reciente`, `resumen_mensual`, confirmación de
-    probables (§7.4) y de atributos (§6.4), contando solo cuentas elegibles.
-13. **Lectura pública**: solo `banios`, `banio_atributos`, `ediciones_banio`
-    (sin `cuenta_id`), `estado_reciente`, `resumen_mensual`.
+    probables (§7.4) y de atributos (§9.3), contando solo cuentas elegibles.
+13. **Lectura pública**: solo `osm.candidatos`, `propio.banios`,
+    `propio.atributos_vigentes`, `propio.evidencias` (vía vista, sin
+    `cuenta_id`), `propio.estado_reciente` y `propio.resumen_mensual`.
 
 **Ediciones del wiki** no pasan por este pipeline porque no salen de un
-registro: el usuario edita un atributo de un baño desde su ficha. Se guardan con
+registro: el usuario edita un atributo de un baño desde su ficha. **(i3)** Son
+evidencias de tipo `edicion` (o `confirmacion`, con "Sigue igual"), se guardan con
 `mes`, no con fecha, y se aplican en el momento (un wiki con 24 h de demora es
 frustrante). Ver Q-P8 sobre lo que esto puede revelar.
 
----
+**Cambios de la iteración 3:**
 
-## 9. Umbrales y arranque en frío
-
-### 9.1 La pregunta, con el dato de OSM en la mano
-
-La pregunta fue: con 5 registros / 3 usuarios por celda y 20 usuarios, ¿el
-heatmap queda vacío?
-
-- **Con esa regla y 20 usuarios**, la simulación de la iteración 1
-  ([`docs/analisis/sim_umbral_k.py`](docs/analisis/sim_umbral_k.py)) da entre
-  ~2 y ~4 celdas H3 res 8 visibles de ~40. No queda completamente vacío: quedan
-  una o dos manchas en el centro. Para el usuario, eso es un mapa roto.
-- **Ese heatmap ya no existe en el diseño**, desde la iteración 1, y la decisión
-  de producto de esta iteración (toggle "Mis registros / Baños públicos") lo deja
-  sin lugar: ninguna de las dos capas es un agregado de eventos. La capa
-  personal no tiene umbral porque solo la ve su dueño. La capa de baños no
-  necesita k-anonimato para existir, porque los baños son lugares públicos.
-- **Donde sí hay umbral es en lo que cruza por el puente**, y ahí el problema de
-  arranque no es el k: es que hay 5 baños.
-
-### 9.2 Las tres alternativas que pediste evaluar
-
-| Alternativa | Qué es | Evaluación |
-|---|---|---|
-| **Umbral dinámico** (bajar k mientras hay pocos usuarios) | k = 2 al principio, sube con la masa. | **No.** El k bajo justo cuando hay pocos usuarios es cuando cada persona es más identificable: con 20 usuarios, k = 2 en una celda es "vos y uno más". Además, un umbral que cambia con el tiempo deja ver diferencias: lo que aparece el día que baja el k son exactamente las celdas con 2 personas. |
-| **Celdas más grandes al principio** (H3 res 7 → res 8 cuando haya masa) | Agregar sobre ~5 km² en lugar de ~0,7 km². | **Funciona, pero da un mapa sin información.** Río Gallegos son ~6-8 celdas res 7. Con 20 usuarios se encenderían 2-3: "en el centro se caga más". No sirve ni como chiste ni como dato. Útil más adelante como **nivel de respaldo** de un heatmap multirresolución, no como arranque. |
-| **Arrancar sin heatmap y solo con la capa de baños** | Lo público es el wiki de baños; los agregados de eventos esperan. | **Esta.** Es además lo que implica la decisión del toggle. Lo que hay que resolver no es el umbral, sino que la capa de baños no esté vacía (§9.4). |
-
-### 9.3 Umbrales que quedan en v1
-
-| Qué | Umbral | Por qué |
-|---|---|---|
-| Mostrar un baño confirmado o probable | Ninguno | Es un lugar público. |
-| Mostrar un atributo del wiki | Ninguno; "confirmado" con ≥ 2 personas | Es información sobre un lugar, no sobre una persona. |
-| Mostrar `estado_reciente` | ≥ 1 observación publicada, sin autor, por semana, con ≥ 24 h de demora | Una observación dice "alguien usó este baño la semana X". Sin seudónimo, con demora y sin hora, no identifica. Con ≥ 2 sería más seguro, pero en el arranque nada mostraría estado (Q-P9). |
-| Pasar un baño probable a confirmado | ≥ 2 cuentas **elegibles** distintas | Freno contra una cuenta que confirma todo. |
-| Elegibilidad | `creada_en ≤ hoy − 7` y `dias_activos ≥ 3` | **(i2)** La regla de la iteración 1 (14 días + 5 días con aportes públicos) casi no se alcanzaba con ~4 aportes publicables cada 3 meses. Ahora cuenta cualquier actividad (sincronizar ya es actividad, y el servidor la ve igual). |
-| Feed de amigos | Ninguno | Lo ven amigos elegidos; las protecciones son otras (§8, paso 7). |
-
-### 9.4 Cómo se ve el mapa el día uno (lo que sí decide el arranque)
-
-Con el dato real (SEEDING.md):
-
-1. **5 baños `osm_toilets`**, todos en estaciones de servicio → se fusionan con
-   su estación y quedan `confirmado` con poca información.
-2. **13 estaciones de servicio** de OSM (YPF, Axion, ACA, Petrobras) → 5 ya
-   confirmadas por el punto anterior; 8 como `probable`.
-3. **Terminal, aeropuerto, hospital, supermercados grandes y gastronomía** →
-   `probable`. OSM tiene 60 candidatos en esas categorías, con ruido (un
-   "Almacén" etiquetado como supermercado, salitas barriales como hospital):
-   después de curar a mano quedan unos 45-55 (SEEDING.md).
-4. **Sembrado a mano** antes del lanzamiento: una recorrida de 2-3 días por los
-   probables con más tránsito, cargando existencia, acceso, si cobra, horario,
-   accesible y cambiador (`origen = curado`). Objetivo: **30 baños confirmados
-   con atributos completos** el día del lanzamiento.
-5. **El puente convierte probables en confirmados** a medida que la gente
-   registra (§7.4).
-6. **Los probables se dibujan distinto** (estilo hueco, "sin confirmar") para no
-   prometer un baño que quizás es solo para empleados. Mandar a alguien a un
-   baño que no existe le hace más daño a la capa útil que un mapa con pocos
-   puntos.
-
-### 9.5 Cuándo volver a pensar en un heatmap (v2)
-
-Solo si se cumplen las dos: (a) hay un uso claro que el wiki de baños no
-cubre, y (b) hay ≥ 50 cuentas elegibles activas en 90 días. Si se hace:
-multirresolución (res 8 donde haya ≥ 3 personas elegibles distintas, res 7 de
-respaldo, nada donde ni eso), acumulado de 90 días, actualizado de noche, en
-rangos, y sin la condición de cantidad de registros.
+- **Paso 6:** la tercera pregunta aparece según §7.3, la elige el cliente con el
+  catálogo local y el horario cargado, sin consultar al servidor.
+- **Paso 7:** la respuesta a la tercera pregunta se generaliza a
+  `{ banio_id, semana, atributo, respuesta }`, más `{ tipo_dia, franja }` solo en
+  el caso de contradicción de horario.
+- **Paso 10:** el servidor aplica el **reemplazo** de observaciones dentro de la
+  ventana de 30 días y valida que la tercera pregunta corresponda a un atributo
+  de la lista permitida.
+- **Paso 12:** el recálculo nocturno incluye `atributos_vigentes` y la frescura
+  (§10).
 
 ---
 
-## 10. Pipeline de importación de OSM (una sola vía)
+## 9. Umbrales, atribución y arranque en frío
 
-### 10.0 La regla
+### 9.1 Lo que se mantiene de la iteración 2
 
-> **OpenStreetMap es una fuente de lectura. Nada de lo que hagan nuestros
+- Sin agregados de eventos en v1. El mapa general está **postergado** (§16).
+- Umbral dinámico descartado (D-09): un k bajo llega justo cuando cada persona
+  es más identificable.
+
+### 9.2 Atribución en lugar de umbral (i3)
+
+**El principio:** no se muestra un dato como hecho, se muestra **quién lo dice y
+cuándo**. Con eso, la palabra de una persona no se lee como verdad, y no hace
+falta esperar a dos.
+
+**Estado reciente:**
+
+| Personas en 30 días | Se muestra |
+|---|---|
+| 0 | "Sin reportes recientes" |
+| 1 | "1 persona, esta semana: limpio · con papel" |
+| > 1 | "4 de 5 personas, últimos 30 días: limpio · la última, hace 2 semanas" |
+
+**Ajuste respecto del pedido:** el ejemplo decía "hace 3 días". La observación
+guarda la **semana** a propósito (P-13): un día exacto, junto con un baño, es
+"alguien estuvo acá el martes". Por eso se muestra "esta semana", "la semana
+pasada", "hace 3 semanas". Si se quisiera el día, habría que guardarlo, y eso
+cambia P-13.
+
+**Atributos del wiki:** el mismo principio, ahora posible porque cada evidencia
+tiene procedencia y fecha:
+
+- "Horario: lun-sáb 7-23, dom cerrado · según la recorrida, noviembre 2026"
+- "Cobra: no · según 1 persona, hace 2 semanas"
+- "Accesible: sí · según OpenStreetMap, dato de 2023"
+- "Cobra: **en duda** · 2 personas dicen que no, 1 que sí (la última, esta semana)"
+
+**Límite antifraude:** una observación por persona, por baño y por ventana de 30
+días (§6.7). Sumado a eso, la elegibilidad (≥ 7 días, ≥ 3 días activos) sigue
+aplicándose a lo que cambia estados: pasar un probable a confirmado y marcar un
+atributo como "confirmado por 2 personas".
+
+**Lo que no cambia con la atribución:** que se publique es un dato individual
+derivado de un registro, sin autor, por semana y con demora. Está en el
+invariante de superficies de PRIVACY.md, inventariado. No es un agregado.
+
+### 9.3 Umbrales que quedan
+
+| Qué | Regla |
+|---|---|
+| Mostrar un baño | Ninguna (lugar público). |
+| Mostrar estado reciente | Por atribución, desde 1 persona (§9.2). |
+| Mostrar un atributo | Siempre, con procedencia, fecha y frescura (§10). |
+| Probable → confirmado | Evidencia propia de 2 cuentas elegibles distintas, o 1 evidencia `gps_campo` o `fuente_externa`. |
+| Atributo "confirmado por varias personas" | ≥ 2 personas elegibles coincidentes en 180 días. Es un rótulo, no una condición para mostrarlo. |
+| Elegibilidad | Cuenta de ≥ 7 días y ≥ 3 días activos. |
+
+### 9.4 Cómo se ve el mapa el día uno
+
+Sin cambios respecto de la iteración 2 (SEEDING.md): 5 baños confirmados de OSM
+sin datos, ~55 probables después de curar, recorrida inicial para dejar 30
+confirmados completos. **(i3)** La recorrida se carga con GPS de campo y
+`procedencia = gps_campo`, en archivos de `data/curated/`, no editando el wiki
+del entorno de prueba (§15.4).
+
+---
+
+## 10. Decaimiento de datos
+
+### 10.1 El problema
+
+Un horario cargado en noviembre puede ser falso en marzo. Si no se renueva, en
+seis meses el mapa vuelve a estar vacío, pero con datos viejos encima, y eso es
+peor: la gente camina hasta un baño cerrado.
+
+**Supuesto de diseño:** **no hay recorrida periódica garantizada.** Si después
+se confirma, suma. Todo lo que sigue tiene que funcionar sin ella.
+
+### 10.2 Vida útil por atributo
+
+Cada atributo tiene una vida útil **T**, contada desde `ultima_evidencia` (la
+evidencia más reciente que coincide con el valor vigente, de cualquier fuente):
+
+| Atributo | T | Motivo |
+|---|---|---|
+| Horario | 4 meses, y además **dudoso al cambiar de temporada** si se verificó en la otra (alta: diciembre-marzo; baja: abril-noviembre) | Cambia con la temporada turística y con el negocio. |
+| Acceso (libre / clientes / llave) | 6 meses | Cambia por política del comercio, a veces de un día para otro. |
+| Cobra | 6 meses | Igual. |
+| Cambiador | 12 meses | Se rompe o se saca, pero no seguido. |
+| Existencia | 12 meses | Los lugares cierran o cambian de dueño. |
+| Accesible | 24 meses | Es estructural. |
+| Nombre, operador | 12 meses | Cambio de dueño o de marca (pasa con las estaciones de servicio). |
+| Limpieza, papel | 30 días (ventana del estado reciente) | Ya modelados como observaciones (§9.2). |
+
+### 10.3 Estados de frescura
+
+| Estado | Cuándo | Cómo se muestra | ¿Entra en filtros? |
+|---|---|---|---|
+| **Vigente** | `ultima_evidencia` < T | Normal, con fuente y fecha. | Sí. |
+| **Dudoso** | Entre T y 2T, o con una contradicción en los últimos 90 días | En gris con "sin confirmar desde marzo". | Sí, con la etiqueta "puede haber cambiado". |
+| **Vencido** | > 2T | Tachado suave, "dato de noviembre 2026". | **No.** "Abierto ahora", "Gratis", "Accesible" y "Cambiador" nunca usan un dato vencido. |
+
+**Datos de OSM:** su fecha es `check_date` si existe, y si no `osm_timestamp`
+(la última modificación del objeto). Un `fee=no` cargado en OSM en 2019 entra
+**vencido** desde el día de la importación. Es lo honesto.
+
+**Existencia vencida:** el baño se esconde de la vista por defecto y aparece con
+"Mostrar baños sin noticias recientes". No se borra.
+
+### 10.4 Cómo se dibuja en el mapa
+
+- Pin lleno: existencia vigente y al menos un atributo útil vigente.
+- Pin lleno con borde gris: existencia vigente, atributos dudosos o vencidos
+  ("existe, pero no sabemos los detalles").
+- Pin hueco: probable (nadie confirmó que haya baño).
+- Oculto por defecto: existencia vencida.
+
+### 10.5 Qué lo refresca, sin recorrida
+
+| Mecanismo | Qué refresca | Costo para el usuario | Costo para el equipo |
+|---|---|---|---|
+| Registro + puente (implícito) | Existencia | Cero: ya registró. | Cero. |
+| Tercera pregunta (§7.3) | Horario, acceso, cobra | Un toque, ocasional, saltable. | Cero. |
+| "Sigue igual" en la ficha | Cualquier atributo | Un toque por atributo, con cuenta. | Cero. |
+| Edición del wiki | Cualquier atributo | Un formulario corto. | Revisar el historial de vez en cuando (vandalismo). |
+| Reimportación de OSM (si se mantiene A o B) | Lo que alguien actualice en OSM | Cero. | Cero. En Río Gallegos casi nadie actualiza OSM: aporta poco. |
+| Fuente externa (Municipalidad, comercio) | Lo que informen | Cero. | Una consulta. |
+| **Recorrida (si se confirma)** | Todo | Cero. | ~1 día por cada 30 baños. |
+
+### 10.6 ¿El puente alcanza? No del todo, y conviene saber hasta dónde llega
+
+Estimación con 20 usuarios activos (mismos supuestos que §9 de la iteración 2:
+~4 registros publicables por persona por trimestre, concentrados en pocos
+baños):
+
+- ~80 registros por trimestre en baños del catálogo → **existencia renovada en
+  los ~10-15 baños más usados**. El resto envejece.
+- La tercera pregunta aparece en una fracción de esos registros (solo con
+  atributos dudosos) y se responde en una fracción de esas. Con 30-50 % de
+  aparición y 30-50 % de respuesta: **unas 10-20 renovaciones de horario, acceso o
+  cobro por trimestre**, casi todas en los mismos baños más usados.
+
+**Cómo queda el mapa a los seis meses sin recorrida:**
+
+- Los ~10-15 baños más usados: existencia vigente, horario y cobro mayormente
+  vigentes o dudosos.
+- El resto de los 30 de la recorrida inicial: existencia vigente (T = 12
+  meses); horario **dudoso** desde el cuarto mes y **vencido** desde el octavo;
+  cobro y acceso dudosos desde el sexto.
+- Los probables nunca visitados: siguen huecos.
+- El filtro "abierto ahora" devuelve pocos resultados, **pero todos con dato
+  vigente o marcado como dudoso**. Nadie camina hasta un baño cerrado por un
+  horario vencido que se muestra como verdad.
+
+Eso es degradar bien: el mapa se vacía de **certezas**, no de **lugares**, y lo
+dice. Lo que no se puede hacer es mantener vigentes los horarios del long tail
+sin alguien que vaya o sin una fuente externa.
+
+### 10.7 Lo que sumaría la recorrida si se confirma
+
+Una recorrida de los 30 baños principales cada 4 meses mantiene vigente el
+horario de esos 30 (T = 4 meses). Sin ella, el diseño funciona y degrada como en
+§10.6. Con ella, el mapa útil de verdad pasa de ~10-15 a ~30 baños.
+
+---
+
+## 11. Pipeline de importación de OSM (una sola vía)
+
+### 11.0 La regla
+
+> **OpenStreetMap es una fuente de solo lectura. Nada de lo que hagan nuestros
 > usuarios se escribe en OSM de forma automática. Si alguna vez se devuelve
-> algo, es a mano, por una persona, con revisión, desde una cuenta de OSM
-> personal y siguiendo las guías de OSM para ediciones organizadas.**
+> algo, lo hace una persona, a mano, con revisión.**
+> — [ADR 0001](docs/adr/0001-osm-importacion-una-via.md)
 
-Cómo se hace cumplir (ver también
-[docs/adr/0001-osm-importacion-una-via.md](docs/adr/0001-osm-importacion-una-via.md)):
+Cómo se hace cumplir: sin credenciales de edición de OSM en ningún lado, sin
+librerías de escritura, chequeo de CI contra llamadas de escritura a la API, un
+comentario de cabecera en cada archivo de `apps/worker/src/osm/`, y la única
+salida "hacia OSM" es un reporte CSV para humanos.
 
-- El código de importación vive en `apps/worker/src/osm/` y solo descarga.
-- **No hay credenciales de la API de edición de OSM** en ninguna configuración,
-  variable de entorno ni secreto del proyecto.
-- **No hay dependencias** de librerías de edición de OSM (clientes de la API
-  0.6 de escritura, OAuth de OSM).
-- Un chequeo de CI falla si aparece en el código una llamada a
-  `api.openstreetmap.org` con método distinto de GET, o los paths
-  `/api/0.6/changeset` o `/api/0.6/*/create`.
-- El módulo de importación tiene un comentario de cabecera con esta regla y el
-  link al ADR.
-- La única salida "hacia OSM" que existe es un **reporte para humanos**
-  (`apps/worker/src/osm/reporte-devolucion`): una lista de atributos
-  confirmados localmente que difieren de OSM, en CSV, para que una persona los
-  revise y, si quiere, los cargue a mano en un editor de OSM.
-
-### 10.1 Fuente
+### 11.1 Fuente y recorte
 
 - **Producción: extracto de Geofabrik** (`south-america/argentina`),
   descargado semanalmente. Es un archivo, se puede verificar con su checksum y
@@ -645,13 +960,19 @@ Cómo se hace cumplir (ver también
   iteración, de cuatro servidores públicos, dos no respondieron, uno se colgó y el
   único que contestó tiraba 504 en la mitad de los intentos (SEEDING.md).
 
-### 10.2 Recorte
-
-`osmium extract` con el polígono del ejido de Río Gallegos (o el bbox
+**Recorte.** `osmium extract` con el polígono del ejido de Río Gallegos (o el bbox
 `-51.70,-69.35,-51.55,-69.13` mientras no haya polígono curado), y la
 estrategia `smart` para no cortar ways en el borde.
 
-### 10.3 Filtro
+### 11.2 Destino (i3)
+
+La importación escribe **solo** en el esquema `osm` (`osm.objetos`,
+`osm.candidatos`, `osm.importaciones`, `osm.conflictos`). Nunca toca `propio`.
+Puede crear enlaces automáticos en `enlace.banio_osm` con `procedencia = 'osm'`
+cuando un candidato nuevo coincide con un baño propio existente (< 30 m, misma
+categoría), marcados para revisión.
+
+### 11.3 Filtro
 
 `osmium tags-filter` con:
 
@@ -666,7 +987,7 @@ estrategia `smart` para no cortar ways en el borde.
 
 El mapeo exacto de tags a categoría vive en `data/curated/categorias.json`.
 
-### 10.4 Normalización y fusión
+### 11.4 Normalización y fusión
 
 1. Cada objeto pasa a punto (nodo: su posición; way/relation: centroide).
 2. **Fusión toilets ↔ lugar**: un `amenity=toilets` a < 50 m de un lugar de la
@@ -686,52 +1007,63 @@ El mapeo exacto de tags a categoría vive en `data/curated/categorias.json`.
 
 4. Slug estable a partir de nombre + calle; colisiones con sufijo.
 
-### 10.5 Reglas de precedencia en cada reimportación
+**(i3)** La fusión se guarda en `osm.candidatos.objetos`, del lado OSM, porque
+es un resultado calculado solo con datos de OSM. El nombre generado
+("{marca} — {calle}") también queda del lado OSM. Se importan además
+`check_date` y `osm_timestamp` para la frescura (§10.3).
+
+### 11.5 Precedencia
 
 | Situación | Qué pasa |
 |---|---|
-| Objeto nuevo en OSM | Se crea el baño. |
-| Atributo cambió en OSM y **nadie lo editó localmente** | Se actualiza; queda una fila en `ediciones_banio` con `fuente = osm_import`. |
-| Atributo cambió en OSM y **un usuario lo había editado** | **Gana lo local.** Se abre un `conflictos_osm` para revisión manual. |
-| Objeto desapareció de OSM | Si no tiene datos locales: `publicable = false`. Si tiene: queda, y se abre conflicto. Nunca se borra solo. |
-| Usuario editó algo que OSM no tiene | Queda local. Va al reporte de devolución (§10.0) si está confirmado. |
+| Candidato nuevo en OSM | Se crea en `osm.candidatos`. Aparece en el mapa vía `banios-osm.json`. |
+| Atributo cambió en OSM y no hay evidencias propias | El valor mostrado cambia (sale de `osm`). |
+| Atributo cambió en OSM y hay evidencias propias | **Gana lo propio** si es más reciente; si lo de OSM es más reciente (`osm_timestamp`), se abre un conflicto para revisión y el atributo pasa a `dudoso`. |
+| Objeto desaparece de OSM | El candidato se marca `desaparecido`. Si el baño tiene fila propia con geometría propia, sigue igual. Si no, se esconde. |
 
-### 10.6 Salida
+### 11.6 Salida
 
-Actualiza `banios` y `banio_atributos`, registra la corrida en
-`importaciones_osm` y dispara `generar-bundles` (`banios.v{n}.json`, PMTiles si
-cambió el mapa base).
+Dos archivos (ADR 0002 §5): `banios-osm.v{n}.json` (ODbL, con atribución) y
+`banios-propio.v{n}.json`. Se calcula además la **métrica de supervivencia a C**.
 
-### 10.7 Licencia (no lo resuelve la importación de una vía)
+### 11.7 Licencia
 
-Que la importación sea de una vía resuelve la parte de **no ensuciar OSM**. No
-resuelve la de **ODbL**: si mezclamos datos de OSM con aportes de usuarios en la
-misma tabla de baños y la mostramos en público, es muy probable que sea una
-"base de datos derivada" y que haya que ofrecerla bajo ODbL. Consecuencia
-práctica: los aportes al wiki se licencian bajo ODbL en los términos de uso
-desde el día uno. Eso además hace legalmente posible la devolución manual.
-Atribución "© colaboradores de OpenStreetMap" visible en el mapa y en cada ficha.
-Ver Q-L6.
+Ver [ADR 0002](docs/adr/0002-licencia-base-derivada-vs-colectiva.md). Hasta que
+haya respuesta legal, el almacenamiento preserva las tres opciones.
 
 ---
 
-## 11. Endpoints
+## 12. Endpoints
 
 Base `/api/v1`. JSON. Autenticación por cookie (web) o `Authorization: Bearer`
-(app nativa, §13.2). Ningún endpoint recibe ni devuelve coordenadas de
+(app nativa, §14.2). Ningún endpoint recibe ni devuelve coordenadas de
 usuarios; ningún parámetro describe la posición del usuario.
 
-### 11.1 Autenticación y cuenta
+### 12.1 Autenticación y cuenta
 
-Como en la iteración 1 (`/auth/passkey/*`, `/auth/mail/*`, `/auth/salir`,
-`/cuenta`, `/cuenta/consentimientos`, `/cuenta/exportar`, `DELETE /cuenta`),
-más:
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/auth/passkey/registro/opciones` | Inicia el alta: devuelve el desafío WebAuthn (pide la extensión PRF). Body: `{ seudonimo, mayor_de_edad, acepta_terminos_version }`. |
+| POST | `/auth/passkey/registro/verificar` | Verifica la credencial, crea la cuenta y la sesión. |
+| POST | `/auth/passkey/login/opciones` | Desafío de login (passkeys descubribles: no hace falta ingresar nada). |
+| POST | `/auth/passkey/login/verificar` | |
+| POST | `/auth/mail/solicitar` | `{ mail }`. Siempre responde 202 (no revela si la cuenta existe). |
+| POST | `/auth/mail/canjear` | `{ token }`. El link del mail abre una página que hace este POST con un botón: los escáneres de links de Outlook/Gmail hacen GET y si el canje fuera por GET quemarían el token. |
+| POST | `/auth/salir` | |
+| GET | `/cuenta` | Seudónimo, métodos de login, consentimientos vigentes. |
+| PATCH | `/cuenta` | Cambiar seudónimo. |
+| POST | `/cuenta/consentimientos` | `{ tipo, version }`. Otorga. |
+| DELETE | `/cuenta/consentimientos/{tipo}` | Revoca. Revocar `publicar_lugares` ofrece además borrar los aportes ya hechos. |
+| GET | `/cuenta/exportar` | Todo lo que el servidor tiene de la cuenta: datos de cuenta, consentimientos, aportes, amistades, y la bóveda cifrada (el cliente la descifra y arma un JSON legible). Derecho de acceso, art. 14. |
+| DELETE | `/cuenta` | Borrado total. Requiere reautenticación reciente (< 5 min). Ver PRIVACY.md P-18. |
+
+**(i2)**
 
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/auth/sesion-bearer` | Convierte una autenticación válida en un token bearer, para la app nativa. En la web no se usa. |
 
-### 11.2 Capa REGISTROS (autenticado)
+### 12.2 Capa REGISTROS (autenticado)
 
 | Método | Ruta | Descripción |
 |---|---|---|
@@ -742,21 +1074,31 @@ más:
 | POST | `/lote` | `{ observaciones: [...], amigos: [...], paginas_boveda: [...] }`. Sin log de acceso. Devuelve ids remotos. |
 | GET | `/aportes/mios` | Mis observaciones vigentes y mis ítems en feeds de amigos. |
 | DELETE | `/aportes/{tipo}/{id}` | `tipo ∈ observacion, amigos`. |
-| GET / POST / DELETE | `/amigos/...` | Como en la iteración 1. |
 | GET | `/amigos/feed` | |
 
-### 11.3 Capa BAÑOS — lectura pública (sin autenticación, cacheable)
+Amigos:
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/estaticos/{ciudad}/banios.v{n}.json` | Catálogo completo para el mapa y el snap: id, slug, nombre, categoría, marca, punto, existencia, atributos vigentes, estado reciente. El cliente siempre lo baja entero. |
+| POST | `/amigos/invitaciones` | Devuelve un link de un solo uso, válido 48 h. |
+| POST | `/amigos/invitaciones/{token}/aceptar` | |
+| GET | `/amigos` | Lista. |
+| DELETE | `/amigos/{seudonimo}` | Corta la amistad y borra del feed del otro lo que yo le había mostrado. |
+| GET | `/amigos/feed` | Últimos 30 días. |
+
+### 12.3 Capa BAÑOS — lectura pública (sin autenticación, cacheable)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/estaticos/{ciudad}/banios-osm.v{n}.json` | **(i3)** Candidatos del lado OSM (ODbL, con atribución). |
+| GET | `/estaticos/{ciudad}/banios-propio.v{n}.json` | **(i3)** Baños propios, atributos vigentes con procedencia, fecha y frescura, estado reciente. El cliente baja los dos archivos enteros y los une en memoria (ADR 0002 §5). |
 | GET | `/banios/{id}` | Ficha en JSON. |
-| GET | `/banios/{id}/historial` | Ediciones (mes, atributo, antes → después, fuente). Sin seudónimos. |
+| GET | `/banios/{id}/evidencias` | **(i3)** Evidencias públicas: atributo, valor, tipo, canal, procedencia, fecha. Sin `cuenta_id`. |
 | GET | `/tiles/{region}.pmtiles` | Range requests. |
 | — | `/b/{slug}` (SSR, fuera de `/api`) | Ficha HTML indexable, con datos estructurados (schema.org `PublicToilet` / `Place`) y atribución de OSM. |
 | — | `/sitemap.xml` | Todas las fichas de baños. |
 
-### 11.4 Capa BAÑOS — escritura (autenticado, cuentas activas)
+### 12.4 Capa BAÑOS — escritura (autenticado, cuentas activas)
 
 | Método | Ruta | Descripción |
 |---|---|---|
@@ -768,7 +1110,7 @@ más:
 Las observaciones del puente **no** usan estos endpoints: van por `/lote`, con
 demora (§7.3).
 
-### 11.5 Push, moderación, salud
+### 12.5 Push, moderación, salud
 
 | Método | Ruta | Descripción |
 |---|---|---|
@@ -776,7 +1118,7 @@ demora (§7.3).
 | DELETE | `/push/suscripciones/{id}` | |
 | POST | `/denuncias` | |
 | GET | `/salud` | |
-| — | `/.well-known/assetlinks.json`, `/.well-known/apple-app-site-association` | Desde el día uno, aunque todavía no haya app (§13.3). |
+| — | `/.well-known/assetlinks.json`, `/.well-known/apple-app-site-association` | Desde el día uno, aunque todavía no haya app (§14.3). |
 
 **Contenido de las notificaciones push:** genérico y nunca en tiempo real
 respecto de un evento de otro usuario. Permitido: "Tenés 3 novedades de tus
@@ -785,26 +1127,49 @@ en el cliente; el servidor manda un aviso genérico de "abrí la app"). Prohibid
 "Fulano acaba de registrar en...". Motivo: el push es tiempo real por
 definición, y el tiempo real es el camino A del ataque (casa vacía).
 
----
+### 12.6 Cambios de la iteración 3
 
-## 12. Jobs del worker
+Los que siguen reemplazan o se suman a lo anterior:
+
+| Método | Ruta | Cambio |
+|---|---|---|
+| GET | `/estaticos/{ciudad}/banios-osm.v{n}.json` | **Nuevo.** Candidatos del lado OSM. ODbL. |
+| GET | `/estaticos/{ciudad}/banios-propio.v{n}.json` | **Nuevo.** Baños, atributos vigentes con procedencia, fecha y frescura, estado reciente. Reemplaza a `banios.v{n}.json`. |
+| GET | `/banios/{id}/evidencias` | Reemplaza a `/historial`: evidencias públicas (atributo, valor, tipo, canal, procedencia, fecha). Sin `cuenta_id`. |
+| POST | `/banios/{id}/confirmaciones` | **Nuevo.** "Sigue igual": `{ atributo }`. Requiere cuenta y `editar_wiki`. Una por persona, por atributo y por mes. |
+| PATCH | `/banios/{id}/atributos/{atributo}` | Ahora crea una evidencia `edicion` con `procedencia = aporte_usuario`. |
+| POST | `/lote` | Acepta además `terceras: [{ banio_id, semana, atributo, respuesta, contexto? }]`. |
+| — | `/robots.txt` | Distinto según `ENTORNO` (§15.3). |
+| — | `/sitemap.xml`, `/.well-known/*` | Solo con `ENTORNO=produccion`. |
+
+La carga de la recorrida **no** tiene endpoint: entra por archivos versionados
+en `data/curated/` y un comando del worker, con `procedencia = gps_campo`.
+
+## 13. Jobs del worker
 
 | Job | Cuándo | Qué hace |
 |---|---|---|
 | `publicar-lote` | Diario 04:00 | Observaciones `pendiente → publicada`. |
 | `recalcular` | Después | `estado_reciente`, `resumen_mensual`, confirmación de probables y de atributos con cuentas elegibles. |
 | `vencer-observaciones` | Diario | Borra las filas de `observaciones` con más de 90 días (después de volcarlas a `resumen_mensual`). |
-| `importar-osm` | Semanal | §10. Solo descarga. |
-| `generar-bundles` | Después de importar o de recalcular | `banios.v{n}.json`, `sitemap.xml`, PMTiles si cambió. |
-| `notificar` | Diario 19:00 | Avisos push agregados (§11.5). |
+| `importar-osm` | Semanal | §11. Solo descarga. |
+| `generar-bundles` | Después de importar o de recalcular | **(i3)** `banios-osm.v{n}.json` y `banios-propio.v{n}.json`, `sitemap.xml` (solo producción), PMTiles si cambió. |
+| `notificar` | Diario 19:00 | Avisos push agregados (§12.5). |
 | `purgar` | Horario / diario | Tokens, sesiones, feed de amigos > 30 días, invitaciones. |
 | `backup` | Diario | restic, 30 días. |
 
----
+**(i3)** Se suman:
 
-## 13. PWA ahora, app nativa después
+| Job | Cuándo | Qué hace |
+|---|---|---|
+| `frescura` | Diario, después de `recalcular` | Recalcula `atributos_vigentes.frescura` con T por atributo y cambio de temporada. |
+| `anonimizar-evidencias` | Diario | Pasa a null el `cuenta_id` de evidencias de `puente` y `tercera_pregunta` con más de 90 días. |
+| `supervivencia-c` | Diario | Métrica de ADR 0002 §5.6. |
+| `cargar-curado` | A mano | Importa `data/curated/` (recorrida, fuentes externas) a `propio` con su procedencia. |
 
-### 13.1 Qué tiene la PWA en v1
+## 14. PWA ahora, app nativa después
+
+### 14.1 Qué tiene la PWA en v1
 
 - Manifest instalable con ícono, `display: standalone`, colores y nombre
   definitivos.
@@ -816,7 +1181,7 @@ definición, y el tiempo real es el camino A del ataque (casa vacía).
 - Instalación sugerida después del segundo registro (no al entrar), con
   `beforeinstallprompt` en Android e instrucciones a mano en iOS.
 
-### 13.2 Reglas de arquitectura para que Capacitor no obligue a rehacer nada
+### 14.2 Reglas de arquitectura para que Capacitor no obligue a rehacer nada
 
 | # | Regla | Por qué |
 |---|---|---|
@@ -826,12 +1191,12 @@ definición, y el tiempo real es el camino A del ataque (casa vacía).
 | R4 | `packages/platform` define **interfaces** (`geolocalizacion`, `almacenamiento`, `passkeys`, `push`, `compartir`, `segundoPlano`, `instalacion`). La UI y `core` solo importan interfaces. Hoy hay una sola implementación (web). | Al empaquetar se agrega una implementación nativa, sin tocar UI ni lógica. |
 | R5 | **Ninguna lógica de negocio en el service worker.** La cola de salida, el reintento y la sincronización los maneja la app. El SW solo cachea. | En Capacitor para iOS no hay service worker para el esquema local. Si la lógica vive en el SW, la app nativa no anda offline. |
 | R6 | Almacenamiento local detrás de la interfaz; IndexedDB en ambos casos en v1. | En el WebView de la app el almacenamiento no se desaloja como en Safari (mejora Q-T2). SQLite queda como opción futura sin cambiar `core`. |
-| R7 | **Dominio definitivo antes del lanzamiento** y archivos `/.well-known/assetlinks.json` y `apple-app-site-association` servidos desde el día uno. | Las passkeys quedan atadas al RP ID (el dominio). Cambiar de dominio después invalida todas las passkeys de todos los usuarios. La app nativa usa las mismas passkeys si el dominio está asociado. |
+| R7 | **Dominio definitivo antes de la primera passkey** (el entorno de prueba no usa passkeys, §15) y archivos `/.well-known/assetlinks.json` y `apple-app-site-association` servidos desde el día uno. | Las passkeys quedan atadas al RP ID (el dominio). Cambiar de dominio después invalida todas las passkeys de todos los usuarios. La app nativa usa las mismas passkeys si el dominio está asociado. |
 | R8 | Push con abstracción de transporte en el servidor (`webpush` hoy, `fcm`/`apns` después). | La app nativa no usa Web Push. |
 | R9 | URLs compartibles idénticas en web y app (`/b/{slug}`, `/c/{token}`), para que después funcionen como App Links / Universal Links. | Los links que ya circulan por WhatsApp siguen sirviendo cuando exista la app. |
 | R10 | Nada de APIs solo-navegador sin pasar por `platform` (Web Share, Background Sync, `beforeinstallprompt`, `navigator.storage.persist`). | Mismo motivo que R4. |
 
-### 13.3 Lo que **sí** va a requerir trabajo nuevo al empaquetar
+### 14.3 Lo que **sí** va a requerir trabajo nuevo al empaquetar
 
 "No rehacer nada" es alcanzable para la UI, `core` y la API. No es "cero
 trabajo". Lo nuevo:
@@ -847,7 +1212,7 @@ trabajo". Lo nuevo:
 - Ficha de la tienda, formulario de seguridad de datos de Google Play y
   revisión.
 
-### 13.4 Los 12 testers de Google Play
+### 14.4 Los 12 testers de Google Play
 
 Verificado en la ayuda de Play Console: las cuentas de desarrollador
 **personales** creadas después del 13 de noviembre de 2023 tienen que hacer una
@@ -866,7 +1231,7 @@ organización están exentas. Consecuencias para el diseño:
 - Una cuenta de organización evitaría el requisito, pero exige una entidad
   registrada (Q-L4).
 
-### 13.5 Qué gana la privacidad con la app nativa
+### 14.5 Qué gana la privacidad con la app nativa
 
 - El código va firmado en la tienda: un servidor comprometido no puede cambiar
   el JS de cifrado de quien usa la app (mitiga L1 para esos usuarios).
@@ -878,43 +1243,261 @@ ubicación y quizás de salud (Q-L8).
 
 ---
 
-## 14. Operación en el VPS
+## 15. Entornos: prueba y definitivo
 
-Sin cambios respecto de la iteración 1 (Docker Compose, Caddy sin logs en
-`/api` y `/tiles`, CSP sin terceros, Postgres sin exponer, roles separados,
-restic con 30 días, actualizaciones automáticas), más:
+### 15.1 Dos variables, un solo lugar
 
-- El rol de base que usa la API pública lee `banios`, `banio_atributos`,
-  `ediciones_banio` (sin la columna `cuenta_id`, vía vista), `estado_reciente`,
-  `resumen_mensual`. No lee `observaciones`.
+| Variable | Valores | Qué define |
+|---|---|---|
+| `ORIGEN_PUBLICO` | `https://caca.blucaro.site` hoy, el dominio definitivo después | **El único lugar donde aparece el dominio.** De ella salen: el RP ID de WebAuthn (solo en producción), CORS, los links de los mails, el remitente de los mails (`no-responder@{host}`), el `scope` y el `id` del manifest de la PWA, el `subject` de VAPID, las URLs absolutas de las tarjetas OpenGraph, el `Caddyfile` (`{$ORIGEN_HOST}`). |
+| `ENTORNO` | `prueba` / `produccion` | Passkeys, banner, indexación, `.well-known`, sitemap. |
+
+**Cómo se hace cumplir:** un chequeo de CI falla si aparece `blucaro` o el
+dominio definitivo como texto en cualquier archivo fuera de `.env*` y de la
+documentación. `.env.example` documenta las variables.
+
+### 15.2 Reglas del entorno de prueba
+
+| Regla | Cómo |
+|---|---|
+| **Sin passkeys** | Con `ENTORNO=prueba` el servidor no expone `/auth/passkey/*` (404) y la UI no muestra la opción. **No hay variable para encenderlas en prueba**: el código se niega. Las passkeys quedan atadas al dominio y no migran. |
+| Login | Solo magic link. |
+| Bóveda | Sin passkey no hay PRF: el código de recuperación es **obligatorio** en el alta. |
+| **Cuentas descartables** | Base de datos propia del entorno. Al migrar, se borra entera. **No hay código de migración de usuarios.** Los términos del entorno de prueba lo dicen. |
+| **Banner** | En todas las páginas (SSR y app), arriba, no descartable del todo (se puede achicar): "Entorno de prueba: lo que cargues acá se borra". También en el asunto de los mails ("[PRUEBA]"). |
+| **Sin indexación** | §15.3. |
+| Secretos | Pimienta del HMAC, llaves VAPID y secretos de sesión propios del entorno. |
+| Cookie | `__Host-sesion` (sin atributo `Domain`): ningún otro subdominio de `blucaro.site` puede leerla ni pisarla. |
+| `.well-known` | No se sirven. |
+| Push | Funciona, con llaves propias. Las suscripciones quedan atadas al origen y se pierden al migrar. |
+
+### 15.3 Indexación: por qué no alcanza con robots.txt
+
+El pedido era "noindex en robots.txt y meta". Dos problemas:
+
+1. Google no soporta `noindex` en robots.txt desde 2019.
+2. Si robots.txt dice `Disallow: /`, Google no rastrea las páginas, **no ve el
+   `noindex`**, y puede indexar igual la URL (sin contenido) si alguien la
+   enlaza.
+
+Lo que se hace con `ENTORNO=prueba`:
+
+- Cabecera `X-Robots-Tag: noindex, nofollow` en **todas** las respuestas (HTML,
+  JSON, imágenes OpenGraph), desde Caddy.
+- `<meta name="robots" content="noindex, nofollow">` en todas las páginas.
+- `robots.txt` **sin** `Disallow`, para que Google pueda leer el noindex.
+- Sin `sitemap.xml` y sin `<link rel="canonical">`.
+
+La vista previa de los links en WhatsApp sigue funcionando: no depende de la
+indexación.
+
+### 15.4 Qué sobrevive a la migración
+
+- **Sobrevive:** todo lo que está en el repo (código, `data/curated/` con la
+  recorrida y las fuentes externas). Por eso la recorrida se carga en archivos, no
+  editando el wiki de prueba.
+- **No sobrevive:** cuentas, bóvedas, observaciones, evidencias y ediciones hechas
+  por cuentas de prueba, amistades, suscripciones push, PWA instaladas.
+
+### 15.5 El día de la migración
+
+1. Registrar el dominio definitivo y configurar DNS, SPF y DKIM para los mails.
+2. Base nueva, secretos nuevos.
+3. `ORIGEN_PUBLICO = https://{definitivo}`, `ENTORNO = produccion`.
+4. `cargar-curado` y `importar-osm` en la base nueva.
+5. Verificar `/.well-known/*`, sitemap y passkeys con una cuenta propia.
+6. `caca.blucaro.site`: o se apaga con un 301 al dominio definitivo, o se deja
+   como entorno de prueba permanente (`ENTORNO=prueba`, base propia). Lo segundo
+   sirve para probar cambios antes de producción.
+
+Q-N4 deja de bloquear: el único que depende del dominio definitivo es la
+primera passkey.
+
+---
+
+## 16. Postergado: mapa general
+
+**Estado:** postergado, no cancelado. Era un requisito explícito del producto. v1
+sale sin él porque con 5 baños y 20 usuarios se vería roto (simulación en
+[`docs/analisis/sim_umbral_k.py`](docs/analisis/sim_umbral_k.py): 2 a 4 celdas
+de ~40 con 20 usuarios).
+
+**Condiciones de reactivación** (tienen que cumplirse las dos):
+
+1. Hay un uso claro que el wiki de baños no cubre.
+2. Hay ≥ 50 cuentas elegibles activas en 90 días.
+
+**Cómo se haría:**
+
+- Multirresolución: H3 res 8 donde haya ≥ 3 personas elegibles distintas; res 7
+  de respaldo; nada donde ni eso.
+- Cuenta personas, no registros (la condición de "5 registros" no protege).
+- Acumulado de 90 días, actualizado en el lote nocturno, en rangos.
+- Antes de agregarlo: **releer el invariante de superficies de PRIVACY.md** y
+  repetir el ejercicio de ataque de desanonimización.
+
+**Qué alimentaría el mapa general:** la pregunta sigue abierta. Con solo
+registros en lugares públicos, es un mapa de estaciones de servicio borroneado
+(redundante con el wiki). Con registros de casa (opt-in), es un mapa de dónde
+viven los usuarios. Antes de reactivarlo hay que decidir qué mide.
+
+---
+
+## 17. En evaluación: "Baño amigo"
+
+**Estado:** en evaluación, **no adoptado**. Esta sección es para decidir.
+
+### 17.1 La idea
+
+En vez de publicar "acá te dejan pasar gratis" (la forma más rápida de que el
+comercio deje de hacerlo), convertirlo en **reputación**: un distintivo de
+"Baño amigo" que el comercio quiera tener, visible en su ficha, que puede pedir
+por un canal simple y dejar cuando quiera.
+
+### 17.2 Precedentes (y qué enseñan)
+
+- **Nette Toilette (Alemania, desde 2000):** las ciudades pagan a los comercios
+  unos 30 a 100 € por mes para que abran el baño al público, y el comercio pone
+  un calco en la vidriera. Unas 210 ciudades adheridas.
+- **Community Toilet Scheme (Reino Unido):** los municipios pagan, por ejemplo,
+  £800-1.000 por año (Richmond) o £500-1.300 (Wealden), con calco del municipio.
+- **Brighton**, en una versión anterior **sin incentivo económico**, llegó a solo
+  **19 comercios**. Las objeciones: comportamiento antisocial, costos de
+  limpieza e insumos, seguros.
+
+Lección: **los esquemas que funcionan están pagados y respaldados por el
+municipio.** Uno basado solo en reputación probablemente consiga pocas
+adhesiones. Eso conecta con la consulta pendiente a la Municipalidad (Q-D5): si
+no hay baños públicos municipales, "Baño amigo" con respaldo municipal (aunque
+sea sin pago, con el sello de la Municipalidad) es una propuesta concreta para
+llevarle.
+
+### 17.3 Qué agrega al modelo
+
+**`propio.adhesiones`**
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | uuid | |
+| `banio_id` | FK | |
+| `estado` | enum | `solicitada`, `verificada`, `activa`, `pausada`, `baja`. |
+| `condiciones` | jsonb | Lo que el comercio promete: `sin_consumir` (bool), `horario_banio` (puede diferir del comercio), `cambiador`, `accesible`. Se cargan como evidencias con `procedencia = fuente_externa`. |
+| `contacto` | texto cifrado en reposo | Un solo canal (teléfono o mail del comercio), para renovaciones y bajas. Suele ser el WhatsApp del dueño: **es un dato personal**. |
+| `verificacion` | jsonb | Método y fecha (`visita`, `llamada_al_numero_publico`, `codigo_en_calco`). |
+| `alta`, `renovar_antes_de`, `baja` | date | Renovación anual: la adhesión también decae (§10). |
+| `procedencia` | `procedencia_t` | `fuente_externa`. |
+
+Endpoints nuevos: `POST /adhesiones` (formulario público "¿Es tu comercio?" en la
+ficha, sin cuenta de usuario), `POST /adhesiones/{id}/baja` (con un token que
+recibe el comercio). La verificación y la activación son comandos del CLI.
+
+### 17.4 Qué cambia en el producto
+
+1. **Regla asimétrica de exposición** (la recomiendo **aunque no se adopte el
+   resto**): para un comercio **no adherido**, la ficha nunca dice "libre" ni
+   "sin consumir". Dice "baño para clientes" o "consultá", aunque haya reportes
+   de usuarios de que dejaron pasar. Solo un comercio adherido muestra "te dejan
+   pasar sin consumir". Costo: se esconde un dato verdadero. Beneficio: el
+   proyecto nunca expone a un comercio que no lo eligió.
+2. **La tercera pregunta verifica la promesa:** para un baño amigo, "¿Te dejaron
+   pasar sin consumir?" (§7.3) es la forma barata de saber si la promesa se
+   cumple.
+3. **Texto y marca:** un comercio no va a pegar en la vidriera un calco de un
+   sitio que se llama "dónde cagaste". El programa necesita una **submarca
+   sobria** ("Baños amigos de Río Gallegos") con su propia página. Q-N3 pasa de
+   tono a decisión necesaria.
+4. **Calco con QR a `/b/{slug}`:** el distintivo físico es además el mejor canal
+   de adquisición que tiene el proyecto. Cada vidriera es un cartel.
+5. **Filtro "Baños amigos"** en el mapa.
+
+### 17.5 Qué cuesta
+
+| Rubro | Costo |
+|---|---|
+| Modelo y código | Una entidad, una máquina de estados, dos endpoints, comandos de CLI, el distintivo en la ficha, un filtro. Chico. |
+| Operación | **Verificar cada solicitud** (¿quien la pide representa al comercio?) y **renovar cada año**. Sin recorrida garantizada, la verificación tiene que ser por llamada al número público del comercio o con un código impreso en el calco que un usuario confirma en la tercera pregunta. Es trabajo del equipo que no escala solo. |
+| Materiales | Diseño e impresión de calcos. Poco dinero, pero dinero. |
+| Producto | Submarca, textos, página del programa, términos para comercios. |
+| Legal | Términos para comercios adheridos; datos de contacto (personales) bajo la Ley 25.326. |
+| Privacidad | **Presión previsible:** un comercio adherido va a pedir "¿cuánta gente vino por ustedes?". La respuesta tiene que ser "nada individual"; como mucho, un agregado mensual con k ≥ 3 cuentas elegibles, en rangos. Está en el invariante de superficies. |
+| Riesgo | Sin pago ni respaldo municipal, pocas adhesiones (Brighton: 19). Un programa con 2 comercios se ve peor que no tener programa. |
+
+### 17.6 Recomendación
+
+- **Adoptar en v1, independiente del resto** (pendiente de tu decisión): la
+  regla asimétrica de exposición (§17.4, punto 1; PRIVACY.md P-32). Cuesta poco
+  en código y cierra el riesgo original; su costo es esconder un dato verdadero.
+- **No meter "Baño amigo" en v1.** Llevarlo como propuesta a la Municipalidad
+  junto con la consulta de Q-D5. Si hay respaldo municipal, piloto con 5
+  comercios después del lanzamiento.
+- Si no hay respaldo, piloto igual con 3-5 comercios elegidos a mano y medir si
+  el calco trae tráfico (el QR se puede contar sin datos personales: es una
+  visita a una página pública).
+
+---
+
+## 18. Operación en el VPS
+
+- Docker Compose: `caddy`, `web`, `worker` (cron), `postgres`.
+- Caddy: TLS automático; `log` desactivado para `/api/*` y `/tiles/*`; en el resto,
+  IP truncada a /24 y retención 7 días.
+- Cabeceras: CSP sin orígenes de terceros (`default-src 'self'`), sin fuentes de
+  Google, sin CDN, `Referrer-Policy: no-referrer`, `Permissions-Policy:
+  geolocation=(self)`.
+- Postgres sin exponer a internet. Usuario de la app sin permisos de DDL. La
+  API pública usa un rol de solo lectura (ver abajo, i2 e i3).
+- Secretos (pimienta del HMAC de mail, claves de sesión) en variables de entorno
+  fuera del repo y fuera de los backups de la base.
+- Backups: restic, cifrados, a otro proveedor; 30 días. Un backup filtrado
+  contiene aportes con `cuenta_id`, bóvedas cifradas y HMACs de mail: nada que
+  ubique un domicilio.
+- Actualizaciones de seguridad automáticas del sistema operativo. Esto, en un VPS
+  autogestionado, es más importante que cualquier decisión de este documento.
+
+**(i2)**
+
+- **(actualizado en i3)** El rol de base que usa la API pública lee
+  `osm.candidatos`, `propio.banios`, `propio.atributos_vigentes`, la vista
+  `propio.evidencias_publicas` (sin `cuenta_id`), `propio.estado_reciente` y
+  `propio.resumen_mensual`. No lee `propio.observaciones` ni `enlace`.
 - `push_suscripciones.endpoint` y `claves` cifrados en reposo con una llave del
   entorno.
 - El worker de importación tiene salida a `download.geofabrik.de` y a nada más
   de OSM.
 
-## 15. Alcance de v1 y después
+**(i3)**
+
+- Dos bases de datos (prueba y producción) con usuarios de base separados.
+- `propio.adhesiones.contacto` cifrado en reposo, si se adopta.
+- Backups de `propio` y `enlace` por separado de `osm` (`osm` se regenera desde
+  el extracto).
+
+## 19. Alcance de v1 y después
 
 **v1 (piloto Río Gallegos, PWA)**
 
-- Toggle "Mis registros / Baños públicos" sobre un solo mapa.
+- Toggle "Mis registros / Baños públicos".
 - Registro offline con el pipeline de §8.
 - Bóveda cifrada.
-- Wiki de baños: ~60-70 baños entre confirmados y probables, 30 sembrados a
-  mano con atributos completos.
-- Puente (§7).
-- Edición del wiki con cuenta, historial público sin seudónimos.
-- Modo amigos con viajes diferidos a la vuelta.
-- Logros locales y tarjetas compartibles.
-- Push en Android (agregado, diario).
+- Wiki de baños con evidencias, procedencia, atribución y frescura.
+- Puente con tercera pregunta.
+- "Sigue igual" en la ficha.
+- Modo amigos con viajes a la vuelta.
+- Logros y tarjetas compartibles.
+- Push agregado en Android.
 - Exportación y borrado de cuenta.
+- Entorno de prueba en `caca.blucaro.site` mientras llega el dominio definitivo.
 
-**v1.5 (cuando haya 15-20 usuarios dispuestos)**
+**v1.5**
 
-- Prueba cerrada en Google Play con la app de Capacitor.
+- Prueba cerrada en Google Play (15-20 testers).
 
-**Después**
+**Postergado o en evaluación**
 
+- Mapa general (§16).
+- "Baño amigo" (§17), según la respuesta de la Municipalidad.
+- Regla asimétrica de exposición de comercios (§17.4, PRIVACY.md P-32):
+  recomendada para v1, pendiente de decisión.
 - Ligas entre amigos (Q-N9).
 - Más ciudades sobre la Ruta 3.
-- Heatmap multirresolución, solo bajo las condiciones de §9.5.
-- Devolución manual a OSM (§10.0).
+- Devolución manual a OSM (ADR 0001).

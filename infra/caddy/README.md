@@ -1,5 +1,14 @@
 # infra/caddy
 
-Configuración de Caddy: TLS automático, cabeceras de seguridad (CSP estricta,
-sin terceros), **log de acceso desactivado** para `/api/*` y `/tiles/*`, y con IP
-truncada en el resto. Ver DESIGN.md §11. Sin implementar.
+Configuración de Caddy (DESIGN.md §15 y §18). Sin implementar.
+
+- El host sale de `ORIGEN_PUBLICO` (variable `{$ORIGEN_HOST}` en el
+  `Caddyfile`). El dominio no se escribe en ningún archivo de esta carpeta.
+- TLS automático.
+- Cabeceras de seguridad: CSP sin terceros (`default-src 'self'`),
+  `Referrer-Policy: no-referrer`, `Permissions-Policy: geolocation=(self)`.
+- **Log de acceso desactivado** para `/api/*` y `/tiles/*`; en el resto, IP
+  truncada y 7 días.
+- Con `ENTORNO=prueba`: `X-Robots-Tag: noindex, nofollow` en **todas** las
+  respuestas, `robots.txt` sin `Disallow` (para que Google pueda leer el
+  noindex), sin `sitemap.xml` y sin `/.well-known/*`.
