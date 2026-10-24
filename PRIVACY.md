@@ -622,8 +622,9 @@ alternativa que no aloja nada en el servidor).
 
 | Id | Qué | Por qué se posterga | Condición para volver |
 |---|---|---|---|
-| X-01 | **Mapa general** (heatmap). Era un requisito explícito del producto. | Con 5 baños y 20 usuarios, 2 a 4 celdas de ~40 encendidas: se ve roto. | DESIGN.md §16: un uso que el wiki no cubra y ≥ 50 cuentas elegibles activas en 90 días. Debe ser agregado con k ≥ 3 personas, multirresolución y en rangos, y pasar por el invariante de superficies. |
+| X-01 | **Mapa general** (heatmap). Era un requisito explícito del producto. | Con 5 baños y 20 usuarios, 2 a 4 celdas de ~40 encendidas: se ve roto. | DESIGN.md §16.1: un uso que el wiki no cubra y ≥ 50 cuentas elegibles activas en 90 días. Debe ser agregado con k ≥ 3 personas, multirresolución y en rangos, y pasar por el invariante de superficies. |
 | X-02 | Ranking de macrozonas (ex P-22). | Vacío con pocos usuarios y con un historial de fuga (D-12). | Igual que X-01, solo en rangos y sin `faltan`. |
+| X-03 | **Ranking de ciudades y países** (idea del producto). Compara ciudades, **nunca personas**. | Con una ciudad piloto tiene una sola fila; además exige un aporte nuevo, porque el servidor no conoce la cantidad de registros de nadie (P-03). | DESIGN.md §16.2: ≥ 2 ciudades con ≥ 10 personas elegibles en el mismo mes. Opt-in, aporte mensual en rangos, índice con tope, países calculados solo con ciudades visibles, publicación mensual sin conteos exactos, `cuenta_id` borrado al publicar. Entra al invariante de superficies antes de implementarse. |
 
 ## Decisiones descartadas
 

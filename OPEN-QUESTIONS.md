@@ -385,3 +385,11 @@ un link al sitio: lo comparte el usuario, desde su teléfono, y nada queda
 publicado en nuestro servidor, así que no hay nada que moderar. Lo que **no**
 conviene es un muro público de anécdotas en el sitio (texto libre público,
 P-15). Sin decidir: no está en v1.
+
+**Q-N15 🟡 (i3) · Ranking de ciudades y países: ¿qué pasa con las ciudades chicas?**
+Postergado (DESIGN.md §16.2). Con un umbral de 10 participantes por mes, los
+pueblos de la Ruta 3 (Piedra Buena, Puerto San Julián) pueden no aparecer nunca.
+*Opciones:* agrupar localidades chicas por departamento o provincia, o aceptar
+que el ranking es de ciudades grandes. Además, el índice lo declara cada
+celular y se puede trampear; el tope del último rango lo acota pero no lo
+impide. Decidir si eso importa para un ranking que es un chiste.

@@ -20,7 +20,7 @@ Estado: **borrador para crítica, iteración 3**. Nada de esto está implementad
 13. [Jobs del worker](#13-jobs-del-worker)
 14. [PWA ahora, app nativa después](#14-pwa-ahora-app-nativa-después)
 15. [Entornos: prueba y definitivo](#15-entornos-prueba-y-definitivo)
-16. [Postergado: mapa general](#16-postergado-mapa-general)
+16. [Postergado: mapa general y ranking de ciudades](#16-postergado-mapa-general-y-ranking-de-ciudades)
 17. [Logros y medallas](#17-logros-y-medallas)
 18. [En evaluación: "Baño amigo"](#18-en-evaluación-baño-amigo)
 19. [Operación en el VPS](#19-operación-en-el-vps)
@@ -815,7 +815,8 @@ opcional:
 
 ### 9.1 Lo que se mantiene de la iteración 2
 
-- Sin agregados de eventos en v1. El mapa general está **postergado** (§16).
+- Sin agregados de eventos en v1. El mapa general y el ranking de ciudades están
+  **postergados** (§16).
 - Umbral dinámico descartado (D-09): un k bajo llega justo cuando cada persona
   es más identificable.
 
@@ -1377,7 +1378,9 @@ Ruta `/app/relevamiento`, que existe solo con `ENTORNO=prueba` (con
 
 ---
 
-## 16. Postergado: mapa general
+## 16. Postergado: mapa general y ranking de ciudades
+
+### 16.1 Mapa general
 
 **Estado:** postergado, no cancelado. Era un requisito explícito del producto. v1
 sale sin él porque con 5 baños y 20 usuarios se vería roto (simulación en
@@ -1402,6 +1405,76 @@ de ~40 con 20 usuarios).
 registros en lugares públicos, es un mapa de estaciones de servicio borroneado
 (redundante con el wiki). Con registros de casa (opt-in), es un mapa de dónde
 viven los usuarios. Antes de reactivarlo hay que decidir qué mide.
+
+### 16.2 Ranking de ciudades y países
+
+**Estado:** postergado. Idea del producto: un ranking público de qué ciudad (y,
+más adelante, qué país) "caga más", para generar rivalidad entre ciudades ("Río
+Gallegos vs. Caleta Olivia") y que cada uno sume gente de la suya.
+
+**Por qué no en v1:**
+
+1. Con una sola ciudad piloto, el ranking tiene una fila.
+2. El servidor no sabe cuántos registros tiene nadie: están cifrados en cada
+   celular (P-03). Hace falta un aporte nuevo, opt-in.
+
+**Condición de reactivación:** al menos **2 ciudades** con **≥ 10 personas
+elegibles** participando en un mismo mes. El ranking de países, cuando haya al
+menos 2 países que cumplan lo mismo.
+
+**Qué se compara:** ciudades (y países), **nunca personas**. Un ranking de
+personas por cantidad de registros es publicar la frecuencia con la que cada uno
+va al baño, casi un dato de salud (P-02, P-33). No se hace con ningún umbral.
+
+**Cómo se haría:**
+
+- **Opt-in explícito**, con consentimiento propio (`ranking_ciudades`) y
+  revocable.
+- **Ciudad declarada**: el usuario la elige de una lista. Si tiene marcada una
+  zona "casa", el cliente puede sugerirla calculando la ciudad localmente; el
+  servidor nunca recibe la zona ni una coordenada.
+- **Aporte mensual en rangos**: al cerrar el mes, el cliente manda
+  `{ ciudad_id, mes, rango }` con la cantidad de registros de ese mes en rangos
+  (`1_10`, `11_20`, `21_31`, `mas_31`), por la cola diferida. Nunca el número
+  exacto.
+- **Una cuenta, una ciudad, un aporte por mes.** Solo cuentan cuentas elegibles
+  (≥ 7 días, ≥ 3 días activos).
+- **Índice de la ciudad**: promedio de registros por participante usando el
+  punto medio de cada rango (5,5 · 15,5 · 26 · 35), redondeado a entero. El tope
+  del último rango limita cuánto puede inflar una cuenta a su ciudad (el número
+  lo declara el celular y se puede trampear; como es un chiste, alcanza con
+  acotarlo).
+- **Umbral**: una ciudad aparece con ≥ 10 participantes elegibles ese mes. Los
+  participantes se muestran en rangos (10-49, 50-199, 200+), nunca exactos.
+- **Países, solo con ciudades visibles**: el índice de un país se calcula
+  **solo** con los participantes de sus ciudades que ya aparecen. Si se usara el
+  total del país, restándole las ciudades visibles quedaría el promedio de las
+  ciudades ocultas (ataque de diferencia).
+- **Publicación mensual**, una semana después de cerrado el mes (para que
+  lleguen los envíos atrasados), sin actualizaciones en vivo. Que alguien se
+  sume a mitad de mes no cambia nada visible.
+- **Estado vacío sin conteo exacto**: "Tu ciudad todavía no tiene suficiente
+  gente para entrar al ranking". Nada de "faltan 3" (D-12).
+- **Retención**: el `cuenta_id` de cada aporte se borra al publicar el mes;
+  queda solo el agregado.
+- **Tarjeta compartible**: "Río Gallegos, 3.ª en el ranking cagón de octubre".
+  Es un dato agregado de la ciudad; no dice nada de quien la comparte.
+
+**Datos (cuando se implemente):**
+
+| Tabla | Campos |
+|---|---|
+| `ciudades` | `id`, `nombre`, `provincia`, `pais`. Catálogo curado. |
+| `ranking_aportes` | `cuenta_id` (se borra al publicar), `ciudad_id`, `mes`, `rango`, `lote`, `procedencia = aporte_usuario`. Único `(cuenta_id, mes)`. |
+| `ranking_ciudades` | `ciudad_id`, `mes`, `participantes_rango`, `indice`, `posicion`, `visible`. Lo único que lee la API pública. |
+| `ranking_paises` | `pais`, `mes`, `participantes_rango`, `indice`, `posicion`. Calculado solo desde ciudades visibles. |
+
+**Relación con las macrozonas (X-02 en PRIVACY.md):** es el mismo mecanismo a
+otra escala. Si alguna vez vuelve el ranking de barrios o macrozonas dentro de
+una ciudad, usa este diseño, con el umbral de 10 personas por zona.
+
+Antes de implementarlo: agregarlo al **invariante de superficies** de
+PRIVACY.md y repetir el ejercicio de ataque de desanonimización.
 
 ---
 
@@ -1656,7 +1729,8 @@ recibe el comercio). La verificación y la activación son comandos del CLI.
 
 **Postergado o en evaluación**
 
-- Mapa general (§16).
+- Mapa general (§16.1).
+- Ranking de ciudades y países (§16.2), con ≥ 2 ciudades de ≥ 10 participantes.
 - "Baño amigo" (§18), según la respuesta de la Municipalidad.
 - Ligas entre amigos (Q-N9).
 - Más ciudades sobre la Ruta 3.
