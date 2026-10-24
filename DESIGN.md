@@ -43,7 +43,7 @@ Estado: **borrador para crítica, iteración 3**. Nada de esto está implementad
 | 7 | **Decaimiento de datos** diseñado asumiendo que no hay recorrida periódica (§10). | Pedido explícito. |
 | 8 | **Entorno de prueba** en `caca.blucaro.site`: sin passkeys, cuentas descartables, noindex, dominio en una sola variable, banner (§15). | Decisión del producto. Corrección: el `noindex` no va en robots.txt (§15.3). |
 | 9 | **"Baño amigo"** evaluado como alternativa, sin adoptar (§18). | Pedido explícito. |
-| 9b | **Regla asimétrica de exposición** adoptada para v1 (§18.4, P-32). **Medallas** cada 5 registros con nombres graciosos y **logro por el primer registro** (§17). | Decisiones del producto, posteriores a la primera versión de la iteración 3. |
+| 9b | **Regla asimétrica de exposición** adoptada para v1 (§18.4, P-32). **Medallas** cada 5 registros con nombres graciosos y **logro por el primer registro** (§17). **Caja de comentario privada** "¿Alguna anécdota?" al registrar (§8.1, P-34). | Decisiones del producto, posteriores a la primera versión de la iteración 3. |
 | 10 | Se unifican ediciones del wiki y confirmaciones en una tabla de **evidencias** con procedencia y fecha. Las fichas muestran fuente y fecha de cada dato. | Consecuencia de 3, 4 y 7: si cada dato lleva procedencia y fecha, la atribución vale para todo el wiki, no solo para el estado reciente. |
 
 ### Iteración 2 (resumen)
@@ -259,7 +259,7 @@ No es una tabla del servidor: vive en el cliente y se sincroniza cifrada.
 | `banio_id` | bigint, nullable | Solo si el usuario confirmó un baño del catálogo. |
 | `tipo` | enum | `casa`, `laburo`, `casa_ajena`, `banio_publico`, `ruta`, `naturaleza`, `otro`. |
 | `sin_papel` | bool | Para logros. |
-| `comentario` | texto, nullable | Privado. |
+| `comentario` | texto, nullable, hasta 500 caracteres | Privado: vive solo en la bóveda cifrada y nunca sale del dispositivo en claro. Se carga con la caja "¿Alguna anécdota?" (§8.1). |
 | `en_zona_privada` | uuid, nullable | Calculado. Si no es null, no se publica nada de este registro, nunca. |
 | `puente` | objeto, nullable | `{ estado: 'pendiente'|'respondido'|'descartado', estado_banio?, habia_papel?, id_remoto? }`. |
 | `amigos` | objeto, nullable | `{ estado: 'no'|'en_cola'|'diferido_a_la_vuelta'|'enviado', id_remoto? }`. |
@@ -716,7 +716,8 @@ Registrar está permitido desde el primer segundo.
 
 1. **Ubicación.** Al tocar "Registrar" se pide geolocalización a través de
    `platform.geolocalizacion`. Si se niega: mapa, lista o "sin ubicación".
-2. **Registro privado** en IndexedDB con coordenada, hora y precisión exactas.
+2. **Registro privado** en IndexedDB con coordenada, hora y precisión exactas, y
+   el comentario si el usuario escribió algo (§8.1).
 3. **Zonas privadas.** `distancia ≤ radio + max(precision_m, 50)` → registro
    en zona privada, fin del pipeline público. **(i2)** Precisión mínima de 50 m:
    las ubicaciones por wifi informan errores optimistas.
@@ -774,6 +775,39 @@ frustrante). Ver Q-P8 sobre lo que esto puede revelar.
   de la lista permitida.
 - **Paso 12:** el recálculo nocturno incluye `atributos_vigentes` y la frescura
   (§10).
+
+### 8.1 La caja de comentario: "¿Alguna anécdota?" (i3)
+
+En la pantalla de registro, debajo del selector de lugar, una caja de texto
+opcional:
+
+```
+  ¿Alguna anécdota?
+  ┌──────────────────────────────────────────────────────┐
+  │ Se cortó la luz en lo mejor…                         │
+  └──────────────────────────────────────────────────────┘
+  🔒 Solo lo ves vos                              0/500
+```
+
+- **Opcional y sin fricción.** Una sola línea que crece al escribir. Guardar no
+  la exige ni la espera: el registro se guarda igual en menos de 10 segundos (O1).
+  También se puede escribir o editar después, desde el historial.
+- **El texto de la pregunta.** El pedido era "¿Cómo te fue?" o algo así. Elegí
+  **"¿Alguna anécdota?"** porque "¿cómo te fue?", en rioplatense, pregunta por
+  el resultado, o sea por el cuerpo, y es justo lo que P-02 decide no pedir. La
+  caja es texto libre y cada uno escribe lo que quiere, pero la pregunta y los
+  ejemplos empujan hacia la historia y el lugar, no hacia el cuerpo.
+- **Ejemplos rotativos** en el placeholder, todos sobre la situación: "Se cortó
+  la luz en lo mejor…", "El secamanos sonaba como un avión", "Había fila
+  afuera", "Viento de 90 km/h para llegar", "Música funcional de los 90".
+- **Privado de verdad:** el comentario vive solo en la bóveda cifrada (P-03). No
+  va al puente, ni al feed de amigos, ni a las tarjetas compartibles, ni a ningún
+  lado del servidor en claro. Lo ves en tu historial y en la ficha de tu
+  registro.
+- **Exportación:** sale en `GET /cuenta/exportar` (descifrado en el cliente),
+  con el resto del historial.
+- **Tamaño:** hasta 500 caracteres. El padding de las páginas de la bóveda
+  (P-04) evita que el largo de los comentarios revele cuánto se escribe.
 
 ---
 
@@ -1578,7 +1612,8 @@ recibe el comercio). La verificación y la activación son comandos del CLI.
 **v1 (piloto Río Gallegos, PWA)**
 
 - Toggle "Mis registros / Baños públicos".
-- Registro offline con el pipeline de §8.
+- Registro offline con el pipeline de §8, con la caja de comentario privada
+  "¿Alguna anécdota?" (§8.1).
 - Bóveda cifrada.
 - Wiki de baños con evidencias, procedencia, atribución y frescura.
 - Puente con tercera pregunta.

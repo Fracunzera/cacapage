@@ -49,7 +49,7 @@ individuales:**
 
 | Superficie | Quién la ve | Qué deriva de un acto individual | Protecciones |
 |---|---|---|---|
-| Bóveda | Solo el dueño | Todo | Cifrado de punta a punta (P-03, P-04). |
+| Bóveda | Solo el dueño | Todo, incluido el comentario "¿Alguna anécdota?" (P-34) | Cifrado de punta a punta (P-03, P-04). |
 | Feed de amigos | Amigos elegidos (mutuos) | Registro individual: baño o etiqueta, día, franja | P-07 (etiqueta de zona), P-10 (viajes a la vuelta), P-21 (30 días), P-29 (noche). **Es la única superficie social con registros individuales.** |
 | Estado reciente de un baño | Público, indexado | Observación individual del puente: "1 persona, esta semana: limpio" | Sin autor, semana (no día), ≥ 24 h de demora, una por persona y ventana, nunca en zona privada (P-13, P-14, P-24). **Es un dato individual publicado, no un agregado.** |
 | Evidencias de atributos (incluida la tercera pregunta) | Público, indexado | "1 persona, hace 2 semanas: no cobra"; en contradicción de horario, además tipo de día y franja | Sin autor, semana, demora, sin `cuenta_id` a los 90 días (P-13, P-24). |
@@ -100,6 +100,12 @@ evitalo, ¿había papel?), nunca por la persona.
 
 **Cuesta.** Se pierde el humor escatológico detallado y una posible capa de
 autocuidado.
+
+**(i3)** El comentario privado (P-34) es texto libre: alguien puede escribir
+detalles del cuerpo igual. P-02 no lo impide (no hay forma sin leer lo que la
+gente escribe), pero el sistema **no lo pide**: la pregunta es "¿Alguna
+anécdota?", no "¿Cómo te fue?", y el texto queda cifrado, sin que el operador
+pueda leerlo.
 
 ### P-03 · La capa de registros está cifrada de punta a punta
 
@@ -590,6 +596,25 @@ las tiene.
 **Cuesta.** Lo más compartible ("¡llegué al Trono de Oro!") no se luce solo en
 el perfil: hay que compartirlo a mano. Sin anuncio automático, el modo amigos
 pierde un empujón social. El servidor no puede verificar ninguna medalla.
+
+### P-34 · (i3) Comentario privado al registrar
+
+**Decisión.** Una caja opcional "¿Alguna anécdota?" en la pantalla de registro
+(DESIGN.md §8.1), de hasta 500 caracteres. El texto vive solo en la bóveda
+cifrada. Nunca va al puente, al feed de amigos, a las tarjetas compartibles ni a
+ninguna superficie pública. La pregunta y los ejemplos hablan de la situación y
+del lugar, no del cuerpo.
+
+**Mitiga.** Que el texto libre se convierta en el registro de salud que P-02
+evita: no se pide información del cuerpo y, si alguien la escribe, el operador
+no la puede leer (A3, A4, A5). Que haga falta moderar: un texto que solo ve su
+autor no se modera.
+
+**Cuesta.** Lo más gracioso que escriba la gente queda invisible para todos
+menos para su autor. La tentación de un "muro de anécdotas" público va a
+aparecer: sería texto libre público, con moderación y riesgo de difamación
+(P-15), y tiene que pasar por el invariante de superficies (ver Q-N14 para una
+alternativa que no aloja nada en el servidor).
 
 ---
 

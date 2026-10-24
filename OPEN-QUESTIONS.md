@@ -376,3 +376,12 @@ de seguir. Alternativa más rápida: correr la consulta desde otra máquina.
 La frescura de un dato de OSM se calcula con `check_date` o, si no hay, con la
 última modificación del objeto. Esa fecha dice cuándo alguien tocó el objeto,
 no cuándo verificó el horario: puede sobreestimar la frescura.
+
+**Q-N14 🟡 (i3) · ¿Compartir una anécdota?**
+Las anécdotas de la caja "¿Alguna anécdota?" son privadas (P-34). Si la gente las
+quiere compartir, la opción que no aloja nada en el servidor es un botón
+"Compartir" que abre el menú nativo del celular (WhatsApp, etc.) con el texto y
+un link al sitio: lo comparte el usuario, desde su teléfono, y nada queda
+publicado en nuestro servidor, así que no hay nada que moderar. Lo que **no**
+conviene es un muro público de anécdotas en el sitio (texto libre público,
+P-15). Sin decidir: no está en v1.
