@@ -1,15 +1,20 @@
 # apps/web
 
-App SvelteKit (TypeScript, adapter-node). Un solo proceso sirve:
+App SvelteKit (TypeScript, adapter-node). Dos tipos de rutas (DESIGN.md §13.2):
 
-- La interfaz (registro, mapa, historial, logros, amigos, ajustes).
-- El SSR de las páginas compartibles (fichas de lugar, tarjetas de logro con
-  imagen OpenGraph), que es lo que hace que un link de WhatsApp se vea bien.
-- La API `/api/v1/*` (rutas `+server.ts`). Ver DESIGN.md §8.
-- El service worker: registro offline y cola de salida diferida.
+- **Públicas con SSR**: fichas del wiki de baños (`/b/{slug}`), tarjetas
+  compartibles (`/c/{token}`), `sitemap.xml`. Indexables, con vista previa en
+  WhatsApp. Solo existen en la web.
+- **De app, solo CSR** (`/app/*`): mapa con el toggle "Mis registros / Baños
+  públicos", registro, historial, puente, amigos, ajustes. Sin `load` de
+  servidor: todo por el cliente de la API, para poder compilarlas con
+  `adapter-static` y meterlas en Capacitor.
+
+Además sirve la API `/api/v1/*` (DESIGN.md §11), el manifest de la PWA, el
+service worker (solo caché: ninguna lógica de negocio, regla R5) y
+`/.well-known/assetlinks.json` y `apple-app-site-association`.
 
 Lo sensible (coordenadas, zonas privadas, detección de domicilio, cifrado) corre
-en el navegador, usando `packages/core` y `packages/vault`. La parte servidor de
-esta app nunca recibe coordenadas.
+en el cliente con `packages/core`, `packages/vault` y `packages/platform`.
 
 Sin implementar.

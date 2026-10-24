@@ -6,9 +6,9 @@ Datos curados a mano, versionados. Ejemplos de lo que va a haber:
   desde tags de OSM.
 - `logros.json`: catálogo de logros (p. ej. "Las YPF de la Ruta 3" con la lista
   de estaciones que cuentan).
-- `macrozonas-rio-gallegos.geojson`: agrupación de barrios para el ranking.
 - `feriados-ar.json`: feriados nacionales y provinciales (Santa Cruz).
-- `lugares-overrides.json`: correcciones manuales sobre datos de OSM (lugares a
-  excluir, baños verificados, etc.).
+- `lugares-overrides.json`: revisión humana de cada baño probable importado de
+  OSM (excluir el "Almacén" etiquetado como supermercado, las salitas
+  barriales, duplicados) y fichas de la recorrida de sembrado. Ver SEEDING.md.
 
 Sin contenido todavía.

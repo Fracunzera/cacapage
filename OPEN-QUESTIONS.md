@@ -1,263 +1,288 @@
 # OPEN-QUESTIONS.md — Lo que está sin resolver o es riesgoso
 
-Cada ítem dice qué está abierto, por qué importa y qué lo resolvería. La
-gravedad es mi estimación: **🔴 bloquea el lanzamiento**, **🟠 hay que decidirlo
-antes de implementar esa parte**, **🟡 se puede decidir más adelante**.
+Cada ítem dice qué está abierto, por qué importa y qué lo resolvería.
+Gravedad estimada: **🔴 bloquea el lanzamiento**, **🟠 hay que decidirlo antes de
+implementar esa parte**, **🟡 se puede decidir más adelante**. **(i2)** marca lo
+nuevo o modificado en la iteración 2; **✅** lo resuelto.
 
 ---
 
 ## Producto y arranque en frío
 
-**Q-N1 🔴 · ¿Hay masa crítica para que lo público tenga algo?**
-La simulación de DESIGN.md §7.2 dice que con 20-50 usuarios activos los
-contadores solo aparecen en el centro y en un puñado de lugares, y que hacen
-falta ~150 activos sostenidos para cubrir la ciudad. Sumado a P-09 (privado por
-defecto) y P-17 (elegibilidad de 14 días), lo público va a tardar. El mapa de
-baños no depende de eso, pero el chiste público sí.
-*Lo resuelve:* decidir si se acepta que en el primer trimestre lo público sea
-casi solo el mapa de baños, y medir en el piloto la fracción real de registros
-publicables (el modelo supone 15 %, puede ser 5 % o 30 %).
+**Q-N1 🔴 (i2) · ¿Hay masa crítica para que la capa de baños se mueva sola?**
+Sin agregados de eventos, el arranque en frío ya no es "el heatmap está vacío";
+es "¿alguien además del equipo confirma probables y corrige horarios?". Con 20
+usuarios y ~4 registros publicables cada tres meses por persona, el puente
+generaría del orden de 80 observaciones por trimestre para ~60 baños.
+*Lo resuelve:* medir en el piloto la tasa real de respuesta del puente y cuántos
+probables se confirman por mes. Definir de antemano qué número justifica seguir.
 
-**Q-N2 🔴 · ¿El chiste retiene, o retiene la capa útil, o ninguno?**
-El precedente llegó al #1 por un viral; no está claro cuánta gente siguió
-usándolo. La hipótesis de este proyecto es que la capa útil retiene, pero la
-gente que busca "baño abierto el domingo" no es necesariamente la que registra.
-*Lo resuelve:* definir antes del lanzamiento qué número mira el piloto (p. ej.
-visitas al mapa de baños de gente sin cuenta, o registros por usuario en la
-semana 4) y cuánto tiene que dar para seguir.
+**Q-N2 🔴 · ¿El chiste retiene, retiene la capa útil, o ninguno?**
+Sin cambios. La crítica de la iteración 1 sostiene que el vecino de Río Gallegos
+ya sabe dónde hay baño y que la capa útil sirve sobre todo a quien está de paso,
+que no aporta.
+*Lo resuelve:* el mismo número de Q-N1, más las visitas sin cuenta a fichas de
+baños que llegan desde buscadores.
 
-**Q-N3 🟠 · ¿Una marca humorística le sirve a la capa útil?**
-Una madre buscando un cambiador o una persona en silla de ruedas buscando un baño
-accesible puede no querer usar algo que se llama "dónde cagaste". Quizás el mapa
-de baños necesite una entrada propia, más sobria, sobre los mismos datos.
-*Lo resuelve:* decidir si hay dos puertas (dos rutas o dos dominios) a los mismos
-datos.
+**Q-N3 🟠 (i2) · Una sola marca para el chiste y para el dato útil.**
+Decidido: una sola web con toggle. Riesgo que queda: quien busca un cambiador o
+un baño accesible llega por Google a una ficha de un sitio llamado "dónde
+cagaste". Mitigación posible: las fichas `/b/{slug}` con tono sobrio y el chiste
+solo en la capa de registros.
+*Lo resuelve:* decidir el tono de las fichas públicas antes de diseñarlas.
 
-**Q-N4 🟡 · Nombre definitivo y dominio.**
-`cacapage` es nombre de trabajo. El nombre condiciona si los comercios aceptan
-aparecer y si los medios locales lo levantan.
+**Q-N4 🔴 (i2) · Nombre y dominio definitivos, antes de la primera passkey.**
+Subió de gravedad. Las passkeys quedan atadas al dominio: cambiarlo después del
+lanzamiento invalida todas las cuentas. Y la app nativa futura necesita ese
+dominio para Digital Asset Links y Universal Links.
+*Lo resuelve:* elegir y registrar el dominio antes del primer usuario.
 
 **Q-N5 🟠 · ¿Qué pasa cuando un comercio se queja?**
-Una estación de servicio o un bar puede no querer aparecer como "baño
-asqueroso". No hay texto libre (P-15), pero `limpieza = 1` es una opinión
-pública sobre un negocio con nombre.
-*Lo resuelve:* política escrita de qué se hace ante un reclamo (¿se oculta el
-atributo? ¿se permite respuesta del comercio? ¿nada?).
+**(i2)** Ahora con más superficie: "evitalo" en el estado reciente de un baño con
+nombre de comercio, indexado por Google. El dueño puede además editar el wiki de
+su propio local (Q-W2).
+*Lo resuelve:* política escrita antes del lanzamiento.
 
 **Q-N6 🟡 · ¿Reportar requiere haber estado ahí?**
-Verificar presencia requiere que el servidor vea la ubicación, que es justo lo
-que P-01 prohíbe. Sin verificación, alguien puede reportar desde su casa sobre
-cualquier lugar.
-*Lo resuelve:* aceptar que no se verifica y confiar en consenso (2 personas) +
-rate limit + elegibilidad; o hacer una verificación en el cliente sabiendo que se
-puede trampear.
+**(i2)** El puente sí exige un registro, pero el registro se confirma en el
+cliente y se puede trampear. Las ediciones del wiki no exigen nada.
+*Lo resuelve:* aceptar que no se verifica; confiar en las 2 cuentas elegibles,
+el rate limit y la reversión.
 
-**Q-N7 🟡 · Pseudónimos ofensivos o que identifican.**
-"juanperez_barrio_x" anula el seudonimato por elección del propio usuario.
-*Lo resuelve:* lista de palabras reservadas, advertencia al elegir, denuncias.
+**Q-N7 🟡 · Seudónimos ofensivos o que identifican.**
+Sin cambios.
+
+**Q-N8 🟠 (i2) · ¿Se puede registrar sin cuenta?**
+El diseño dice que registrar requiere login para sincronizar, pero el pipeline
+funciona offline sin cuenta. Dejar registrar sin cuenta baja muchísimo la
+fricción del primer uso (llegaste por un chiste, registrás ya), con el costo de
+que ese historial se pierde si se borra el navegador y de que el puente necesita
+cuenta.
+*Lo resuelve:* decidir si el primer registro puede ser anónimo y local, con la
+cuenta pedida al segundo o tercero.
+
+**Q-N9 🟠 (i2) · Ligas entre amigos.**
+La crítica de la iteración 1 señaló que lo que sostuvo a Poop Map después del
+viral fueron las ligas y los rankings entre amigos, y que este diseño no los
+tiene. Son compatibles con toda la arquitectura de privacidad si son privadas
+al grupo, con conteos calculados... en algún lado: el servidor no tiene los
+registros. O cada cliente le publica a sus amigos un contador semanal en rangos,
+o la liga es solo de logros.
+*Lo resuelve:* decidir si entra en v1. Es probablemente lo que más retención
+compra por unidad de trabajo.
+
+**Q-N10 🟡 (i2) · ¿Qué capa muestra el toggle por defecto?**
+El diseño propone "Baños públicos" sin sesión y "Mis registros" con sesión. Con
+60 baños mayoritariamente "sin confirmar", la primera impresión de quien llega
+sin cuenta es un mapa de promesas.
+
+## Wiki de baños
+
+**Q-W1 🟠 (i2) · ¿"Sin login" quería decir también editar sin login?**
+El pedido decía "Público, sin login, indexable por Google" y "lo editan muchos
+usuarios". El diseño lo interpretó como **leer** sin login y **editar** con
+cuenta (P-25, D-11). Si la intención era editar sin cuenta: no estoy de acuerdo,
+porque sin cuenta la única defensa contra vandalismo es guardar IPs.
+*Lo resuelve:* confirmar la interpretación.
+
+**Q-W2 🟠 (i2) · El dueño del comercio edita su propio baño.**
+Va a pasar: el encargado de la estación pone "accesible: sí, cambiador: sí" sin
+que sea cierto, o borra lo que no le gusta. Un wiki sin moderación activa no lo
+detecta.
+*Lo resuelve:* un rol de "responsable del lugar" verificado, o ninguno y
+confiar en la confirmación por dos personas.
+
+**Q-W3 🟡 (i2) · Indicaciones en texto libre.**
+"Pedir la llave en caja", "entrar por el costado" son datos útiles que no entran
+en un enum. P-15 dice sin texto libre público.
+*Lo resuelve:* una lista cerrada de indicaciones frecuentes, ampliable a mano.
+
+**Q-W4 🟡 (i2) · Vandalismo con una sola persona moderando.**
+Revertir es fácil (historial); detectarlo, no. Con ~60 baños, la revisión
+semanal del historial es viable. Con 600, no.
 
 ## Privacidad
 
 **Q-P1 🟠 · El onboarding de "marcá tu casa" ¿mata la conversión?**
-P-08 bloquea publicar hasta resolver la casa. Es lo más protector y lo más
-friccionante del diseño, y pega justo en el primer uso.
-*Lo resuelve:* prototipo y prueba con 5-10 personas reales de Río Gallegos antes
-de implementar.
+Sin cambios; Q-N8 lo agrava o lo alivia según qué se decida.
 
-**Q-P2 🟠 · ¿200 m alcanza en Río Gallegos? ¿Sobra?**
-En baja densidad, 200 m esconden la casa entre un par de cientos de viviendas;
-en un barrio con pocas cuadras y mucho descampado pueden ser bastantes menos.
-Al revés, en el centro se come lugares públicos útiles.
-*Lo resuelve:* radio adaptativo según densidad de edificaciones de OSM alrededor
-del punto (calculado en el cliente), con mínimo de 200 m.
+**Q-P2 🟠 · ¿200 m alcanza en Río Gallegos?**
+**(i2)** Con la precisión mínima de 50 m, el radio efectivo es ~250 m.
 
-**Q-P3 🟠 · El operador ve "cuenta X aportó al lugar Y en la semana Z".**
-Es la limitación L3 de DESIGN.md §2. Con eso, alguien con un dump puede armar el
-recorrido semanal por lugares públicos de una cuenta seudónima. No ubica la casa
-(no hay aportes en casa salvo el rango mensual por macrozona), pero sí patrones
-de viaje.
-*Opciones:* (a) aceptarlo; (b) borrar `cuenta_id` de los aportes después de
-publicarlos y guardar solo un contador por cuenta para la elegibilidad, a costa
-de no poder borrar aportes viejos individualmente ni recalcular k exacto;
-(c) tokens anónimos por aporte (credenciales tipo Privacy Pass), mucho más
-complejo. Mi inclinación: (b) para aportes con más de 90 días.
+**Q-P3 🟡 (i2) · El operador ve "cuenta X observó el baño Y en la semana Z".**
+Bajó de gravedad: las observaciones pierden el autor a los 90 días (P-24) y ya
+no hay tabla de visitas. Queda: las ediciones del wiki conservan `cuenta_id`
+para siempre (para revertir vandalismo) y los ítems del feed de amigos durante
+30 días.
+*Opción a evaluar:* borrar `cuenta_id` de las ediciones del wiki después de un
+año.
 
-**Q-P4 🟠 · ¿Modo amigos con día exacto y sin retraso nocturno?**
-Entre amigos el chiste es "hoy", pero el día exacto le dice a un amigo (o a un
-ex que todavía figura como amigo) que estás de viaje. El diseño actual: día +
-franja, con el mismo envío diferido de 1-6 h, sin espera nocturna.
-*Lo resuelve:* decidir el default. Alternativa: "contar a amigos" con opción
-"después de volver" (se manda cuando el usuario vuelve a registrar en casa).
+**Q-P4 ✅ (i2) · Modo amigos con día exacto.**
+Resuelto en P-10: los viajes llegan a los amigos recién a la vuelta, por
+default. Queda abierto si el default es demasiado conservador para el chiste.
 
 **Q-P5 🟡 · Las insignias no se pueden verificar.**
-Como el servidor no tiene el historial, una insignia pública es lo que el
-cliente dice. Cualquiera puede mostrar "Conquistador de la Ruta 3" sin haber
-salido de casa.
-*Lo resuelve:* aceptarlo (es un chiste) o validar contra aportes públicos (lo
-que obligaría a publicar para tener insignias, contrario a P-09).
+Sin cambios.
 
 **Q-P6 🟡 · Ataques combinando superficies.**
-Ranking de macrozonas + contadores por lugar + feed de amigos + insignias: cada
-uno es seguro por separado; combinados, para una cuenta con amigos que la
-conocen, pueden decir más. No está analizado formalmente.
-*Lo resuelve:* un ejercicio de ataque concreto ("soy el ex, tengo su seudónimo,
-¿qué averiguo?") antes de lanzar.
+**(i2)** Hecho una vez en la crítica de la iteración 1 (caminos A-D); las
+correcciones están en PRIVACY.md. Hay que repetirlo con este diseño antes del
+lanzamiento, en particular sobre P-25 (historial del wiki) y Q-P8.
 
-**Q-P7 🟡 · ¿Privacidad diferencial en vez de k-anonimato?**
-Para los contadores de ciudad y macrozona, sumar ruido de Laplace es más sólido
-que k-anonimato contra ataques de diferencia. Con números tan chicos, el ruido
-puede volver inútil el ranking.
-*Lo resuelve:* probarlo cuando haya datos reales; no para v1.
+**Q-P7 🟡 · ¿Privacidad diferencial?**
+Sin agregados de eventos en v1, no aplica todavía.
+
+**Q-P8 🟠 (i2) · Las ediciones del wiki se aplican en el momento.**
+El puente espera 24 h; las ediciones del wiki no (un wiki con demora es
+frustrante). Si Lu le cuenta a un amigo "le corregí el horario a la YPF de la
+ruta", y el amigo mira el historial, sabe que Lu estuvo por ahí, aunque el
+historial muestre solo el mes. Y la ficha cambia en el momento: quien la mira
+seguido ve cuándo cambió.
+*Opciones:* aplicar las ediciones también en el lote nocturno; o aceptar que una
+edición del wiki es un acto público y decirlo en la interfaz.
+
+**Q-P9 🟡 (i2) · Estado reciente con una sola observación.**
+Mostrar "1 reporte esta semana: evitalo" dice que alguien usó ese baño esa
+semana. Sin autor y con demora es poco, pero para un comercio chico con pocos
+clientes puede apuntar a alguien (A8). Con un mínimo de 2, en el arranque casi
+ningún baño mostraría estado.
 
 ## Legal
 
-**Q-L1 🔴 · ¿Esto es un "banco de datos que revela datos sensibles"? (art. 7 inc. 3, Ley 25.326)**
-El art. 7 inc. 3 prohíbe formar archivos que directa o indirectamente revelen
-datos sensibles, y la salud es dato sensible. Un historial de cuándo y dónde
-cagás, con frecuencia, puede leerse como información de salud indirecta. El
-diseño se defiende con P-02 (nada fisiológico), P-03/P-04 (el operador no puede
-leer el historial ni su frecuencia) y P-22 (rangos), pero que eso alcance es una
-interpretación, no un hecho.
-*Lo resuelve:* consulta con un abogado de datos personales antes del
-lanzamiento. Es la pregunta legal más importante del proyecto.
+**Q-L1 🔴 · ¿Es un banco de datos que revela datos sensibles? (art. 7 inc. 3)**
+Sin cambios. Sigue siendo la pregunta legal más importante.
 
-**Q-L2 🟠 · ¿Hay que inscribir la base en el Registro Nacional de Bases de Datos (AAIP)?**
-El art. 21 exige inscripción para ciertos bancos de datos privados. No tengo
-claro si un proyecto personal sin fines de lucro, con estos datos, está
-alcanzado.
-*Lo resuelve:* la misma consulta que Q-L1.
+**Q-L2 🟠 · Inscripción en el registro de la AAIP (art. 21).**
+Sin cambios.
 
 **Q-L3 🟠 · Edad mínima.**
-P-23 pone 18+ por declaración. Excluye al público que más viraliza y no verifica
-nada. Bajar a 13 o 16 implica tratar datos de ubicación de menores, con el
-consentimiento de quién.
-*Lo resuelve:* decisión explícita, idealmente con la consulta legal.
+Sin cambios. **(i2)** Google Play pide declarar el público objetivo; si incluye
+menores, aplica la política de familias.
 
 **Q-L4 🟡 · ¿Quién es el responsable del tratamiento?**
-Una persona física operando un VPS es responsable en los términos de la ley,
-con su nombre y domicilio en la política de privacidad. Eso expone al operador
-(que es justamente lo que el proyecto protege para los usuarios).
-*Lo resuelve:* decidir si se opera como persona, como asociación o como algo
-más.
+**(i2)** Pesa también para Google Play: una cuenta de organización evita el
+requisito de 12 testers, pero exige una entidad registrada.
 
-**Q-L5 🟠 · Proveedor de mail y destino de backups: transferencia internacional (art. 12).**
-Un proveedor de mail transaccional con servidores en EE. UU. recibe las
-direcciones de quien usa magic link. EE. UU. no figura entre los países con
-protección adecuada para la AAIP, así que hace falta otra base legal
-(cláusulas contractuales o consentimiento). Lo mismo para backups si van a otro
-país (aunque estén cifrados).
-*Lo resuelve:* elegir proveedores con cláusulas tipo, o eliminar el magic link
-si las passkeys alcanzan (ver Q-T1).
+**Q-L5 🟠 · Transferencia internacional (art. 12).**
+**(i2)** Se suman los servicios de push (FCM en Android): el endpoint de cada
+suscripción es un identificador del dispositivo ante Google.
 
-**Q-L6 🟡 · ODbL: combinar datos de OSM con aportes de usuarios.**
-Si el mapa público combina el catálogo de OSM con los atributos de los usuarios,
-puede ser una "base de datos derivada" con obligación de compartirla bajo ODbL.
-Mantenerlas como bases separadas vinculadas por id podría ser una "base de datos
-colectiva". Además está la oportunidad inversa: devolver a OSM los atributos
-confirmados (`toilets:wheelchair`, `fee`, `changing_table`), que requiere que los
-términos de aporte sean compatibles con ODbL.
-*Lo resuelve:* decidir la licencia de los aportes de usuarios desde el día uno;
-cambiarla después es casi imposible.
+**Q-L6 🟠 (i2) · ODbL: la importación de una vía no evita el share-alike.**
+Subió de gravedad. Que no escribamos en OSM resuelve "no ensuciar OSM", pero
+mezclar datos de OSM con correcciones de usuarios en la misma tabla de baños y
+mostrarla en público la convierte muy probablemente en una base de datos
+derivada, que hay que ofrecer bajo ODbL. La salida que propone el diseño
+(DESIGN.md §10.7): los aportes al wiki se licencian bajo ODbL en los términos
+de uso. Además está la regla inversa: si se devuelve algo a OSM, tiene que
+cumplir con las guías de ediciones organizadas de OSM.
+*Lo resuelve:* confirmarlo con la guía de bases de datos colectivas y derivadas
+de la OSMF, y fijar la licencia de los aportes antes del primer usuario.
 
 **Q-L7 🟡 · Licencia del código.**
-Código abierto ayuda con L1 (se puede auditar qué JS se sirve). AGPL obliga a
-quien lo despliegue a publicar cambios; MIT no. Sin decidir.
+Sin cambios.
+
+**Q-L8 🟠 (i2) · Formulario de seguridad de datos de Google Play.**
+Al publicar la app nativa hay que declarar qué datos se recolectan. Ubicación
+precisa: sí (aunque no salga del dispositivo, la app la usa; hay que ver cómo
+se declara el procesamiento solo local). ¿Salud? Google tiene categorías de
+"salud y fitness"; un registro de cuándo vas al baño puede caer ahí según cómo se
+lea.
+*Lo resuelve:* leer las definiciones actuales del formulario antes de armar la
+prueba cerrada.
 
 ## Técnicas
 
-**Q-T1 🟠 · ¿Cuánta gente en Río Gallegos puede usar passkeys con PRF?**
-PRF está en Chrome para Android con el gestor de contraseñas de Google y en
-Safari moderno, pero el soporte depende del autenticador y de la versión.
-Celulares Android viejos son comunes. Sin PRF, la bóveda depende del código de
-recuperación.
-*Lo resuelve:* medir en el piloto (`credenciales_passkey.soporta_prf`) y tener el
-código de recuperación como camino de primera clase, no como plan B escondido.
+**Q-T1 🟠 · Soporte de passkeys con PRF en la población real.**
+Sin cambios.
 
-**Q-T2 🔴 · Desalojo del almacenamiento local en iOS/Safari.**
-Safari puede borrar el almacenamiento de un sitio después de 7 días sin
-interacción si no está agregado a la pantalla de inicio. En Chrome existe
-`navigator.storage.persist()`; en Safari el comportamiento depende de la versión
-y no lo tengo verificado. Sin PRF ni código de recuperación, eso es pérdida de
-historial.
-*Lo resuelve:* verificar el comportamiento actual de Safari; empujar el "agregar
-a inicio" en iOS; no dejar terminar el alta sin al menos una forma de
-recuperación.
+**Q-T2 🔴 · Desalojo del almacenamiento en iOS/Safari.**
+**(i2)** La PWA instalada en la pantalla de inicio y, más adelante, la app nativa
+lo mitigan. Sigue bloqueando el lanzamiento mientras no se verifique el
+comportamiento actual y no se exija al menos una forma de recuperación.
 
 **Q-T3 🟠 · Precisión real del GPS del navegador en Río Gallegos.**
-Toda la lógica de candidatos y zonas usa `coords.accuracy`. La precisión por
-wifi depende de la cobertura de las bases de ubicación en la ciudad, que no
-conozco. Adentro de un edificio, los errores pueden ser de cientos de metros.
-*Lo resuelve:* una semana de pruebas de campo con dos o tres celulares en los
-lugares de la whitelist.
+**(i2)** Con la precisión mínima de 50 m (P-07) el riesgo de seguridad baja; el
+de usabilidad (candidatos equivocados) sigue.
 
-**Q-T4 🟡 · Conflictos de sincronización entre dispositivos.**
-Con páginas mensuales cifradas, dos dispositivos que editan el mismo mes chocan.
-La mezcla es en el cliente (registros con id propio y `actualizado_en`), pero
-borrados concurrentes necesitan lápidas.
-*Lo resuelve:* diseño detallado de la mezcla antes de implementar `vault`.
+**Q-T4 🟡 · Conflictos de sincronización.** Sin cambios.
 
-**Q-T5 🟡 · Peso de MapLibre en celulares baratos.**
-MapLibre es bastante más pesado que Leaflet. Si el piloto muestra que la carga es
-lenta, cambiar a Leaflet + protomaps-leaflet sobre los mismos PMTiles.
+**Q-T5 🟡 · Peso de MapLibre.** Sin cambios.
 
 **Q-T6 🟡 · Background Sync no es confiable.**
-El envío diferido (P-14) depende de que el usuario vuelva a abrir la página.
-Alguien que registra una vez y no vuelve nunca manda nada. Es aceptable (lo
-privado igual está en el dispositivo), pero conviene saberlo.
+**(i2)** Por R5 la cola la maneja la app, no el service worker: la dependencia de
+Background Sync baja.
+
+**Q-T7 🟠 (i2) · Passkeys con PRF dentro del WebView de Capacitor.**
+El WebView de Android soporta Credential Manager desde `androidx.webkit` 1.12
+con configuración y Digital Asset Links, y hay plugins de Capacitor que hacen de
+puente. Hay reportes de que sin esa configuración `PublicKeyCredential` no
+existe. **No encontré confirmación de que la extensión PRF pase por ese camino.**
+Si no pasa, en la app nativa la bóveda depende del código de recuperación o de
+guardar la llave en el Keystore/Keychain (que es razonable en nativo).
+*Lo resuelve:* un prototipo de una tarde con Capacitor + plugin de passkeys +
+PRF, antes de prometer "empaquetar sin rehacer".
+
+**Q-T8 🟡 (i2) · Fiabilidad de Overpass.**
+En la medición de SEEDING.md, de cuatro servidores públicos solo respondió uno, y
+con 504 en la mitad de los intentos. Para producción, el diseño usa extractos de
+Geofabrik (§10.1). Overpass queda para exploración.
+
+**Q-T9 🟡 (i2) · Push en iOS.**
+Solo funciona con la PWA instalada. En Argentina iOS es minoría, pero no cero, y
+sin push el usuario de iPhone no tiene recordatorios ni avisos de amigos.
 
 ## Datos
 
-**Q-D1 🔴 · ¿Qué hay hoy en OSM para Río Gallegos?**
-No lo medí: intenté consultar Overpass desde el entorno de trabajo y no
-respondió. Hay que saber cuántos `amenity=toilets`, `toilets=yes` y lugares de
-la whitelist hay, y qué tan completos están `opening_hours`, `fee` y
-`wheelchair`. Mi expectativa (sin verificar) es que los baños públicos explícitos
-sean muy pocos y que las estaciones de servicio estén bastante completas. Esto
-define cuánto hay que sembrar a mano y el tamaño real del bundle.
-*Lo resuelve:* una consulta a Overpass o un recorte del extracto de Geofabrik.
-Es lo primero que hay que hacer.
+**Q-D1 ✅ (i2) · ¿Qué hay hoy en OSM para Río Gallegos?**
+Medido (SEEDING.md): 5 `amenity=toilets`, todos en estaciones de servicio, sin
+ningún atributo útil; 0 objetos con `toilets=*`; 73 candidatos en categorías
+probables, 7 % con horario.
 
-**Q-D2 🟠 · Macrozonas: ¿quién las dibuja y con qué fuente?**
-El ranking necesita ~8-10 zonas con nombres que la gente reconozca. Los límites
-de barrios en OSM para Río Gallegos pueden no existir o estar incompletos.
-*Lo resuelve:* dibujarlas a mano con alguien de la ciudad, basadas en los
-barrios municipales si hay datos abiertos.
+**Q-D2 🟡 (i2) · Macrozonas.** Sin ranking en v1; queda para después.
 
 **Q-D3 🟡 · La lista de "YPF de la Ruta 3".**
-¿Cuáles cuentan? ¿Todas las de la RN3 de Buenos Aires a Ushuaia (unas cuantas
-decenas) o solo las de Santa Cruz? Hay estaciones cerradas, duplicadas o sin
-marca en OSM.
-*Lo resuelve:* lista curada en `data/curated/logros.json`, empezando por el
-tramo santacruceño.
+**(i2)** En el bbox de Río Gallegos hay 8 YPF mapeadas; no todas están sobre la
+RN3.
 
 **Q-D4 🟡 · Los atributos envejecen.**
-Un baño que "cobra" o "está limpio" puede cambiar en un mes. El diseño muestra
-`ultima_semana` y vuelve a `sin_confirmar` después de 90 días sin reportes, pero
-en una ciudad chica muchos lugares van a quedar siempre sin confirmar.
+**(i2)** Resuelto para limpieza y papel (son observaciones que vencen, P-27).
+Sigue abierto para horario y "cobra": un horario de 2026 puede ser falso en 2028.
+
+**Q-D5 🔴 (i2) · ¿Existen baños públicos municipales en Río Gallegos?**
+OSM no tiene ninguno. Si no existen, el producto es un mapa de "baños de lugares
+públicos" (estaciones, bares, supermercados), con todo lo que eso implica:
+dependen de la buena voluntad del comercio y de si consumís. Si existen y nadie
+los mapeó, son el dato más valioso que se puede sembrar.
+*Lo resuelve:* recorrida y consulta a la Municipalidad.
+
+**Q-D6 🟠 (i2) · OSM está muy incompleto en gastronomía.**
+30 locales gastronómicos para una ciudad de 110 mil es una fracción chica de lo
+real. El sembrado desde OSM refleja lo que alguien mapeó, no lo que existe.
+*Lo resuelve:* aceptar que la base crece por propuestas de usuarios (P-28) y por
+la recorrida; no intentar completar el rubro antes del lanzamiento.
+
+**Q-D7 🟡 (i2) · ¿El horario de la estación es el horario del baño?**
+El diseño toma el horario de la estación para su baño. Una YPF 24 h puede cerrar
+el baño de noche o pedir la llave en caja.
 
 ## Operación
 
-**Q-O1 🟠 · Bus factor de uno.**
-Si el operador se cansa o desaparece, ¿qué pasa con los datos? Una bóveda que
-nadie más puede leer es buena para privacidad, pero la capa pública y el VPS
-necesitan un plan de cierre.
-*Lo resuelve:* política de cierre escrita: aviso, período de exportación,
-borrado total.
+**Q-O1 🟠 · Bus factor de uno.** Sin cambios.
 
-**Q-O2 🟠 · Seguridad del VPS autogestionado.**
-Las decisiones de privacidad suponen un servidor razonablemente mantenido. Un
-Postgres sin parches o un SSH con contraseña anulan buena parte del diseño
-(sobre todo L1: un atacante con el servidor puede servir JS que robe llaves).
-*Lo resuelve:* checklist mínima (actualizaciones automáticas, SSH solo con llave,
-firewall, Postgres sin exponer) antes de lanzar.
+**Q-O2 🟠 · Seguridad del VPS.** Sin cambios.
 
-**Q-O3 🟡 · Moderación por una persona.**
-Sin texto libre ni imágenes, lo moderable son seudónimos y reportes falsos. Si
-el piloto crece, igual puede ser más de lo que una persona atiende.
+**Q-O3 🟡 · Moderación por una persona.** **(i2)** Ver Q-W4.
 
-**Q-O4 🟡 · Un viral de verdad.**
-Si sale en un medio nacional, el VPS recibe tráfico de todo el país sobre un
-mapa que solo tiene Río Gallegos. Estáticos y PMTiles aguantan bien detrás de
-caché; la experiencia para alguien de Córdoba es un mapa vacío.
-*Lo resuelve:* una página de "todavía no llegamos a tu ciudad" que capture
-interés sin pedir datos.
+**Q-O4 🟡 · Un viral de verdad.** Sin cambios.
+
+**Q-O5 🟠 (i2) · La recorrida de sembrado es el cuello de botella real.**
+Dos o tres días para 30 baños en Río Gallegos (SEEDING.md §5). Cada ciudad nueva
+repite el trabajo. El modelo no escala por código sino por gente dispuesta a
+caminar.
+*Lo resuelve:* aceptar que la expansión es ciudad por ciudad con alguien local, o
+encontrar socios (la Municipalidad, una ONG de accesibilidad) que aporten la
+recorrida.
+
+**Q-O6 🟡 (i2) · Conseguir 15-20 testers para Google Play.**
+Hacen falta 12 inscriptos durante 14 días seguidos, y si uno se da de baja el
+reloj puede reiniciarse. Con 20 usuarios activos en la PWA, eso es casi todos.
