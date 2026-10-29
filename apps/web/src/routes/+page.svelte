@@ -112,9 +112,12 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 12px;
-		padding: 12px 16px;
+		padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
 		background: var(--sol);
 		border-bottom: var(--borde);
+	}
+	:global(.banner-prueba + .raiz) .barra {
+		padding-top: 12px;
 	}
 	.pastilla {
 		padding: 4px 10px;
