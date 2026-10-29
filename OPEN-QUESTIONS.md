@@ -425,7 +425,11 @@ curaduría tiene que ser automática (reglas) más los reportes de los usuarios.
 
 **Q-N4 ✅ (i4) · Dominio.** `dondecague.com.ar`, comprado. Marca: "Dónde Cagué".
 
-**Q-L11 🔴 (i4) · Responsable y contacto en la política de privacidad.**
+**Q-L11 🟠 (i4) · Responsable y contacto en la política de privacidad.**
+Completado: responsable Facundo Aro, contacto `dondecague@gmail.com`. Falta el
+**domicilio**: el art. 6 de la Ley 25.326 pide informar identidad y domicilio del
+responsable. Consultar con el abogado si alcanza con un domicilio legal o postal
+(no necesariamente el particular). Texto original:
 `/privacidad` dice "[Responsable y contacto a definir]". Con cuentas de personas
 reales, la Ley 25.326 (art. 6) exige informar quién es el responsable de los
 datos y cómo ejercer los derechos. Hay que completarlo antes de difundir el

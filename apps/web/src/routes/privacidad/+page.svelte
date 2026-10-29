@@ -40,7 +40,11 @@
 	<h2>Tus derechos</h2>
 	<ul>
 		<li><strong>Borrar tu cuenta</strong> cuando quieras, desde "Mi cuenta": se borra todo en el acto.</li>
-		<li><strong>Acceder</strong> a lo que tenemos de vos y <strong>corregirlo</strong>, escribiéndonos.</li>
+		<li>
+			<strong>Acceder</strong> a lo que tenemos de vos y <strong>corregirlo</strong>, escribiendo a
+			<a href="mailto:dondecague@gmail.com">dondecague@gmail.com</a>. Te respondemos en los plazos de la ley: 10 días
+			corridos para el acceso y 5 días hábiles para corregir o suprimir.
+		</li>
 		<li>
 			Si creés que no cumplimos con la ley, podés reclamar ante la Agencia de Acceso a la Información Pública (AAIP),
 			que es el órgano de control de la Ley 25.326.
@@ -48,5 +52,15 @@
 	</ul>
 
 	<h2>Quién es responsable</h2>
-	<p>[Responsable y contacto a definir antes del lanzamiento.]</p>
+	<p>
+		El responsable de los datos es <strong>Facundo Aro</strong>. Para cualquier consulta sobre tus datos o para ejercer
+		tus derechos: <a href="mailto:dondecague@gmail.com">dondecague@gmail.com</a>.
+	</p>
 </Legal>
+
+<style>
+	a {
+		color: var(--tinta);
+		font-weight: 600;
+	}
+</style>
