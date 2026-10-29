@@ -6,18 +6,23 @@
 		{
 			n: '01',
 			titulo: 'Registrá',
-			texto: 'Dos toques y listo. Tu ubicación y tu historial no salen de tu celular: solo los ves vos.'
+			texto: 'Dos toques y listo. Tu ubicación y tu historial no salen de tu celular: solo los ves vos.',
+			enlace: '/app',
+			textoEnlace: 'Registrar →'
 		},
 		{
 			n: '02',
 			titulo: 'Juntá medallas',
-			texto: 'Una cada 5 visitas al trono. "Sommelier de Papel Higiénico", "Resistencia al Viento Patagónico" y 38 más.'
+			texto: 'Una cada 5 visitas al trono. "Sommelier de Papel Higiénico", "Resistencia al Viento Patagónico" y 38 más.',
+			enlace: '/app',
+			textoEnlace: 'Ver mis medallas →'
 		},
 		{
 			n: '03',
 			titulo: 'Encontrá baño',
 			texto: '¿Qué baño está abierto el domingo? ¿Cuál cobra? ¿Cuál tiene cambiador? El mapa lo armamos entre todos.',
-			enlace: '/mapa'
+			enlace: '/mapa',
+			textoEnlace: 'Ver el mapa →'
 		}
 	];
 	const MEDALLAS = ['Debut en el Trono', 'Bodas de Plata con el Inodoro', 'Pingüino Emperador', 'Trono de Oro'];
@@ -78,7 +83,7 @@
 					<h3>{p.titulo}</h3>
 					<p>{p.texto}</p>
 					{#if p.enlace}
-						<a class="pronto ya" href={p.enlace}>Ver el mapa →</a>
+						<a class="pronto ya" href={p.enlace}>{p.textoEnlace}</a>
 					{:else}
 						<span class="pronto">Próximamente</span>
 					{/if}

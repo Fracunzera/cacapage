@@ -7,6 +7,8 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile
 COPY apps/web apps/web
+# Catálogos de medallas y logros: se empaquetan en el cliente.
+COPY data/curated data/curated
 RUN pnpm --filter web build
 
 # adapter-node empaqueta todo en build/: en ejecución no hacen falta node_modules.

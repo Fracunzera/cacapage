@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import Logo from '$lib/ui/Logo.svelte';
 	import { api, ErrorApi } from '$lib/cliente/api';
+	import { Boveda } from '$lib/boveda/boveda';
 
 	interface Cuenta {
 		seudonimo: string;
@@ -28,6 +29,8 @@
 
 	async function salir() {
 		await api('/auth/salir', { cuerpo: {} }).catch(() => {});
+		// La copia local del historial no queda en el celular (P-03).
+		await Boveda.olvidar();
 		await goto('/');
 	}
 
@@ -36,6 +39,7 @@
 		error = null;
 		try {
 			await api('/cuenta', { metodo: 'DELETE' });
+			await Boveda.olvidar();
 			await goto('/?cuenta=borrada');
 		} catch (e) {
 			error = e instanceof ErrorApi ? e.message : 'No se pudo borrar la cuenta.';
@@ -73,12 +77,10 @@
 				{#if cuenta.metodos.mail}<li>✉️ Link por mail (tu mail no se guarda: solo una huella para reconocerlo)</li>{/if}
 			</ul>
 			<button type="button" class="u-boton sec" onclick={salir}>Salir</button>
+			<p class="u-ayuda">Al salir se borra el historial de este celular. Para volver a verlo vas a necesitar tu código de recuperación.</p>
 		</section>
 
-		<section class="u-tarjeta pronto">
-			<h2>Muy pronto</h2>
-			<p>Registrar, tu historial y las medallas llegan en la próxima versión.</p>
-		</section>
+		<a class="u-boton volver" href="/app">💩 Ir a mi trono</a>
 
 		<section class="u-tarjeta">
 			<h2>Borrar la cuenta</h2>
@@ -140,8 +142,8 @@
 	li {
 		margin-bottom: 6px;
 	}
-	.pronto {
-		background: var(--sol-claro);
+	.volver {
+		margin: 0 0 18px;
 	}
 	a {
 		color: var(--tinta);

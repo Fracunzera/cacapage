@@ -107,7 +107,9 @@ const errores = [];
 	await p.getByLabel('Tengo 18 años o más.').check();
 	await p.getByRole('checkbox').nth(1).check();
 	await p.getByRole('button', { name: 'Crear con passkey' }).click();
-	await p.waitForURL(BASE + '/app/cuenta');
+	// Al entrar se va a "Mi trono"; los datos de la cuenta están en /app/cuenta.
+	await p.waitForURL(BASE + '/app');
+	await p.goto(BASE + '/app/cuenta');
 	await p.getByText('@trono_test').waitFor();
 	verificar(true, 'alta con passkey: entra a "Mi cuenta" con el seudónimo en minúsculas');
 
@@ -127,7 +129,9 @@ const errores = [];
 	verificar(true, 'después de salir, "Mi cuenta" manda a entrar');
 
 	await p.getByRole('button', { name: 'Entrar con passkey' }).click();
-	await p.waitForURL(BASE + '/app/cuenta');
+	// Al entrar se va a "Mi trono"; los datos de la cuenta están en /app/cuenta.
+	await p.waitForURL(BASE + '/app');
+	await p.goto(BASE + '/app/cuenta');
 	await p.getByText('@trono_test').waitFor();
 	verificar(true, 'entrar con passkey funciona');
 
@@ -178,7 +182,9 @@ const errores = [];
 	await p.getByLabel('Tengo 18 años o más.').check();
 	await p.getByRole('checkbox').nth(1).check();
 	await p.getByRole('button', { name: 'Crear con contraseña' }).click();
-	await p.waitForURL(BASE + '/app/cuenta');
+	// Al entrar se va a "Mi trono"; los datos de la cuenta están en /app/cuenta.
+	await p.waitForURL(BASE + '/app');
+	await p.goto(BASE + '/app/cuenta');
 	await p.getByText('@clave_test').waitFor();
 	verificar(await p.getByText('🔒 Contraseña').isVisible(), 'alta con contraseña: entra y figura el método');
 	const [huella] = await sql`select huella from claves`;
@@ -198,7 +204,9 @@ const errores = [];
 	await p.getByLabel('Tu seudónimo').fill('Clave_Test');
 	await p.getByLabel('Tu contraseña').fill(CLAVE);
 	await p.getByRole('button', { name: 'Entrar', exact: true }).click();
-	await p.waitForURL(BASE + '/app/cuenta');
+	// Al entrar se va a "Mi trono"; los datos de la cuenta están en /app/cuenta.
+	await p.waitForURL(BASE + '/app');
+	await p.goto(BASE + '/app/cuenta');
 	await p.getByText('@clave_test').waitFor();
 	verificar(true, 'entrar con seudónimo y contraseña funciona');
 	await p.getByRole('button', { name: 'Salir' }).click();
@@ -219,7 +227,9 @@ const errores = [];
 
 	await p.goto(linkAlta);
 	await p.getByRole('button', { name: 'Entrar' }).click();
-	await p.waitForURL(BASE + '/app/cuenta');
+	// Al entrar se va a "Mi trono"; los datos de la cuenta están en /app/cuenta.
+	await p.waitForURL(BASE + '/app');
+	await p.goto(BASE + '/app/cuenta');
 	await p.getByText('@cagon_de_prueba').waitFor();
 	verificar(true, 'alta por mail: entra a "Mi cuenta"');
 	verificar(!p.url().includes('#'), 'el token no queda en la barra de direcciones');
@@ -245,7 +255,9 @@ const errores = [];
 	verificar(Boolean(linkEntrada), 'entrar por mail (con mayúsculas) genera link de entrada');
 	await p.goto(linkEntrada);
 	await p.getByRole('button', { name: 'Entrar' }).click();
-	await p.waitForURL(BASE + '/app/cuenta');
+	// Al entrar se va a "Mi trono"; los datos de la cuenta están en /app/cuenta.
+	await p.waitForURL(BASE + '/app');
+	await p.goto(BASE + '/app/cuenta');
 	await p.getByText('@cagon_de_prueba').waitFor();
 	verificar(true, 'entrar con el link de mail funciona');
 

@@ -49,6 +49,16 @@ confirmado (1.861 baños públicos sueltos, 670 fusionados con su estación,
 terminal o shopping, y 454 comercios con `toilets=yes`) y 7.182 probables
 (5.454 estaciones de servicio sin el dato). Detalle en SEEDING.md §8.
 
+**Registrar, historial y medallas** (`/app`, código en `apps/web/src/lib/boveda/`):
+
+| # | Cambio | Por qué |
+|---|---|---|
+| 8 | **El código de recuperación es obligatorio** al crear el historial: se muestra una vez, con "Copiar" y "Descargar", y no se sigue sin tildar "Ya lo guardé". La llave de las passkeys (PRF) queda para después. | Saltearlo dejaba la llave solo en ese navegador: al entrar desde otro celular se crearía una segunda bóveda y las dos no se podrían juntar. P-03 ya contaba con esta fricción. |
+| 9 | **Salir borra la copia local** del historial (llave incluida). Al volver a entrar se pide el código. | Un celular prestado no tiene que quedar con el historial de otro (P-37). |
+| 10 | **"Perdí el código" → empezar de cero** (`DELETE /api/v1/boveda`, exige haber entrado hace menos de 5 minutos). Borra páginas y llave. | Sin el código el historial ya no se puede leer; lo único útil es poder empezar otro. |
+| 11 | El registro tiene dónde fue (7 tipos), cuándo ("Recién" o "Fue antes"), ubicación opcional con los baños del catálogo a menos de 150 m (preselección según P-05 y P-29), "No había papel" y "¿Alguna anécdota?". | §6.1, §8 pasos 1-2, §8.1. Lo que publica (puente, amigos, zonas privadas, detección de casa) sigue sin implementar: hoy nada sale del historial. |
+| 12 | Cifrado: un secreto de 32 bytes del que salen por HKDF la llave AES-GCM de las páginas y la HMAC de sus ids; las dos quedan en IndexedDB como llaves **no exportables**. El secreto se envuelve con PBKDF2-SHA256 (310 mil iteraciones) del código de 128 bits. | §6.2 y P-04: páginas mensuales con id opaco y relleno a 4 KB. La sincronización mezcla por registro (gana el último cambio; los borrados quedan marcados para que ganen en todos los celulares). |
+
 ### Iteración 4: alcance nacional
 
 Decisión del producto: **el producto es para toda la Argentina, con un mapa

@@ -98,7 +98,7 @@
 			});
 			const respuesta = await startRegistration({ optionsJSON: opciones });
 			await api('/auth/passkey/alta/verificar', { cuerpo: { desafio_id, respuesta } });
-			await goto('/app/cuenta');
+			await goto('/app');
 		});
 
 	const entrarConPasskey = () =>
@@ -108,19 +108,19 @@
 			});
 			const respuesta = await startAuthentication({ optionsJSON: opciones });
 			await api('/auth/passkey/entrada/verificar', { cuerpo: { desafio_id, respuesta } });
-			await goto('/app/cuenta');
+			await goto('/app');
 		});
 
 	const crearConClave = () =>
 		ejecutar(async () => {
 			await api('/auth/clave/alta', { cuerpo: { ...alta(), clave } });
-			await goto('/app/cuenta');
+			await goto('/app');
 		});
 
 	const entrarConClave = () =>
 		ejecutar(async () => {
 			await api('/auth/clave/entrada', { cuerpo: { seudonimo, clave } });
-			await goto('/app/cuenta');
+			await goto('/app');
 		});
 
 	const pedirLink = () =>
@@ -133,7 +133,7 @@
 		if (new URLSearchParams(location.search).get('modo') === 'entrar') modo = 'entrar';
 		try {
 			await api('/cuenta');
-			await goto('/app/cuenta');
+			await goto('/app');
 			return;
 		} catch {
 			// Sin sesión: se queda acá.

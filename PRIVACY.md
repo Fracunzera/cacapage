@@ -654,6 +654,20 @@ alguien cuando buscó un baño (A3, A6). Que pedir el catálogo revele la zona
 la precisión del zoom. No se guardan (sin log de acceso, P-19), pero el
 servidor los ve pasar. Bajar 377 KB de entrada es más que bajar una provincia.
 
+### P-37 · (i5) Salir borra el historial del celular
+
+**Decisión.** "Salir" y "Borrar la cuenta" borran la base local del historial
+(registros descifrados y llaves). Para volver a verlo en ese celular hay que
+entrar y poner el código de recuperación. El código es obligatorio al crear el
+historial (DESIGN.md §0, iteración 5, punto 8).
+
+**Mitiga.** Un celular prestado, compartido o vendido que se queda con el
+historial de otra persona, con hora y ubicación exactas (A5).
+
+**Cuesta.** Quien sale y vuelve a entrar necesita el código cada vez. Quien lo
+perdió pierde el historial (P-03): "Perdí el código" solo permite empezar de
+cero.
+
 ---
 
 ## Decisiones postergadas (i3)

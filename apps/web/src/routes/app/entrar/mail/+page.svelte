@@ -21,7 +21,7 @@
 		error = null;
 		try {
 			await api('/auth/mail/canjear', { cuerpo: { token } });
-			await goto('/app/cuenta');
+			await goto('/app');
 		} catch (e) {
 			error = e instanceof ErrorApi ? e.message : 'Algo salió mal. Probá de nuevo.';
 		} finally {
