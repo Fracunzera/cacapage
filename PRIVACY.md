@@ -58,7 +58,7 @@ individuales:**
 | Tarjetas compartibles | Quien reciba el link | Lo mismo que la insignia; **(i3)** para medallas, el nombre implica la cantidad de registros (múltiplo de 5) | Acto explícito del usuario en el momento; sin fecha ni lugar (P-33). |
 | **(i3)** Anuncio de medalla a amigos | Amigos elegidos | Que hubo un registro ese día | Solo si el usuario lo pide para esa medalla; cola diferida (P-33). |
 | **(i5)** Puntaje de un baño | Público | Promedio y cantidad de votos; nunca quién votó ni cuándo | Un voto por cuenta; se guarda con `cuenta_id` solo para poder cambiarlo y se borra con la cuenta. Con 1 voto, el promedio es ese voto (atribución como P-17, sin autor). |
-| **(i5)** Mapa de cacas (`/cacas`) y visitas públicas en la ficha de un baño | Público, sin cuenta | **Registro individual con seudónimo:** el baño o el punto (±11 m), el tipo de lugar y el día | **Excepción a la regla de abajo, por decisión del producto (P-38):** opt-in registro por registro con advertencia explícita, nunca casa/laburo/lo de alguien, sin hora, 2 h de demora, despublicar borra en el acto. |
+| **(i5)** Mapa de cacas (`/cacas`) y visitas públicas en la ficha de un baño | Público, sin cuenta | **Registro individual con seudónimo:** el baño o el punto (±11 m), el tipo de lugar y el día | **Excepción a la regla de abajo, por decisión del producto (P-38):** opt-in registro por registro con advertencia explícita, nunca casa/laburo/lo de alguien, sin hora, 30 min de demora para los demás (el dueño la ve enseguida), despublicar borra en el acto. |
 
 **Regla para cualquier superficie nueva** (vista social, perfil público, liga,
 ranking, mapa general, estadísticas para comercios adheridos):
@@ -696,13 +696,16 @@ de una advertencia que dice exactamente qué se ve. Se publica:
 
 No se publica nunca: la hora, la anécdota, la precisión del GPS. Casa, laburo y
 lo de alguien no se pueden publicar (la interfaz no lo ofrece y el servidor lo
-rechaza). Cada publicación aparece 2 horas después de hecha. Despublicar, borrar
+rechaza). Cada publicación la ven los demás 30 minutos después de hecha (era 2
+horas; se bajó por pedido del producto); su dueño la ve enseguida, marcada "por
+ahora solo la ves vos" (`/api/v1/publicaciones/mias`). Despublicar, borrar
 el registro, "empezar de cero" o borrar la cuenta la borran en el acto. Tope de
 60 publicaciones por día por cuenta.
 
 **Ejercicio de ataque.**
 - *Seguir a alguien* (A2): con el seudónimo se ve por dónde anduvo, por día.
-  Lo acotan la demora de 2 h (no hay "dónde está ahora") y que es opt-in caso
+  Lo acotan la demora de 30 min (no hay "dónde está ahora"; sí "dónde
+  estaba hace media hora" para quien mira seguido) y que es opt-in caso
   por caso. No se elimina: la advertencia lo dice.
 - *Encontrar la casa* (A1/A2): casa no se puede publicar, pero alguien puede
   registrar su casa como "otro" y publicarla. La advertencia muestra que se

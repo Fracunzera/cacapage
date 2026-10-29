@@ -45,7 +45,7 @@
 		<li>
 			<strong>Lo que vos elegís hacer público.</strong> Si marcás una caca como pública, guardamos y mostramos a
 			cualquiera, en el mapa de cacas: tu seudónimo, el día (no la hora), el tipo de lugar, y el baño o el punto
-			donde estabas (redondeado a unos 10 metros), en cualquier país. Aparece unas horas después. Lo de casa, el laburo o lo de alguien
+			donde estabas (redondeado a unos 10 metros), en cualquier país. Los demás la ven 30 minutos después (vos, enseguida). Lo de casa, el laburo o lo de alguien
 			no se puede hacer público. La podés volver a poner privada cuando quieras y se borra en el acto.
 		</li>
 	</ul>

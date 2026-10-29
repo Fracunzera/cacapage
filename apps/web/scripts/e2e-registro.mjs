@@ -195,11 +195,19 @@ try {
 		await b.screenshot({ path: join(CAPTURAS, 'publico-falla.png') });
 		throw new Error('no llegó a 6: ' + (await b.locator('main').innerText()).slice(0, 600));
 	});
-	let [pub] = await sql`select tipo, banio_id, lat, lon, dia, visible_desde > now() + interval '1 hour' as demorada from publicaciones`;
-	ok(pub?.tipo === 'naturaleza' && pub.lat === -51.6202 && pub.lon === -69.22 && pub.demorada, 'se publica el punto redondeado, demorado unas horas');
+	let [pub] = await sql`select tipo, banio_id, lat, lon, dia, visible_desde between now() + interval '29 minutes' and now() + interval '31 minutes' as demorada from publicaciones`;
+	ok(pub?.tipo === 'naturaleza' && pub.lat === -51.6202 && pub.lon === -69.22 && pub.demorada, 'se publica el punto redondeado; los demás la ven en 30 minutos');
 	ok((await sql`select 1 from publicaciones`).length === 1, 'solo la que se eligió hacer pública');
 	let api = await (await fetch(BASE + '/api/v1/publicaciones')).json();
 	ok(api.publicaciones.length === 0, 'antes de la demora no aparece en el mapa público');
+	const mias = await (await b.request.get(BASE + '/api/v1/publicaciones/mias')).json();
+	ok(mias.publicaciones.length === 1 && mias.publicaciones[0].visible_desde, 'el dueño la ve enseguida, con desde cuándo la ven los demás');
+	ok((await (await fetch(BASE + '/api/v1/publicaciones/mias')).json()).publicaciones.length === 0, 'sin sesión, /mias viene vacío');
+	await b.goto(BASE + '/cacas');
+	await b.getByText('1 caca pública').waitFor();
+	await b.locator('canvas.maplibregl-canvas').waitFor();
+	ok(true, 'en el mapa de cacas el dueño ya ve la suya');
+	await b.goto(BASE + '/app');
 
 	// Una del historial (en la YPF) también pública: se publica el baño, no la posición.
 	await b.locator('.historial li', { hasText: 'YPF Centro' }).locator('button.fila').click();

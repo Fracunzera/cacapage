@@ -9,7 +9,7 @@
 	import Seo from '$lib/ui/Seo.svelte';
 	import { crearMapa } from '$lib/banios/crearMapa';
 	import { TIPOS, type Tipo } from '$lib/boveda/modelo';
-	import type { Publicacion } from '$lib/publicaciones';
+	import { faltaParaTodos, type Publicacion } from '$lib/publicaciones';
 
 	const TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
 	type Filtro = 'todas' | Tipo;
@@ -39,7 +39,7 @@
 			features: lista.map((p) => ({
 				type: 'Feature' as const,
 				geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] },
-				properties: { id: p.id, color: COLOR[p.tipo] ?? '#8a5632' }
+				properties: { id: p.id, color: COLOR[p.tipo] ?? '#8a5632', pendiente: faltaParaTodos(p.visible_desde) !== null }
 			}))
 		};
 	}
@@ -53,8 +53,18 @@
 
 	onMount(() => {
 		(async () => {
-			const [r, { mapa: m }] = await Promise.all([fetch('/api/v1/publicaciones'), crearMapa(contenedor)]);
-			todas = r.ok ? ((await r.json()) as { publicaciones: Publicacion[] }).publicaciones : [];
+			const lista = (url: string) =>
+				fetch(url)
+					.then((r) => (r.ok ? (r.json() as Promise<{ publicaciones: Publicacion[] }>) : { publicaciones: [] }))
+					.then((d) => d.publicaciones, () => [] as Publicacion[]);
+			// Las propias que los demás todavía no ven (primeros 30 minutos): solo para su dueño.
+			const [publicas, mias, { mapa: m }] = await Promise.all([
+				lista('/api/v1/publicaciones'),
+				lista('/api/v1/publicaciones/mias'),
+				crearMapa(contenedor)
+			]);
+			const yaEstan = new Set(publicas.map((p) => p.id));
+			todas = [...mias.filter((p) => !yaEstan.has(p.id) && faltaParaTodos(p.visible_desde)), ...publicas];
 			cargado = true;
 			m.addSource('cacas', { type: 'geojson', data: datos(visibles), cluster: true, clusterMaxZoom: 15, clusterRadius: 40 });
 			m.addLayer({
@@ -84,8 +94,9 @@
 				filter: ['!', ['has', 'point_count']],
 				paint: {
 					'circle-color': ['get', 'color'],
-					'circle-stroke-color': '#3b2314',
-					'circle-stroke-width': 2.5,
+					// Las propias que todavía no ven los demás, con borde amarillo.
+					'circle-stroke-color': ['case', ['get', 'pendiente'], '#f6b40e', '#3b2314'],
+					'circle-stroke-width': ['case', ['get', 'pendiente'], 4, 2.5],
 					'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 6, 15, 11]
 				}
 			});
@@ -156,6 +167,9 @@
 					<li>
 						<strong>@{p.seudonimo} <span class="numero">· N.º {p.numero.toLocaleString('es-AR')}</span></strong>
 						<span>{TIPO[p.tipo]?.icono} {p.banio_id ? 'en el baño' : TIPO[p.tipo]?.texto.toLowerCase()} · {dia(p.dia)}{p.sin_papel ? ' · sin papel 😱' : ''}</span>
+						{#if faltaParaTodos(p.visible_desde)}
+							<span class="pendiente">⏳ Por ahora solo la ves vos: los demás la ven {faltaParaTodos(p.visible_desde)}.</span>
+						{/if}
 					</li>
 				{/each}
 			</ul>
@@ -208,6 +222,11 @@
 		flex-direction: column;
 		margin-bottom: 10px;
 		overflow-wrap: anywhere;
+	}
+	.pendiente {
+		margin-top: 2px;
+		color: var(--tinta);
+		font-weight: 600;
 	}
 	.numero {
 		color: var(--tinta-suave);

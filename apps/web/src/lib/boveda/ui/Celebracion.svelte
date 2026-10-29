@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Novedad } from '../modelo';
-	import { DEMORA_HORAS } from '$lib/publicaciones';
+	import { DEMORA_MINUTOS } from '$lib/publicaciones';
 
 	/** Una medalla, un logro, o una caca que entra al mapa público con su número. */
 	export type Festejo = Novedad | { tipo: 'publica'; numero: number };
@@ -22,7 +22,7 @@
 			{:else if redondo(novedad.numero)}
 				<p>¡Número redondo! 🎉</p>
 			{/if}
-			<p>Aparece en unas {DEMORA_HORAS} horas.</p>
+			<p>Vos ya la ves en el mapa de cacas; los demás, en unos {DEMORA_MINUTOS} minutos.</p>
 		{:else}
 			<p class="emoji" aria-hidden="true">{novedad.tipo === 'medalla' ? '🏅' : '🚽'}</p>
 			<p class="etiqueta">{novedad.tipo === 'medalla' ? `¡Nueva medalla! · N.º ${novedad.numero}` : '¡Logro desbloqueado!'}</p>

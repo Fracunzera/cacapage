@@ -1,6 +1,6 @@
 <script lang="ts">
 	// La advertencia antes de publicar (PRIVACY.md P-38): qué se va a ver, dicho claro.
-	import { DEMORA_HORAS } from '$lib/publicaciones';
+	import { DEMORA_MINUTOS } from '$lib/publicaciones';
 	import { TIPOS, type Registro } from '../modelo';
 
 	let {
@@ -31,7 +31,7 @@
 				<li>📅 El día: {dia}</li>
 			</ul>
 			<p class="u-ayuda">
-				No se ve la hora ni tu anécdota. Aparece en unas {DEMORA_HORAS} horas, para que nadie sepa dónde estás ahora. La
+				No se ve la hora ni tu anécdota. Vos la ves enseguida; los demás, en unos {DEMORA_MINUTOS} minutos, para que nadie sepa dónde estás en este momento. La
 				podés volver a poner privada cuando quieras.
 			</p>
 		</div>

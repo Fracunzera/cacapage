@@ -3,7 +3,7 @@ import { exigirSesion } from '$lib/server/auth/sesiones';
 import { permitir } from '$lib/server/auth/limites';
 import { db } from '$lib/server/db';
 import { cuerpoJson, sinContenido } from '$lib/server/http';
-import { DEMORA_HORAS, TIPOS_PUBLICABLES } from '$lib/publicaciones';
+import { DEMORA_MINUTOS, TIPOS_PUBLICABLES } from '$lib/publicaciones';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const red = (n: number) => Math.round(n * 1e4) / 1e4;
@@ -11,7 +11,7 @@ const red = (n: number) => Math.round(n * 1e4) / 1e4;
 /**
  * Hacer público un registro (PRIVACY.md P-38). Solo lo que el usuario eligió:
  * tipo, día, y el baño o un punto redondeado a ~11 m. Nunca casa, laburo ni lo
- * de alguien. Aparece en el mapa unas horas después.
+ * de alguien. Los demás la ven 30 minutos después; el dueño, enseguida.
  */
 export const PUT = async (event) => {
 	const sesion = await exigirSesion(event.cookies);
@@ -42,7 +42,7 @@ export const PUT = async (event) => {
 	const [fila] = await sql`
 		insert into publicaciones (id, cuenta_id, tipo, banio_id, lat, lon, dia, sin_papel, visible_desde)
 		values (${id}, ${sesion.id}, ${c.tipo}, ${banio}, ${lat}, ${lon}, ${c.dia}, ${c.sin_papel === true},
-		        now() + make_interval(hours => ${DEMORA_HORAS}))
+		        now() + make_interval(mins => ${DEMORA_MINUTOS}))
 		on conflict (id) do update set tipo = excluded.tipo, banio_id = excluded.banio_id, lat = excluded.lat,
 			lon = excluded.lon, dia = excluded.dia, sin_papel = excluded.sin_papel
 		where publicaciones.cuenta_id = ${sesion.id}

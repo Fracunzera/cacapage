@@ -12,6 +12,7 @@
 	import { TIPOS, type Registro } from '$lib/boveda/modelo';
 	import { cambiarPublico, sePuedePublicar } from '$lib/boveda/publicar';
 	import ConfirmarPublico from '$lib/boveda/ui/ConfirmarPublico.svelte';
+	import { faltaParaTodos, type Publicacion } from '$lib/publicaciones';
 	import Celebracion from '$lib/boveda/ui/Celebracion.svelte';
 
 	const TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
@@ -26,6 +27,15 @@
 	let cambiando = $state(false);
 	let error = $state<string | null>(null);
 	let festejo = $state<number | null>(null);
+	/** Desde cuándo ven los demás cada caca pública propia. */
+	let visibleDesde = $state(new Map<string, string>());
+
+	async function cargarMias() {
+		const r = await fetch('/api/v1/publicaciones/mias').catch(() => null);
+		if (!r?.ok) return;
+		const { publicaciones } = (await r.json()) as { publicaciones: Publicacion[] };
+		visibleDesde = new Map(publicaciones.map((p) => [p.id, p.visible_desde ?? '']));
+	}
 
 	const conUbicacion = $derived(registros.filter((r) => r.lat !== undefined && r.lon !== undefined));
 
@@ -58,6 +68,7 @@
 		try {
 			const numero = await cambiarPublico(boveda, elegido, publico);
 			if (numero) festejo = numero;
+			await cargarMias();
 		} catch (e) {
 			error = e instanceof ErrorApi && e.estado === 0 ? 'Hace falta conexión para cambiarlo.' : 'No se pudo cambiar.';
 		}
@@ -77,6 +88,7 @@
 			boveda = await Boveda.abrir(seudonimo);
 			if (!boveda.tieneLlaves) return goto('/app');
 			refrescar();
+			void cargarMias();
 			const { mapa: m } = await crearMapa(contenedor);
 			m.addSource('mias', { type: 'geojson', data: datos() });
 			m.addLayer({
@@ -144,6 +156,9 @@
 				<p class="estado publica">
 					🌎 Pública: está en el mapa de cacas{r.numero_publico ? ` (N.º ${r.numero_publico.toLocaleString('es-AR')})` : ''}.
 				</p>
+				{#if faltaParaTodos(visibleDesde.get(r.id))}
+					<p class="u-ayuda">⏳ Por ahora solo la ves vos: los demás la ven {faltaParaTodos(visibleDesde.get(r.id))}.</p>
+				{/if}
 				<button type="button" class="u-boton sec" disabled={cambiando} onclick={() => cambiar(false)}>🔒 Hacerla privada</button>
 			{:else}
 				<p class="estado">🔒 Privada: solo la ves vos.</p>
