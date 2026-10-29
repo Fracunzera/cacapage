@@ -6,6 +6,7 @@
 	import type { Point } from 'geojson';
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import Logo from '$lib/ui/Logo.svelte';
+	import Seo from '$lib/ui/Seo.svelte';
 	import { crearMapa } from '$lib/banios/crearMapa';
 	import { TIPOS, type Tipo } from '$lib/boveda/modelo';
 	import type { Publicacion } from '$lib/publicaciones';
@@ -115,10 +116,11 @@
 		new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
 </script>
 
-<svelte:head>
-	<title>Mapa de cacas · Dónde Cagué</title>
-	<meta name="description" content="Dónde hizo la gente, en toda la Argentina: los baños, la ruta y los lugares más insólitos. Solo lo que cada uno eligió mostrar." />
-</svelte:head>
+<Seo
+	titulo="Mapa de cacas · Dónde Cagué"
+	descripcion="Dónde hizo la gente, en toda la Argentina: los baños, la ruta y los lugares más insólitos. Solo lo que cada uno eligió mostrar."
+	ruta="/cacas"
+/>
 
 <div class="u-pantalla-mapa">
 	<header class="u-tope">

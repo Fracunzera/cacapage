@@ -1,12 +1,17 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import Logo from './Logo.svelte';
-	let { titulo, version, children }: { titulo: string; version: string; children: Snippet } = $props();
+	import Seo from './Seo.svelte';
+	let {
+		titulo,
+		descripcion,
+		ruta,
+		version,
+		children
+	}: { titulo: string; descripcion: string; ruta: string; version: string; children: Snippet } = $props();
 </script>
 
-<svelte:head>
-	<title>{titulo} · Dónde Cagué</title>
-</svelte:head>
+<Seo titulo="{titulo} · Dónde Cagué" {descripcion} {ruta} />
 
 <header class="u-tope">
 	<a href="/" aria-label="Inicio"><Logo tamanio={32} conNombre={false} /></a>

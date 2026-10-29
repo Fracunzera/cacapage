@@ -26,16 +26,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return new Response('No encontrado', { status: 404 });
 	}
 
+	// La app (cuenta, historial) no se indexa; las páginas públicas sí, salvo en prueba.
+	const privada = ruta === '/app' || ruta.startsWith('/app/');
+	const noIndexar = ES_PRUEBA || privada;
 	const respuesta = await resolve(event, {
 		transformPageChunk: ({ html }) =>
 			html
-				.replace('%cacapage.robots%', ES_PRUEBA ? 'noindex, nofollow' : 'index, follow')
+				.replace('%cacapage.robots%', noIndexar ? 'noindex, nofollow' : 'index, follow')
 				.replace('%cacapage.banner%', ES_PRUEBA ? BANNER_PRUEBA : '')
 	});
 
 	// En prueba, nada se indexa (DESIGN.md §15.3). Va por cabecera porque un
 	// Disallow en robots.txt impediría que Google viera el noindex.
-	if (ES_PRUEBA) respuesta.headers.set('X-Robots-Tag', 'noindex, nofollow');
+	if (noIndexar || ruta.startsWith('/api/')) respuesta.headers.set('X-Robots-Tag', 'noindex, nofollow');
 	respuesta.headers.set('Referrer-Policy', 'no-referrer');
 	// El catálogo de baños es público y cacheable: lo define su propio endpoint.
 	if (ruta.startsWith('/api/') && !respuesta.headers.has('Cache-Control')) respuesta.headers.set('Cache-Control', 'no-store');

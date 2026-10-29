@@ -5,6 +5,7 @@
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import urlTrabajador from 'maplibre-gl/dist/maplibre-gl-csp-worker.js?url';
 	import Logo from '$lib/ui/Logo.svelte';
+	import Seo from '$lib/ui/Seo.svelte';
 	import { ARGENTINA, estiloBase } from '$lib/banios/estilo';
 	import { cumple, frescura, lineas, procedencia, titulo, VIDA_MESES } from '$lib/banios/presentar';
 	import { NOMBRE_CATEGORIA, type Banio, type Catalogo } from '$lib/banios/tipos';
@@ -263,13 +264,11 @@
 	);
 </script>
 
-<svelte:head>
-	<title>Mapa de baños de la Argentina · Dónde Cagué</title>
-	<meta
-		name="description"
-		content="Baños públicos, de estaciones de servicio, terminales y shoppings de toda la Argentina. Cuáles son gratis, accesibles o tienen cambiador."
-	/>
-</svelte:head>
+<Seo
+	titulo="Mapa de baños de la Argentina · Dónde Cagué"
+	descripcion="Baños públicos, de estaciones de servicio, terminales y shoppings de toda la Argentina. Cuáles son gratis, accesibles o tienen cambiador."
+	ruta="/mapa"
+/>
 
 <div class="pantalla-mapa">
 	<header class="u-tope">

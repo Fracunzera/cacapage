@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Logo from '$lib/ui/Logo.svelte';
+	import Seo from '$lib/ui/Seo.svelte';
 	let { data } = $props();
 
 	const PASOS = [
@@ -28,10 +29,11 @@
 	const MEDALLAS = ['Debut en el Trono', 'Bodas de Plata con el Inodoro', 'Pingüino Emperador', 'Trono de Oro'];
 </script>
 
-<svelte:head>
-	<title>Dónde Cagué · ¿Dónde cagaste hoy?</title>
-	<meta name="description" content="Registrá dónde cagaste, juntá medallas y encontrá baños abiertos en toda la Argentina." />
-</svelte:head>
+<Seo
+	titulo="Dónde Cagué · ¿Dónde cagaste hoy?"
+	descripcion="Registrá dónde cagaste, juntá medallas y encontrá baños abiertos en toda la Argentina."
+	ruta="/"
+/>
 
 <header class="barra">
 	<Logo tamanio={36} />

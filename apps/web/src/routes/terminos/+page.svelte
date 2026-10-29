@@ -3,7 +3,12 @@
 	import { VERSION_TERMINOS } from '$lib/cuentas/validacion';
 </script>
 
-<Legal titulo="Términos" version={VERSION_TERMINOS}>
+<Legal
+	titulo="Términos"
+	descripcion="Las reglas para usar Dónde Cagué: tu cuenta, lo que publicás y lo que no se permite."
+	ruta="/terminos"
+	version={VERSION_TERMINOS}
+>
 	<h2>Qué es esto</h2>
 	<p>
 		Dónde Cagué es un proyecto humorístico con una parte útil: registrar dónde fuiste al baño y armar entre todos un

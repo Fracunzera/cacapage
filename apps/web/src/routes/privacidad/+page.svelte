@@ -3,7 +3,12 @@
 	import { VERSION_PRIVACIDAD } from '$lib/cuentas/validacion';
 </script>
 
-<Legal titulo="Privacidad" version={VERSION_PRIVACIDAD}>
+<Legal
+	titulo="Privacidad"
+	descripcion="Qué datos guarda Dónde Cagué, para qué, con quién se comparten y cómo borrarlos. Ley 25.326."
+	ruta="/privacidad"
+	version={VERSION_PRIVACIDAD}
+>
 	<p>
 		Dónde Cagué está hecho para saber lo menos posible de vos. Esto es lo que guardamos, para qué, y qué podés hacer
 		con eso. Se rige por la Ley 25.326 de Protección de Datos Personales.
