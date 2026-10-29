@@ -157,6 +157,99 @@ Dos partes, y la primera es automática:
 Para probar: `https://dondecague.com.ar/mapa`, "Cerca mío". La ubicación se usa
 solo en el celular (PRIVACY.md P-36).
 
+## Entrar con Google
+
+Opcional: sin estas dos variables, el botón no aparece. Un solo cliente de
+Google sirve para el sitio real y el de prueba.
+
+1. Entrá a <https://console.cloud.google.com/> con la cuenta de Google que va a
+   ser dueña del proyecto (por ejemplo, `dondecague@gmail.com`).
+2. Arriba, en el selector de proyectos: **Proyecto nuevo** → nombre
+   `Donde Cague` → **Crear**. Elegilo en el selector.
+3. Menú ☰ → **APIs y servicios** → **Pantalla de consentimiento de OAuth**
+   (en la consola nueva se llama **Google Auth Platform** → **Comenzar**):
+   - Nombre de la app: `Dónde Cagué`. Correo de asistencia: `dondecague@gmail.com`.
+   - Público: **Externo**.
+   - Información de contacto: `dondecague@gmail.com`. Aceptar y **Crear**.
+4. En **Desarrollo de la marca** (o "Información de la app"):
+   - Página principal: `https://dondecague.com.ar`
+   - Política de privacidad: `https://dondecague.com.ar/privacidad`
+   - Condiciones del servicio: `https://dondecague.com.ar/terminos`
+   - Dominios autorizados: `dondecague.com.ar` y `blucaro.site`.
+5. En **Acceso a los datos** (o "Permisos"): no agregues nada. Usamos solo
+   `openid`, que no necesita verificación de Google.
+6. En **Público**: tocá **Publicar app** para pasarla a "En producción". Si
+   queda "En prueba", solo pueden entrar las cuentas que agregues como testers.
+7. **Clientes** (o "Credenciales" → **Crear credenciales** → **ID de cliente de
+   OAuth**):
+   - Tipo de aplicación: **Aplicación web**. Nombre: `Dónde Cagué`.
+   - Orígenes autorizados de JavaScript: no hace falta ninguno.
+   - **URI de redireccionamiento autorizados**, exactamente estos dos:
+     - `https://dondecague.com.ar/api/v1/auth/google/vuelta`
+     - `https://caca.blucaro.site/api/v1/auth/google/vuelta`
+   - **Crear**. Copiá el **ID de cliente** (termina en
+     `.apps.googleusercontent.com`) y el **Secreto del cliente**.
+8. En el VPS, en `~/cacapage/.env` (nunca en el repo):
+
+   ```sh
+   GOOGLE_CLIENT_ID=123456789-abc....apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=GOCSPX-...
+   ```
+
+   y reiniciar: `docker compose --env-file .env -f infra/docker-compose.yml up -d`.
+9. Probar: `https://dondecague.com.ar/app/entrar` → "Ya tengo cuenta" →
+   **Google**. Si Google muestra `redirect_uri_mismatch`, la URI del paso 7 no
+   coincide letra por letra (ojo con `https`, la barra final o `www`).
+
+Si el secreto se filtra: en la consola, en el cliente, **Restablecer secreto**,
+y actualizar el `.env`.
+
+## Reportes de baños
+
+Con 15 reportes de cuentas elegibles (7 días o más y que registraron algo), un
+baño queda **en revisión**: sigue en el mapa, con un aviso en la ficha. **Nada se
+oculta solo.** Revisarlo y decidir es a mano, con `psql`:
+
+```sh
+cd ~/cacapage
+alias psql-dc='docker compose --env-file .env -f infra/docker-compose.yml exec -T postgres psql -U dondecague dondecague'
+
+# Qué hay en revisión, con los motivos y el nombre del baño
+psql-dc -c "select r.banio_id, c.nombre, c.categoria, r.reportes, r.desde::date,
+  (select string_agg(motivo || ':' || n, ', ') from (select motivo, count(*) n from banio_reportes
+     where banio_id = r.banio_id group by motivo) m) as motivos
+  from banios_en_revision r left join osm.candidatos c on c.id = r.banio_id order by r.desde"
+```
+
+El `banio_id` (`n123`, `w456`) es el objeto de OSM: se puede mirar en
+`https://www.openstreetmap.org/node/123` (o `/way/456`).
+
+```sh
+# Ocultarlo (no vuelve aunque OSM lo siga trayendo)
+psql-dc -c "begin;
+  insert into banios_ocultos (banio_id, motivo) values ('n123', 'cerró, revisado') on conflict do nothing;
+  delete from banios_en_revision where banio_id = 'n123';
+commit;"
+
+# Descartar los reportes (el baño está bien): sale de revisión y el conteo vuelve a cero
+psql-dc -c "begin;
+  delete from banio_reportes where banio_id = 'n123';
+  delete from banios_en_revision where banio_id = 'n123';
+commit;"
+
+# Des-ocultar uno que se ocultó
+psql-dc -c "delete from banios_ocultos where banio_id = 'n123'"
+
+# Ver los ocultos
+psql-dc -c "select o.banio_id, c.nombre, o.ocultado_en::date, o.motivo
+  from banios_ocultos o left join osm.candidatos c on c.id = o.banio_id"
+```
+
+Los cambios se ven en el mapa en el momento para quien lo abre de nuevo (el
+navegador puede tener el catálogo guardado hasta una hora). En el sitio de
+prueba es lo mismo con la base `dondecague_prueba`. Si el baño está mal en OSM,
+corregirlo en OSM es a mano y lo hace una persona (ADR 0001).
+
 ## Relevamiento (en prueba)
 
 Igual que antes, en `https://caca.blucaro.site/app/relevamiento`: abrila una vez
@@ -164,6 +257,13 @@ con señal antes de salir, "Fijar ubicación acá" parado en el baño, "Descarga
 todo" al final del día. Los archivos van a `data/curated/recorridas/`.
 
 ## Backups
+
+> **`PIMIENTA_MAIL` (y `PIMIENTA_MAIL_PRUEBA`) son la llave de los historiales.**
+> Sin ellas no se puede abrir ningún historial ni entrar por mail o Google.
+> Guardá una copia del `.env` en un lugar seguro, **aparte** del backup de la
+> base: si alguien tiene las dos cosas, puede leer los historiales (PRIVACY.md
+> P-40). Nunca la cambies una vez en producción.
+
 
 Todavía no hay backups automáticos (DESIGN.md §19, restic). Mientras tanto, uno a
 mano:

@@ -1,6 +1,7 @@
 // Registrar, historial cifrado y medallas, de punta a punta en Chromium:
-// crear el historial, 5 registros (logro + medalla), salir, volver con el
-// código, un segundo celular, y "empezar de cero".
+// el historial se crea y vuelve solo con la sesión (custodia, P-40), 5
+// registros (logro + medalla), un segundo celular, salir y volver, público y
+// privado, y los historiales viejos creados con código.
 // Uso: pnpm build && DATABASE_URL=postgres://… node scripts/e2e-registro.mjs
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
@@ -76,9 +77,9 @@ async function celular() {
 	return p;
 }
 
-async function entrar(p, alta = false) {
+async function entrar(p, alta = false, seudonimo = SEUDONIMO) {
 	const r = await p.request.post(BASE + `/api/v1/auth/clave/${alta ? 'alta' : 'entrada'}`, {
-		data: alta ? { seudonimo: SEUDONIMO, clave: CLAVE, mayor_de_edad: true, acepta_terminos: true } : { seudonimo: SEUDONIMO, clave: CLAVE }
+		data: alta ? { seudonimo, clave: CLAVE, mayor_de_edad: true, acepta_terminos: true } : { seudonimo, clave: CLAVE }
 	});
 	if (!r.ok()) throw new Error(`entrar: ${r.status()} ${await r.text()}`);
 }
@@ -100,14 +101,11 @@ try {
 	const a = await celular();
 	await entrar(a, true);
 	await a.goto(BASE + '/app');
-	await a.getByRole('heading', { name: 'Tu código de recuperación' }).waitFor();
-	const codigo = await a.locator('.codigo').innerText();
-	ok(/^([0-9A-Z]{4}-){6}[0-9A-Z]{2}$/.test(codigo), 'muestra un código de recuperación');
-	ok(await a.getByRole('button', { name: 'Listo, empezar' }).isDisabled(), 'no deja seguir sin confirmar que lo guardó');
-	await a.screenshot({ path: join(CAPTURAS, 'registro-codigo.png') });
-	await a.getByLabel('Ya lo guardé en un lugar seguro').check();
-	await a.getByRole('button', { name: 'Listo, empezar' }).click();
 	await a.getByRole('button', { name: '💩 Registrar' }).waitFor();
+	ok(true, 'sin código: el historial se crea solo');
+	const llaves = await sql`select metodo, octet_length(envuelta) n from boveda_llaves`;
+	ok(llaves.length === 1 && llaves[0].metodo === 'servidor' && llaves[0].n === 60, 'la llave queda en custodia, sellada (no en claro)');
+	ok((await fetch(BASE + '/api/v1/boveda/custodia')).status === 401, 'sin sesión no se puede pedir la llave');
 
 	// Primer registro: con ubicación, sugiere la YPF a 20 m (de día) y da el logro.
 	await a.getByRole('button', { name: '💩 Registrar' }).click();
@@ -156,19 +154,13 @@ try {
 	const exportado = JSON.parse(await readFile(await descarga.path(), 'utf8'));
 	ok(exportado.registros.length === 4 && exportado.registros.some((r) => r.comentario === 'Viento de 90 km/h para llegar'), 'exportar trae los registros y la anécdota');
 
-	// Segundo celular: abre con el código, registra, y el primero lo ve.
+	// Segundo celular: con solo entrar ve el historial, registra, y el primero lo ve.
 	const b = await celular();
 	await entrar(b);
 	await b.goto(BASE + '/app');
-	await b.getByRole('heading', { name: 'Abrí tu historial' }).waitFor();
-	await b.getByLabel('Código').fill('AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AA');
-	await b.getByRole('button', { name: 'Abrir mi historial' }).click();
-	await b.getByText('Ese código no es').waitFor();
-	ok(true, 'código equivocado: no abre');
-	await b.getByLabel('Código').fill(codigo.toLowerCase().replace(/-/g, ' '));
-	await b.getByRole('button', { name: 'Abrir mi historial' }).click();
 	await b.getByRole('button', { name: '💩 Registrar' }).waitFor();
-	ok((await visitas(b)) === 4, 'otro celular con el código: ve las 4');
+	await b.waitForFunction(() => document.querySelector('.numero strong')?.textContent === '4');
+	ok(true, 'otro celular: con solo entrar ve las 4');
 	await registrar(b, 'Al aire libre');
 	await b.waitForFunction(() => document.querySelector('.numero strong')?.textContent === '5');
 	await a.reload();
@@ -251,7 +243,7 @@ try {
 	await b.getByRole('button', { name: 'Sí, hacerla pública' }).click();
 	await b.locator('.historial li', { hasText: 'YPF Centro' }).getByText('pública').waitFor();
 
-	// Salir borra la copia local; al volver, pide el código.
+	// Salir borra la copia local; al volver a entrar, el historial vuelve solo.
 	await a.goto(BASE + '/app/cuenta');
 	await a.getByRole('button', { name: 'Salir' }).click();
 	await a.waitForURL(BASE + '/');
@@ -259,16 +251,66 @@ try {
 	ok(!bases.includes('dondecague-boveda'), 'al salir se borra el historial del celular');
 	await entrar(a);
 	await a.goto(BASE + '/app');
-	await a.getByRole('heading', { name: 'Abrí tu historial' }).waitFor();
-	ok(true, 'al volver a entrar pide el código');
+	const vuelve = await a
+		.waitForFunction(() => document.querySelector('.numero strong')?.textContent === '5', null, { timeout: 10000 })
+		.then(() => true, () => false);
+	ok(vuelve, 'al volver a entrar, el historial vuelve solo (sin código)');
 
-	// Perdí el código: empezar de cero.
-	await a.getByRole('button', { name: 'Perdí el código' }).click();
-	await a.getByRole('button', { name: 'Borrar y empezar de cero' }).click();
-	await a.getByRole('heading', { name: 'Tu código de recuperación' }).waitFor();
-	const [{ n }] = await sql`select count(*)::int n from boveda_paginas`;
-	ok(n === 0, 'empezar de cero borra el historial del servidor');
-	ok((await sql`select 1 from publicaciones`).length === 0, 'y también sus cacas públicas');
+	// ---------- Historiales viejos, creados con código de recuperación ----------
+	async function cuentaVieja(p, seudonimo) {
+		await p.request.post(BASE + '/api/v1/auth/clave/alta', {
+			data: { seudonimo, clave: CLAVE, mayor_de_edad: true, acepta_terminos: true }
+		});
+		const letras = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+		const crudo = Array.from(crypto.getRandomValues(new Uint8Array(26)), (x) => letras[x % 32]).join('');
+		const codigo = crudo.match(/.{1,4}/g).join('-');
+		const t = new TextEncoder();
+		const sal = crypto.getRandomValues(new Uint8Array(16));
+		const nonce = crypto.getRandomValues(new Uint8Array(12));
+		const base = await crypto.subtle.importKey('raw', t.encode(codigo), 'PBKDF2', false, ['deriveKey']);
+		const llave = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: sal, iterations: 1000 }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+		const c = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: t.encode('dondecague-boveda-v1') }, llave, crypto.getRandomValues(new Uint8Array(32))));
+		const envuelta = Buffer.concat([nonce, c]).toString('base64url');
+		const r = await p.request.put(BASE + '/api/v1/boveda/llaves', {
+			data: { metodo: 'recuperacion', envuelta, parametros: { v: 1, kdf: 'PBKDF2-SHA256', it: 1000, sal: Buffer.from(sal).toString('base64url') }, crear: true }
+		});
+		if (!r.ok()) throw new Error('llave vieja: ' + r.status());
+		return codigo;
+	}
+	const v = await celular();
+	const codigoViejo = await cuentaVieja(v, 'viejo_e2e');
+	await v.goto(BASE + '/app');
+	await v.getByRole('heading', { name: 'Abrí tu historial' }).waitFor();
+	await v.getByLabel('Código').fill('AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AA');
+	await v.getByRole('button', { name: 'Abrir mi historial' }).click();
+	await v.getByText('Ese código no es').waitFor();
+	ok(true, 'historial viejo: con el código equivocado no abre');
+	await v.getByLabel('Código').fill(codigoViejo.toLowerCase().replace(/-/g, ' '));
+	await v.getByRole('button', { name: 'Abrir mi historial' }).click();
+	await v.getByRole('button', { name: '💩 Registrar' }).waitFor();
+	const metodos = (await sql`select metodo from boveda_llaves l join cuentas c on c.id = l.cuenta_id where c.seudonimo = 'viejo_e2e' order by metodo`).map((x) => x.metodo);
+	ok(metodos.join() === 'recuperacion,servidor', 'historial viejo: el código se pide una última vez y la llave pasa a custodia');
+	await v.request.post(BASE + '/api/v1/auth/salir', { data: {} });
+	await v.goto(BASE + '/');
+	await v.evaluate(() => new Promise((ok) => { const r = indexedDB.deleteDatabase('dondecague-boveda'); r.onsuccess = r.onerror = ok; }));
+	await entrar(v, false, 'viejo_e2e');
+	await v.goto(BASE + '/app');
+	await v.getByRole('button', { name: '💩 Registrar' }).waitFor();
+	ok(true, 'historial viejo: la vez siguiente abre solo');
+
+	// Perdí el código: empezar de cero (borra también sus cacas públicas).
+	const w = await celular();
+	await cuentaVieja(w, 'perdido_e2e');
+	await sql`insert into publicaciones (id, cuenta_id, tipo, lat, lon, dia, visible_desde)
+		select gen_random_uuid(), id, 'naturaleza', -51.6, -69.2, current_date, now() from cuentas where seudonimo = 'perdido_e2e'`;
+	await w.goto(BASE + '/app');
+	await w.getByRole('button', { name: 'Perdí el código' }).click();
+	await w.getByRole('button', { name: 'Borrar y empezar de cero' }).click();
+	await w.getByRole('button', { name: '💩 Registrar' }).waitFor();
+	const [restos] = await sql`select
+		(select count(*) from publicaciones p join cuentas c on c.id = p.cuenta_id where c.seudonimo = 'perdido_e2e')::int pub,
+		(select string_agg(metodo, ',') from boveda_llaves l join cuentas c on c.id = l.cuenta_id where c.seudonimo = 'perdido_e2e') llaves`;
+	ok(restos.pub === 0 && restos.llaves === 'servidor', 'empezar de cero: borra el historial viejo y sus cacas públicas, y arranca uno nuevo');
 
 	ok(errores.length === 0, `sin errores de consola${errores.length ? ': ' + errores.join(' | ') : ''}`);
 } catch (e) {

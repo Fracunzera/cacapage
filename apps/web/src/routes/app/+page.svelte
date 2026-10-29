@@ -197,7 +197,7 @@
 		</section>
 
 		<section class="pie">
-			<p class="u-ayuda">🔒 Tu historial está cifrado en tu celular. Nosotros solo guardamos bytes que no podemos leer.</p>
+			<p class="u-ayuda">🔒 Tu historial viaja y se guarda cifrado. Vuelve solo cuando entrás con tu cuenta, desde cualquier celular.</p>
 			{#if total}<button type="button" class="u-enlace" onclick={exportar}>Descargar mi historial</button>{/if}
 		</section>
 	{/if}

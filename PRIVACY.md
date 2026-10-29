@@ -115,6 +115,8 @@ pueda leerlo.
 
 ### P-03 · La capa de registros está cifrada de punta a punta
 
+> **(i5)** Cambiada por P-40: la llave queda también en custodia del servidor.
+
 **Decisión.** El historial se cifra en el dispositivo con una llave AES-GCM 256
 generada ahí. El servidor guarda la llave solo **envuelta**: con una llave
 derivada de la extensión PRF de la passkey (si el autenticador la soporta) y/o
@@ -717,6 +719,59 @@ seudónimo. La política de privacidad publicada cambió (versión
 `privacidad-borrador-2026-10-30c`) y la revisión legal pendiente (Q-L*) tiene
 que incluirla.
 
+### P-39 · (i5) Entrar con Google, con lo mínimo
+
+**Estado:** adoptada por decisión del producto. Revierte D-06 y la parte "sin
+Google OAuth" de P-12.
+
+**Decisión.** OpenID Connect por redirección desde el servidor: ningún script
+de Google en nuestras páginas (P-16 sigue valiendo). Se pide solo el permiso
+`openid`: ni mail ni nombre ni foto. Flujo con código, PKCE (S256), `state` y
+`nonce`; el `id_token` llega directo del endpoint de Google por TLS y se valida
+emisor, audiencia, vencimiento y nonce. Se guarda `HMAC(pimienta, "google:" +
+sub)`, nunca el `sub` en claro. Sirve para crear la cuenta, entrar, y asociarlo
+o quitarlo desde "Mi cuenta" (si queda otra forma de entrar).
+
+**Mitiga.** A3: el dump no tiene ni mail ni identificador de Google. Que Google
+reciba más datos que los necesarios para decir "es la misma persona que la vez
+anterior".
+
+**Cuesta.** A6: Google sabe que la persona tiene cuenta en Dónde Cagué y cada
+vez que entra. Se avisa en el botón y en la política de privacidad. Si Google
+suspende el cliente OAuth, quien solo tiene Google pierde el acceso (por eso
+conviene sumar otro método).
+
+### P-40 · (i5) La llave del historial en custodia del servidor
+
+**Estado:** adoptada por decisión del producto ("no me gusta usar un código para
+traer tu historial; que quede ligado a cómo entrás"). Cambia P-03: el historial
+deja de ser cifrado de punta a punta frente a nosotros.
+
+**Decisión.** El historial se sigue cifrando en el celular, con páginas opacas
+y relleno (P-04 sigue igual). Lo que cambia es la llave: además del celular, el
+servidor guarda una copia (`boveda_llaves`, método `servidor`) sellada con
+AES-256-GCM, atada a la cuenta, con una llave que sale de `PIMIENTA_MAIL` por
+HKDF. `PIMIENTA_MAIL` vive en el `.env`, no en la base. Con sesión, cualquier
+método de entrada (passkey, contraseña, mail, Google) trae la llave y el
+historial se abre solo. Ya no hay código de recuperación; los historiales que
+se crearon con código lo piden una última vez y pasan a custodia.
+
+**Mitiga.** La pérdida de historiales (P-03, "va a pasar"): ahora se pierde
+solo si se pierde la cuenta. A3 sobre la base sola: un volcado o un backup de
+Postgres sin el `.env` siguen siendo bytes ilegibles.
+
+**Cuesta.**
+- **"Ni nosotros podemos leerlo" deja de ser cierto.** Quien tenga la base y el
+  `.env` (nosotros, o alguien que tome el servidor) puede leer los historiales,
+  con ubicaciones y horas exactas. La política de privacidad lo dice.
+- Un pedido judicial sobre una cuenta ya no se responde con "no podemos": se
+  puede descifrar (Q-L*: revisarlo con el abogado).
+- Perder `PIMIENTA_MAIL` es perder todos los historiales (además de los logins
+  por mail y Google). Tiene que estar en el backup del `.env`, separado del de
+  la base.
+- Borrar la cuenta sigue destruyendo la llave (crypto-shredding), pero ya no
+  hay garantía frente a un servidor comprometido antes del borrado.
+
 ---
 
 ## Decisiones postergadas (i3)
@@ -736,7 +791,7 @@ que incluirla.
 | D-03 | Jitter determinístico por usuario. | Se revierte con un punto conocido. | P-10. |
 | D-04 | **Regla** del heatmap original: H3/geohash con 5 registros / 3 usuarios por celda. (El mapa general en sí no está descartado: está postergado, X-01.) | La condición de registros no protege (protege la cantidad de personas) y apaga la mitad de las celdas; geohash 7 es demasiado fino. | Si vuelve el mapa general: k ≥ 3 personas, sin condición de registros (X-01). |
 | D-05 | Zonas y detección de domicilio en el servidor. | Lista de domicilios. | P-07, P-08. |
-| D-06 | Google OAuth. | Señal a Google, mail y nombre. | P-11, P-12. |
+| D-06 | ~~Google OAuth.~~ **(i5) Revertida: ver P-39** (solo `openid`, sin mail ni nombre). | Señal a Google, mail y nombre. | P-11, P-12. |
 | D-07 | Tiles de `tile.openstreetmap.org`. | Política de uso; filtra la ubicación a un tercero. | P-16. |
 | D-08 | Franja horaria como único borroneo. | Con fecha exacta y en vivo revela presencia. | P-13, P-14. |
 | D-09 | **(i2)** Umbral de k dinámico (más bajo al principio). | El k bajo llega justo cuando cada persona es más identificable, y el cambio de umbral deja ver diferencias. | Sin agregados de eventos en v1. |

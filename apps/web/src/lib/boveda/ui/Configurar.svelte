@@ -1,73 +1,58 @@
 <script lang="ts">
-	// Primera vez en este celular: crear el historial cifrado (y su código de
-	// recuperación) o abrir el que ya existe con el código (PRIVACY.md P-03).
+	// Abrir el historial en este celular (PRIVACY.md P-40): la llave vuelve sola
+	// con la sesión, entres con el método que entres. El código de recuperación
+	// queda solo para los historiales que se crearon con él, una última vez.
 	import { onMount } from 'svelte';
 	import { api, ErrorApi } from '$lib/cliente/api';
-	import { codigoCompleto, desenvolver, envolver, generarCodigo, generarSecreto, normalizarCodigo, type Envuelta } from '../cripto';
+	import { b64, codigoCompleto, deB64, desenvolver, generarSecreto, normalizarCodigo, type Envuelta } from '../cripto';
 	import type { Boveda } from '../boveda';
-	import { descargar } from './descargar';
 
-	let { boveda, seudonimo, onlista }: { boveda: Boveda; seudonimo: string; onlista: () => void } = $props();
+	let { boveda, onlista }: { boveda: Boveda; seudonimo: string; onlista: () => void } = $props();
 
-	type Paso = 'cargando' | 'crear' | 'recuperar' | 'perdido';
+	type Paso = 'cargando' | 'recuperar' | 'perdido';
 	let paso = $state<Paso>('cargando');
 	let envuelta: Envuelta | null = null;
-	let secreto = generarSecreto();
-	let codigo = $state(generarCodigo());
-	let guardado = $state(false);
 	let ingresado = $state('');
 	let ocupado = $state(false);
 	let error = $state<string | null>(null);
-	let copiado = $state(false);
 
-	onMount(revisar);
+	onMount(() => void abrirSolo());
 
-	async function revisar() {
+	/** Custodia → abre; historial viejo con código → lo pide; sin nada → crea uno. */
+	async function abrirSolo(intentos = 2): Promise<void> {
 		paso = 'cargando';
 		error = null;
 		try {
+			const { secreto } = await api<{ secreto: string | null }>('/boveda/custodia');
+			if (secreto) {
+				await boveda.instalar(deB64(secreto));
+				await boveda.sincronizar();
+				onlista();
+				return;
+			}
+		} catch (e) {
+			error = e instanceof ErrorApi ? e.message : 'No se pudo abrir el historial.';
+			return;
+		}
+		try {
 			const { llaves } = await api<{ llaves: (Envuelta & { metodo: string })[] }>('/boveda/llaves');
 			envuelta = llaves.find((l) => l.metodo === 'recuperacion') ?? null;
-			paso = envuelta ? 'recuperar' : 'crear';
-		} catch (e) {
-			error = e instanceof ErrorApi ? e.message : 'No se pudo cargar.';
-		}
-	}
-
-	async function copiar() {
-		try {
-			await navigator.clipboard.writeText(codigo);
-			copiado = true;
-		} catch {
-			copiado = false;
-		}
-	}
-
-	function bajarCodigo() {
-		descargar(
-			`dondecague-codigo-${seudonimo}.txt`,
-			`Código de recuperación de Dónde Cagué (@${seudonimo})\n\n${codigo}\n\nSin este código, tu historial no se puede abrir en otro celular. Nadie más lo tiene: ni nosotros.\n`,
-			'text/plain'
-		);
-	}
-
-	async function crear() {
-		ocupado = true;
-		error = null;
-		try {
-			const e = await envolver(secreto, codigo);
-			await api('/boveda/llaves', { metodo: 'PUT', cuerpo: { metodo: 'recuperacion', ...e, crear: true } });
+			if (envuelta) {
+				paso = 'recuperar';
+				return;
+			}
+			const secreto = generarSecreto();
+			await api('/boveda/custodia', { metodo: 'PUT', cuerpo: { secreto: b64(secreto), crear: true } });
 			await boveda.instalar(secreto);
 			onlista();
 		} catch (e) {
-			if (e instanceof ErrorApi && e.estado === 409) await revisar();
-			else error = e instanceof ErrorApi ? e.message : 'No se pudo crear el historial.';
-		} finally {
-			ocupado = false;
+			// Otro celular lo creó recién: se abre el suyo.
+			if (e instanceof ErrorApi && e.estado === 409 && intentos > 0) return abrirSolo(intentos - 1);
+			error = e instanceof ErrorApi ? e.message : 'No se pudo crear el historial.';
 		}
 	}
 
-	async function abrir() {
+	async function abrirConCodigo() {
 		if (!envuelta) return;
 		ocupado = true;
 		error = null;
@@ -77,6 +62,10 @@
 				error = 'Ese código no es. Fijate que esté completo.';
 				return;
 			}
+			// Pasa a custodia: es la última vez que se pide el código.
+			await api('/boveda/custodia', { metodo: 'PUT', cuerpo: { secreto: b64(s) } }).catch((e) => {
+				if (!(e instanceof ErrorApi && e.estado === 409)) throw e;
+			});
 			await boveda.instalar(s);
 			await boveda.sincronizar();
 			onlista();
@@ -92,10 +81,7 @@
 		error = null;
 		try {
 			await api('/boveda', { metodo: 'DELETE' });
-			secreto = generarSecreto();
-			codigo = generarCodigo();
-			guardado = false;
-			paso = 'crear';
+			await abrirSolo();
 		} catch (e) {
 			error = e instanceof ErrorApi ? e.message : 'No se pudo.';
 		} finally {
@@ -105,32 +91,14 @@
 </script>
 
 {#if paso === 'cargando'}
-	{#if !error}<p>Cargando…</p>{/if}
-{:else if paso === 'crear'}
-	<section class="u-tarjeta">
-		<h2>Tu código de recuperación</h2>
-		<p>
-			Tu historial se guarda <strong>cifrado</strong>: ni nosotros podemos leerlo. Para abrirlo en otro celular, o si
-			se borran los datos del navegador, vas a necesitar este código.
-		</p>
-		<p class="codigo" aria-label="Código de recuperación">{codigo}</p>
-		<div class="botones">
-			<button type="button" class="u-boton sec" onclick={copiar}>{copiado ? '¡Copiado!' : 'Copiar'}</button>
-			<button type="button" class="u-boton sec" onclick={bajarCodigo}>Descargar</button>
-		</div>
-		<p class="u-ayuda">Guardalo donde guardás tus contraseñas, o sacale una captura. Si lo perdés, nadie lo puede recuperar.</p>
-		<label class="u-check">
-			<input type="checkbox" bind:checked={guardado} />
-			<span>Ya lo guardé en un lugar seguro</span>
-		</label>
-		<button type="button" class="u-boton" disabled={!guardado || ocupado} onclick={crear}>
-			{ocupado ? 'Creando…' : 'Listo, empezar'}
-		</button>
-	</section>
+	{#if !error}<p>Abriendo tu historial…</p>{/if}
 {:else if paso === 'recuperar'}
 	<section class="u-tarjeta">
 		<h2>Abrí tu historial</h2>
-		<p>Ya tenés un historial guardado. Para verlo en este celular, ingresá tu código de recuperación.</p>
+		<p>
+			Tu historial se creó con un código de recuperación. Ponelo <strong>una última vez</strong>: después se abre solo
+			cada vez que entrás.
+		</p>
 		<label class="u-campo">
 			<span>Código</span>
 			<input
@@ -144,7 +112,7 @@
 				placeholder="XXXX-XXXX-XXXX-…"
 			/>
 		</label>
-		<button type="button" class="u-boton" disabled={!codigoCompleto(ingresado) || ocupado} onclick={abrir}>
+		<button type="button" class="u-boton" disabled={!codigoCompleto(ingresado) || ocupado} onclick={abrirConCodigo}>
 			{ocupado ? 'Abriendo…' : 'Abrir mi historial'}
 		</button>
 		<button type="button" class="u-enlace" onclick={() => (paso = 'perdido')}>Perdí el código</button>
@@ -153,7 +121,7 @@
 	<section class="u-tarjeta">
 		<h2>¿Empezar de cero?</h2>
 		<p>
-			Sin el código, tu historial no se puede abrir: está cifrado y no tenemos copia de la llave. Podés empezar uno
+			Sin el código, ese historial no se puede abrir: se creó antes de que guardáramos la llave. Podés empezar uno
 			nuevo, pero <strong>el anterior se borra para siempre</strong>, con sus medallas y sus cacas públicas.
 		</p>
 		<button type="button" class="u-boton peligro" disabled={ocupado} onclick={empezarDeCero}>Borrar y empezar de cero</button>
@@ -172,31 +140,6 @@
 	}
 	p {
 		margin: 0 0 10px;
-	}
-	.codigo {
-		margin: 14px 0;
-		padding: 14px 10px;
-		border: 2px dashed var(--tinta);
-		border-radius: 12px;
-		background: var(--sol-claro);
-		font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-		font-size: 19px;
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		text-align: center;
-		overflow-wrap: anywhere;
-		user-select: all;
-	}
-	.botones {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 10px;
-		margin-bottom: 10px;
-	}
-	.botones .u-boton {
-		margin: 0;
-		min-height: 48px;
-		font-size: 16px;
 	}
 	.entrada-codigo {
 		font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;

@@ -19,6 +19,8 @@ export interface Config {
 	passkeys: boolean;
 	/** Importación semanal de baños desde OSM (solo lectura, ADR 0001). */
 	osm: { importar: boolean; servidores: string[] };
+	/** Entrar con Google; null si no está configurado (PRIVACY.md P-39). */
+	google: { clientId: string; clientSecret: string; urlAutorizacion: string; urlToken: string } | null;
 	/** Carpeta con el mapa base (argentina.pmtiles). Ver docs/despliegue.md. */
 	teselasDir: string;
 }
@@ -58,6 +60,19 @@ function leer(): Config {
 	if (importar !== 'si' && importar !== 'no') throw new Error('OSM_IMPORTAR tiene que ser "si" o "no"');
 	const servidores = env.OVERPASS_URL ? env.OVERPASS_URL.split(',').map((u) => u.trim()).filter(Boolean) : OVERPASS_POR_DEFECTO;
 
+	const gId = env.GOOGLE_CLIENT_ID ?? '';
+	const gSecreto = env.GOOGLE_CLIENT_SECRET ?? '';
+	if (Boolean(gId) !== Boolean(gSecreto)) throw new Error('Para entrar con Google hacen falta GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET, las dos');
+	const google = gId
+		? {
+				clientId: gId,
+				clientSecret: gSecreto,
+				// Solo las pruebas automáticas las cambian, para hablar con un Google falso.
+				urlAutorizacion: env.GOOGLE_URL_AUTORIZACION || 'https://accounts.google.com/o/oauth2/v2/auth',
+				urlToken: env.GOOGLE_URL_TOKEN || 'https://oauth2.googleapis.com/token'
+			}
+		: null;
+
 	return {
 		origen,
 		rpId: url.hostname,
@@ -69,6 +84,7 @@ function leer(): Config {
 		// y no hay variable para encenderlas (PRIVACY.md P-31).
 		passkeys: ENTORNO === 'produccion',
 		osm: { importar: importar === 'si', servidores },
+		google,
 		teselasDir: env.TESELAS_DIR || '/datos/teselas'
 	};
 }

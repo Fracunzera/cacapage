@@ -9,7 +9,7 @@
 	interface Cuenta {
 		seudonimo: string;
 		creada_en: string;
-		metodos: { passkeys: number; mail: boolean; clave: boolean };
+		metodos: { passkeys: number; mail: boolean; clave: boolean; google: boolean };
 		reautenticada: boolean;
 	}
 
@@ -24,15 +24,31 @@
 	let mailMandado = $state(false);
 	let mailAsociado = $state(false);
 	let cambiandoMail = $state(false);
+	let googleDisponible = $state(false);
+	let avisoGoogle = $state<string | null>(null);
+	const AVISOS_GOOGLE: Record<string, string> = {
+		asociado: '¡Listo! Ya podés entrar con Google.',
+		ya_usado: 'Esa cuenta de Google ya se usa para entrar con otro seudónimo.',
+		error: 'No se pudo asociar Google. Probá de nuevo.'
+	};
 
 	async function cargar() {
 		cuenta = await api<Cuenta>('/cuenta');
 	}
 
 	onMount(async () => {
-		mailAsociado = new URL(location.href).searchParams.get('mail') === 'asociado';
-		if (mailAsociado) history.replaceState(null, '', location.pathname);
-		api<{ mail: boolean }>('/config').then((c) => (mailDisponible = c.mail), () => {});
+		const params = new URL(location.href).searchParams;
+		mailAsociado = params.get('mail') === 'asociado';
+		const g = params.get('google');
+		if (g) avisoGoogle = AVISOS_GOOGLE[g] ?? AVISOS_GOOGLE.error;
+		if (mailAsociado || g) history.replaceState(null, '', location.pathname);
+		api<{ mail: boolean; google: boolean }>('/config').then(
+			(c) => {
+				mailDisponible = c.mail;
+				googleDisponible = c.google;
+			},
+			() => {}
+		);
 		try {
 			await cargar();
 		} catch (e) {
@@ -58,6 +74,27 @@
 			error = e instanceof ErrorApi ? e.message : 'No se pudo mandar el mail.';
 		} finally {
 			mandando = false;
+		}
+	}
+
+	async function asociarGoogle() {
+		error = null;
+		try {
+			const { url } = await api<{ url: string }>('/auth/google/inicio', { cuerpo: { modo: 'vincular' } });
+			location.href = url;
+		} catch (e) {
+			error = e instanceof ErrorApi ? e.message : 'No se pudo ir a Google.';
+		}
+	}
+
+	async function quitarGoogle() {
+		if (!confirm('¿Quitar Google? Vas a entrar con tus otros métodos.')) return;
+		error = null;
+		try {
+			await api('/cuenta/google', { metodo: 'DELETE' });
+			await cargar();
+		} catch (e) {
+			error = e instanceof ErrorApi ? e.message : 'No se pudo quitar Google.';
 		}
 	}
 
@@ -112,13 +149,31 @@
 			<ul>
 				{#if cuenta.metodos.passkeys}<li>🔑 Passkey ({cuenta.metodos.passkeys})</li>{/if}
 				{#if cuenta.metodos.clave}<li>🔒 Contraseña</li>{/if}
+				{#if cuenta.metodos.google}<li>🌐 Google (solo un identificador: ni tu mail ni tu nombre)</li>{/if}
 				{#if cuenta.metodos.mail}<li>✉️ Link por mail (tu mail no se guarda: solo una huella para reconocerlo)</li>{/if}
 			</ul>
 			<button type="button" class="u-boton sec" onclick={salir}>Salir</button>
-			<p class="u-ayuda">Al salir se borra el historial de este celular. Para volver a verlo vas a necesitar tu código de recuperación.</p>
+			<p class="u-ayuda">Al salir se borra la copia del historial de este celular. Vuelve sola cuando entrás de nuevo.</p>
 		</section>
 
 		<a class="u-boton volver" href="/app">💩 Ir a mi trono</a>
+
+		{#if googleDisponible}
+			<section class="u-tarjeta">
+				<h2>Entrar con Google</h2>
+				{#if avisoGoogle}<p class={avisoGoogle.startsWith('¡') ? 'u-ok' : 'u-error'} role="status">{avisoGoogle}</p>{/if}
+				{#if cuenta.metodos.google}
+					<p>Podés entrar con tu cuenta de Google.</p>
+					{#if cuenta.metodos.passkeys || cuenta.metodos.clave || cuenta.metodos.mail}
+						<button type="button" class="u-enlace quitar" onclick={quitarGoogle}>Quitar Google</button>
+					{/if}
+				{:else}
+					<p>Asociá tu cuenta de Google para entrar con un toque.</p>
+					<button type="button" class="u-boton sec" onclick={asociarGoogle}>Asociar Google</button>
+					<p class="u-ayuda">Le pedimos solo un identificador: ni tu mail ni tu nombre. Google sí se entera de que entrás acá.</p>
+				{/if}
+			</section>
+		{/if}
 
 		{#if mailDisponible}
 			<section class="u-tarjeta">
@@ -129,7 +184,7 @@
 					<p class="u-ayuda">No lo guardamos: solo una huella para reconocerlo. Por eso no te lo podemos mostrar.</p>
 					<div class="acciones-mail">
 						<button type="button" class="u-enlace" onclick={() => (cambiandoMail = true)}>Cambiar mail</button>
-						{#if cuenta.metodos.passkeys || cuenta.metodos.clave}
+						{#if cuenta.metodos.passkeys || cuenta.metodos.clave || cuenta.metodos.google}
 							<button type="button" class="u-enlace quitar" onclick={quitarMail}>Quitar</button>
 						{/if}
 					</div>

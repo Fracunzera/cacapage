@@ -14,7 +14,7 @@
 	} from '$lib/cuentas/validacion';
 
 	type Modo = 'crear' | 'entrar';
-	type Metodo = 'passkey' | 'clave' | 'mail';
+	type Metodo = 'passkey' | 'clave' | 'mail' | 'google';
 
 	let modo = $state<Modo>('crear');
 	let metodos = $state<Metodo[]>([]);
@@ -32,7 +32,14 @@
 	let error = $state<string | null>(null);
 	let mailEnviado = $state(false);
 
-	const NOMBRES: Record<Metodo, string> = { passkey: 'Passkey', clave: 'Contraseña', mail: 'Mail' };
+	const NOMBRES: Record<Metodo, string> = { passkey: 'Passkey', clave: 'Contraseña', mail: 'Mail', google: 'Google' };
+
+	// Lo que vuelve de Google cuando algo no salió (api/v1/auth/google/vuelta).
+	const ERRORES_GOOGLE: Record<string, string> = {
+		sin_cuenta: 'Esa cuenta de Google no tiene cuenta acá. Creala en "Crear cuenta".',
+		seudonimo_tomado: 'Ese seudónimo lo tomaron mientras tanto. Elegí otro.',
+		error: 'No se pudo entrar con Google. Probá de nuevo.'
+	};
 
 	const problemaSeud = $derived(seudonimo ? problemaSeudonimo(seudonimo) : null);
 	const datosAltaOk = $derived(
@@ -123,6 +130,14 @@
 			await goto('/app');
 		});
 
+	const conGoogle = () =>
+		ejecutar(async () => {
+			const { url } = await api<{ url: string }>('/auth/google/inicio', {
+				cuerpo: modo === 'crear' ? { modo: 'alta', alta: alta() } : { modo: 'entrar' }
+			});
+			location.href = url;
+		});
+
 	const pedirLink = () =>
 		ejecutar(async () => {
 			await api('/auth/mail/solicitar', { cuerpo: modo === 'crear' ? { mail, alta: alta() } : { mail } });
@@ -130,7 +145,14 @@
 		});
 
 	onMount(async () => {
-		if (new URLSearchParams(location.search).get('modo') === 'entrar') modo = 'entrar';
+		const params = new URLSearchParams(location.search);
+		if (params.get('modo') === 'entrar') modo = 'entrar';
+		const errorGoogle = params.get('google');
+		if (errorGoogle) {
+			if (errorGoogle === 'sin_cuenta') modo = 'crear';
+			error = ERRORES_GOOGLE[errorGoogle] ?? ERRORES_GOOGLE.error;
+			history.replaceState(null, '', location.pathname + (modo === 'entrar' ? '?modo=entrar' : ''));
+		}
 		try {
 			await api('/cuenta');
 			await goto('/app');
@@ -139,13 +161,19 @@
 			// Sin sesión: se queda acá.
 		}
 		try {
-			const c = await api<{ passkeys: boolean; mail: boolean }>('/config');
-			metodos = [...(c.passkeys ? (['passkey'] as const) : []), 'clave', ...(c.mail ? (['mail'] as const) : [])];
+			const c = await api<{ passkeys: boolean; mail: boolean; google: boolean }>('/config');
+			metodos = [
+				...(c.passkeys ? (['passkey'] as const) : []),
+				...(c.google ? (['google'] as const) : []),
+				'clave',
+				...(c.mail ? (['mail'] as const) : [])
+			];
 		} catch (e) {
 			metodos = ['clave'];
 			error = mensaje(e);
 		}
-		metodo = metodos[0];
+		// Si volvió de Google con un error, se queda en Google.
+		metodo = errorGoogle && metodos.includes('google') ? 'google' : metodos[0];
 	});
 </script>
 
@@ -264,6 +292,14 @@
 						{ocupado ? 'Creando…' : 'Crear con passkey'}
 					</button>
 					<p class="u-ayuda">Entrás con la huella, la cara o el PIN del celular. Sin contraseña.</p>
+				{:else if metodo === 'google'}
+					<button type="button" class="u-boton" disabled={!datosAltaOk || ocupado} onclick={conGoogle}>
+						{ocupado ? 'Yendo a Google…' : 'Crear con Google'}
+					</button>
+					<p class="u-ayuda">
+						A Google le pedimos solo un identificador: ni tu mail ni tu nombre. Eso sí, Google se entera de que entraste a
+						Dónde Cagué.
+					</p>
 				{:else if metodo === 'clave'}
 					<button
 						type="button"
@@ -283,6 +319,10 @@
 			{:else if metodo === 'passkey'}
 				<button type="button" class="u-boton" disabled={ocupado} onclick={entrarConPasskey}>
 					{ocupado ? 'Entrando…' : 'Entrar con passkey'}
+				</button>
+			{:else if metodo === 'google'}
+				<button type="button" class="u-boton" disabled={ocupado} onclick={conGoogle}>
+					{ocupado ? 'Yendo a Google…' : 'Entrar con Google'}
 				</button>
 			{:else if metodo === 'clave'}
 				<button type="button" class="u-boton" disabled={!seudonimo || !clave || ocupado} onclick={entrarConClave}>

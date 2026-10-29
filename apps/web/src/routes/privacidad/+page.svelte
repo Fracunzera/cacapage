@@ -24,11 +24,18 @@
 			<strong>Si entrás con mail:</strong> no guardamos tu mail. Guardamos una huella (un código que se calcula a partir
 			del mail y no se puede revertir) para reconocerlo la próxima vez. El mail en sí solo se usa para mandarte el link.
 		</li>
+		<li>
+			<strong>Si entrás con Google:</strong> a Google le pedimos solo un identificador de tu cuenta, no tu mail ni tu
+			nombre, y guardamos una huella de ese identificador (no se puede revertir). Google sí se entera de que entraste
+			a Dónde Cagué, y cuándo: si no querés eso, usá otro método.
+		</li>
 		<li><strong>Tu sesión:</strong> un identificador para que no tengas que entrar cada vez. Vence a los 30 días.</li>
 		<li>
-			<strong>Tu historial</strong> (dónde y cuándo hiciste, tus anécdotas, tus medallas): cifrado en tu celular antes
-			de subirlo. Guardamos bytes que no podemos leer; la llave la tenés vos, con tu código de recuperación. Ni
-			siquiera sabemos cuántos registros tenés.
+			<strong>Tu historial</strong> (dónde y cuándo hiciste, tus anécdotas, tus medallas): se cifra en tu celular antes
+			de subirlo, y no sabemos cuántos registros tenés. Para que vuelva solo cuando entrás desde otro celular,
+			guardamos también la llave, cifrada con una clave que está fuera de la base de datos. Por eso, quien tuviera
+			solo una copia de la base no lo podría leer; nosotros, con acceso al servidor completo, técnicamente sí. No lo
+			miramos ni lo usamos para nada. Al borrar la cuenta se borra la llave y el historial deja de poder leerse.
 		</li>
 		<li>
 			<strong>Lo que vos elegís hacer público.</strong> Si marcás una caca como pública, guardamos y mostramos a
@@ -50,7 +57,8 @@
 		Con nadie. No vendemos datos ni usamos publicidad ni analytics de terceros. Si entrás con mail, el link te lo manda
 		<strong>Brevo</strong> (Sendinblue SAS, Francia), un servicio de envío de mails que ve la dirección solo para
 		entregarlo. Francia está en la Unión Europea, que la Argentina reconoce con protección adecuada para transferir
-		datos personales.
+		datos personales. Si elegís entrar con Google, <strong>Google</strong> (Google LLC, Estados Unidos) ve que
+		entrás acá, según su propia política de privacidad.
 	</p>
 
 	<h2>Tus derechos</h2>
