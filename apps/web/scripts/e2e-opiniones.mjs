@@ -87,28 +87,47 @@ try {
 	const publico = await (await fetch(BASE + '/api/v1/banios/n1/opiniones')).json();
 	ok(publico.mio === null && !JSON.stringify(publico).includes('ana'), 'sin cuenta: solo promedio y cantidad, sin quién');
 
-	// Reportes: uno por cuenta; a los 15 sale del mapa.
+	// Reportes: uno por cuenta; solo cuentan cuentas elegibles; a los 15, "en revisión".
 	ok((await ana('/banios/n2/reporte', 'POST', { motivo: 'cualquiera' })).estado === 400, 'motivo inválido: 400');
 	await ana('/banios/n2/reporte', 'POST', { motivo: 'no_existe' });
 	await ana('/banios/n2/reporte', 'POST', { motivo: 'otro' });
 	let [{ n }] = await sql`select count(*)::int n from banio_reportes where banio_id = 'n2'`;
 	ok(n === 1, 'la misma cuenta reporta una sola vez');
-	// 12 cuentas más que ya reportaron (directo en la base): quedan 13.
-	for (let i = 0; i < 12; i++) {
-		const [{ id }] = await sql`insert into cuentas (id, seudonimo, mayor_de_edad) values (gen_random_uuid(), ${'rep_' + i}, true) returning id`;
+	// 13 cuentas viejas que registraron algo y ya reportaron (directo en la base).
+	for (let i = 0; i < 13; i++) {
+		const [{ id }] = await sql`insert into cuentas (id, seudonimo, mayor_de_edad, creada_en, dias_activos)
+			values (gen_random_uuid(), ${'rep_' + i}, true, current_date - 30, 3) returning id`;
 		await sql`insert into banio_reportes (banio_id, cuenta_id, motivo) values ('n2', ${id}, 'no_existe')`;
 	}
+	// Una cuenta nueva (ana) no cuenta: 13 elegibles + ana = todavía no.
 	const [c14, c15] = await Promise.all([cuenta('carla_banios'), cuenta('dani_banios')]);
+	await sql`update cuentas set creada_en = current_date - 10, dias_activos = 1 where seudonimo in ('carla_banios', 'dani_banios')`;
+	const nueva = await cuenta('nuevita_banios');
+	ok((await nueva('/banios/n2/reporte', 'POST', { motivo: 'no_existe' })).datos.en_revision === false, 'el reporte de una cuenta nueva no cuenta');
 	const [r14, r15] = await Promise.all([c14('/banios/n2/reporte', 'POST', { motivo: 'no_existe' }), c15('/banios/n2/reporte', 'POST', { motivo: 'no_publico' })]);
-	ok(r14.estado === 200 && r15.estado === 200 && [r14.datos.oculto, r15.datos.oculto].filter(Boolean).length === 1, 'dos reportes juntos: exactamente uno llega a 15 y lo saca');
-	const cat = await (await fetch(BASE + '/api/v1/banios')).json();
-	ok(cat.banios.map((b) => b.id).join() === 'n1', 'el baño reportado ya no está en el catálogo');
-	ok((await ana('/banios/n2/opiniones')).estado === 404, 'ni se puede opinar sobre él');
+	ok(r14.estado === 200 && r15.estado === 200 && [r14.datos.en_revision, r15.datos.en_revision].filter(Boolean).length === 1, 'dos reportes juntos: exactamente uno llega a 15 elegibles');
+	let cat = await (await fetch(BASE + '/api/v1/banios')).json();
+	ok(cat.banios.some((b) => b.id === 'n2'), 'en revisión no se oculta: sigue en el catálogo');
+	ok((await ana('/banios/n2/opiniones')).datos.en_revision === 'no_existe', 'la ficha dice que está en revisión y el motivo más reportado');
+
+	// Ocultar y des-ocultar a mano (docs/despliegue.md).
+	await sql`insert into banios_ocultos (banio_id, motivo) values ('n2', 'revisado'); delete from banios_en_revision where banio_id = 'n2'`.simple();
+	cat = await (await fetch(BASE + '/api/v1/banios')).json();
+	ok(!cat.banios.some((b) => b.id === 'n2'), 'oculto a mano: sale del catálogo');
+	ok((await ana('/banios/n2/opiniones')).estado === 404, 'oculto: no se puede opinar');
 	await sql`delete from osm.candidatos where id = 'n2'`;
 	await sql`insert into osm.candidatos (id, procedencia, objetos, categoria, existencia, nombre, lat, lon, importacion_id)
 		values ('n2', 'osm', '{n2}', 'estacion_servicio', 'confirmado', 'YPF Centro', -51.6230, -69.2200, ${imp})`;
-	const cat2 = await (await fetch(BASE + '/api/v1/banios')).json();
-	ok(!cat2.banios.some((b) => b.id === 'n2'), 'si OSM lo vuelve a traer, sigue oculto');
+	cat = await (await fetch(BASE + '/api/v1/banios')).json();
+	ok(!cat.banios.some((b) => b.id === 'n2'), 'si OSM lo vuelve a traer, sigue oculto');
+	await sql`delete from banios_ocultos where banio_id = 'n2'`;
+	cat = await (await fetch(BASE + '/api/v1/banios')).json();
+	ok(cat.banios.some((b) => b.id === 'n2'), 'des-ocultar a mano lo devuelve al mapa');
+
+	// n1 en revisión, para ver el aviso en la ficha.
+	const [{ id: vieja }] = await sql`select id from cuentas where seudonimo = 'rep_0'`;
+	await sql`insert into banio_reportes (banio_id, cuenta_id, motivo) values ('n1', ${vieja}, 'mal_ubicado')`;
+	await sql`insert into banios_en_revision (banio_id, reportes) values ('n1', 15)`;
 
 	// La ficha en el mapa.
 	const contexto = await navegador.newContext({
@@ -126,6 +145,7 @@ try {
 	await p.getByRole('button', { name: /Cerca mío/ }).click();
 	await p.locator('.cercanos li button').first().click();
 	await p.getByText('de 5 · 2 votos').waitFor();
+	await p.locator('.revision').waitFor();
 	ok(true, 'la ficha muestra el promedio');
 	await p.getByRole('button', { name: '4 rollos' }).click();
 	await p.getByText('Le pusiste 4 rollos').waitFor();
@@ -133,15 +153,16 @@ try {
 	await p.getByRole('button', { name: /Reportar un problema/ }).click();
 	await p.getByLabel('Está mal ubicado').check();
 	await p.getByRole('button', { name: 'Reportar', exact: true }).click();
-	await p.getByText('Con 15 reportes de personas distintas').waitFor();
+	await p.getByText('Gracias. Cuando varias personas reportan lo mismo').waitFor();
 	ok(true, 'reportar desde la ficha');
+	ok(/En revisión.*está mal ubicado/s.test(await p.locator('.revision').innerText()), 'la ficha muestra el aviso de revisión');
 	await p.screenshot({ path: join(process.env.E2E_CAPTURAS ?? tmpdir(), 'opiniones-ficha.png') });
 	ok(errores.length === 0, `sin errores de consola${errores.length ? ': ' + errores.join(' | ') : ''}`);
 
 	// Borrar la cuenta borra sus votos y reportes.
 	await sql`delete from cuentas where seudonimo = 'eva_banios'`;
 	const [v] = await sql`select (select count(*) from banio_puntajes)::int p, (select count(*) from banio_reportes where banio_id = 'n1')::int r`;
-	ok(v.p === 2 && v.r === 0, 'borrar la cuenta borra sus votos y reportes');
+	ok(v.p === 2 && v.r === 1, 'borrar la cuenta borra sus votos y reportes');
 } catch (e) {
 	fallas++;
 	console.log('FALLA', e);

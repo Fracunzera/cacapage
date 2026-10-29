@@ -323,14 +323,7 @@
 					<a href="/cacas">ver</a>
 				</p>
 			{/if}
-			<Opinar
-				banioId={b.id}
-				onoculto={() => {
-					// Salió del mapa por reportes: se saca ya, sin esperar al catálogo nuevo.
-					if (catalogo) catalogo = { ...catalogo, banios: catalogo.banios.filter((x) => x.id !== b.id) };
-					elegido = null;
-				}}
-			/>
+			<Opinar banioId={b.id} />
 			<p class="fuente">{procedencia(b)}</p>
 			<div class="acciones">
 				<a

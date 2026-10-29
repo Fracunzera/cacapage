@@ -18,8 +18,8 @@ export async function catalogo(): Promise<Cache> {
 	const [ultima] = await sql`
 		select id, osm_base, empezada_en from osm.importaciones where estado = 'ok' order by id desc limit 1`;
 	const id = (ultima?.id as number | undefined) ?? null;
-	// Los baños ocultos por reportes también cambian el catálogo.
-	const [{ ocultos }] = await sql`select count(*)::int as ocultos from banios_ocultos`;
+	// Los baños ocultos a mano (docs/despliegue.md, "Reportes") también cambian el catálogo.
+	const [{ ocultos }] = await sql`select coalesce(md5(string_agg(banio_id, ',' order by banio_id)), '0') as ocultos from banios_ocultos`;
 	const version = `${id ?? 0}-${ocultos}`;
 	if (cache && cache.version === version) return cache;
 

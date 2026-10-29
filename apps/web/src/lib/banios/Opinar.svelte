@@ -1,9 +1,9 @@
 <script lang="ts">
 	// Puntaje (1 a 5 rollos) y reporte de un baño, en su ficha del mapa.
 	import { api, ErrorApi } from '$lib/cliente/api';
-	import { MOTIVOS, REPORTES_PARA_OCULTAR, type Motivo, type Opiniones } from '$lib/opiniones';
+	import { MOTIVOS, type Motivo, type Opiniones } from '$lib/opiniones';
 
-	let { banioId, onoculto }: { banioId: string; onoculto?: () => void } = $props();
+	let { banioId }: { banioId: string } = $props();
 
 	let datos = $state<Opiniones | null>(null);
 	const conSesion = $derived(datos?.con_sesion ?? null);
@@ -21,7 +21,7 @@
 		try {
 			datos = await api<Opiniones>(`/banios/${id}/opiniones`);
 		} catch {
-			datos = { promedio: null, cantidad: 0, mio: null, reportado: false, con_sesion: false };
+			datos = { promedio: null, cantidad: 0, mio: null, reportado: false, en_revision: null, con_sesion: false };
 		}
 	}
 
@@ -47,13 +47,10 @@
 		ocupado = true;
 		error = null;
 		try {
-			const r = await api<{ oculto: boolean }>(`/banios/${banioId}/reporte`, { cuerpo: { motivo } });
+			await api(`/banios/${banioId}/reporte`, { cuerpo: { motivo } });
 			reportando = false;
-			aviso = r.oculto
-				? `Con tu reporte llegó a ${REPORTES_PARA_OCULTAR}: el baño sale del mapa.`
-				: `Gracias. Con ${REPORTES_PARA_OCULTAR} reportes de personas distintas, el baño sale del mapa.`;
-			if (datos) datos.reportado = true;
-			if (r.oculto) setTimeout(() => onoculto?.(), 2500);
+			await cargar(banioId);
+			aviso = 'Gracias. Cuando varias personas reportan lo mismo, lo revisamos.';
 		} catch (e) {
 			error = e instanceof ErrorApi ? e.message : 'No se pudo reportar.';
 		} finally {
@@ -65,6 +62,12 @@
 </script>
 
 <div class="opinar">
+	{#if datos?.en_revision}
+		<p class="revision" role="status">
+			⚠️ <strong>En revisión:</strong> varias personas reportaron que
+			{MOTIVOS.find((m) => m.id === datos?.en_revision)?.texto.toLowerCase()}. Puede que la info no esté al día.
+		</p>
+	{/if}
 	<p class="promedio">
 		{#if datos?.cantidad}
 			🧻 <strong>{datos.promedio?.toFixed(1).replace('.', ',')}</strong> de 5 · {datos.cantidad}
@@ -120,6 +123,14 @@
 		padding: 8px 0;
 		border-top: 2px dashed var(--gris);
 		border-bottom: 2px dashed var(--gris);
+	}
+	.revision {
+		margin: 0 0 8px;
+		padding: 6px 10px;
+		border: 2px solid var(--rojo);
+		border-radius: 10px;
+		background: var(--rojo-claro);
+		font-size: 15px;
 	}
 	.promedio {
 		margin: 0 0 6px;

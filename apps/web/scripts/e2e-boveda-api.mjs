@@ -52,7 +52,9 @@ try {
 		Array.from({ length: 505 }, (_, i) => api(`/boveda/paginas/chica${String(i).padStart(11, '0')}`, 'PUT', { ...pag, version_esperada: 0 }))
 	);
 	// Ya hay 1 página: de 505 en paralelo entran 499 y el resto choca con el tope (sin carreras).
-	ok(chicas.filter((r) => r.estado === 200).length === 499 && chicas.filter((r) => r.estado === 413).length === 6, '505 en paralelo: entran justo hasta 500');
+	const cuenta = {};
+	for (const r of chicas) cuenta[r.estado] = (cuenta[r.estado] ?? 0) + 1;
+	ok(cuenta[200] === 499 && cuenta[413] === 6, `505 en paralelo: entran justo hasta 500 (${JSON.stringify(cuenta)})`);
 	const otra = await api('/boveda/paginas/chica_de_mas_00000', 'PUT', { ...pag, version_esperada: 0 });
 	ok(otra.estado === 413 && /500 páginas/.test(otra.datos?.message), 'la 501: 413 con mensaje claro');
 	const [{ n }] = await sql`select count(*)::int n from boveda_paginas`;
