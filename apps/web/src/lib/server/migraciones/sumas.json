@@ -1,0 +1,15 @@
+{
+	"_regla": "Una migración aplicada no se edita nunca: un cambio va en una migración nueva. Al agregar una, sumá su huella al final (sha256sum archivo.sql). El test migraciones.test.ts compara.",
+	"sumas": {
+		"0001_cuentas.sql": "3229a5eb098e7251fb4bcf5189be325a0a0131229dc5222b7d3d456a4e469d7e",
+		"0002_claves.sql": "7e9756556499367ea0501d86b57d3eaf11bd91a118e49952ebea55dc09818555",
+		"0003_boveda.sql": "03d67a2a4702000272dd1b016e07accd2af45f5cb78331579585cc9a1453d806",
+		"0004_osm.sql": "5ac364e9f16c7e3796faea3adf997bc17045f7792753bf8cc5a6af45788b543b",
+		"0005_vincular_mail.sql": "19cd874f12b385d52ecf9a9b1d492aca6a19903fa37a016b8a0897a88b212683",
+		"0006_publicaciones.sql": "cf02d28f475938c96c4ade12730be30822a3e5a91e151eb371a7ffa80d47b3d4",
+		"0007_opiniones.sql": "7ac0955ce0bce03a465a883f7017cdde64f2f27396334ff792ec875f031f129a",
+		"0008_google.sql": "83c9029258571947f01fb7bb85cb5c3265f22b9cf077190aa9c1c238ad4e3c62",
+		"0009_custodia.sql": "84d42d6c730124e97c79ee6b873b4f9248a67473cf6a84807f48a53c9b2bb2a3",
+		"0010_revision.sql": "0438e12301d75f85bf0809a6869af6b9ef2b733690ecc857bf210386988ccddf"
+	}
+}

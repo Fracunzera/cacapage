@@ -8,6 +8,8 @@ export function db(): postgres.Sql {
 }
 
 // Migraciones SQL planas, en orden por nombre, empaquetadas en el build.
+// Una migración aplicada no se edita nunca: un cambio va en una nueva
+// (migraciones/sumas.json y migraciones.test.ts lo controlan).
 const MIGRACIONES = import.meta.glob('./migraciones/*.sql', { query: '?raw', import: 'default', eager: true }) as Record<
 	string,
 	string

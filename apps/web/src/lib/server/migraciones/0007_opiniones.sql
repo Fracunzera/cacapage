@@ -15,18 +15,9 @@ create table banio_reportes (
 	primary key (banio_id, cuenta_id)
 );
 
--- Con 15 reportes de cuentas elegibles, el baño queda "en revisión": sigue en el
--- mapa con un aviso. Nada se oculta solo (docs/despliegue.md, "Reportes").
-create table banios_en_revision (
-	banio_id text primary key,
-	desde timestamptz not null default now(),
-	reportes integer not null
-);
-
--- Baños sacados del mapa a mano, después de revisar. Sobrevive a las
--- importaciones de OSM. Para volver a mostrarlo, se borra la fila.
+-- Baños sacados del mapa por reportes. Sobrevive a las importaciones de OSM.
 create table banios_ocultos (
 	banio_id text primary key,
 	ocultado_en timestamptz not null default now(),
-	motivo text not null default ''
+	reportes integer not null
 );
