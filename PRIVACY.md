@@ -616,6 +616,25 @@ aparecer: sería texto libre público, con moderación y riesgo de difamación
 (P-15), y tiene que pasar por el invariante de superficies (ver Q-N14 para una
 alternativa que no aloja nada en el servidor).
 
+### P-35 · (i4) Contraseña sin mail, guardada solo como huella
+
+**Decisión.** Se puede crear la cuenta con seudónimo y contraseña, sin dar
+ningún mail. Se guarda solo una huella scrypt (N=2^15, r=8, p=1, con sal
+propia). Mínimo 10 caracteres, sin las más obvias ni el seudónimo adentro.
+Límite de intentos por IP (en memoria) y por cuenta. El mismo mensaje para
+"seudónimo inexistente" y "contraseña incorrecta", y el mismo tiempo de
+respuesta.
+
+**Mitiga.** Que solo puedan entrar quienes tienen passkey (exclusión). Con una
+filtración de la base, adivinar contraseñas cuesta caro (A3). Enumerar
+seudónimos con cuenta de contraseña por el mensaje o el tiempo (A7).
+
+**Cuesta.** Si te olvidás la contraseña y no tenés passkey ni mail, la cuenta no
+se recupera: no hay mail al que mandar nada (se avisa al crearla). Las
+contraseñas se reutilizan entre sitios; una filtración de otro sitio puede
+abrir cuentas acá (credential stuffing): lo frena el límite por cuenta, no lo
+evita.
+
 ---
 
 ## Decisiones postergadas (i3)

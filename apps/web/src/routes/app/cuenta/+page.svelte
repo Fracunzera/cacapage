@@ -7,7 +7,7 @@
 	interface Cuenta {
 		seudonimo: string;
 		creada_en: string;
-		metodos: { passkeys: number; mail: boolean };
+		metodos: { passkeys: number; mail: boolean; clave: boolean };
 		reautenticada: boolean;
 	}
 
@@ -69,6 +69,7 @@
 			<h2>Cómo entrás</h2>
 			<ul>
 				{#if cuenta.metodos.passkeys}<li>🔑 Passkey ({cuenta.metodos.passkeys})</li>{/if}
+				{#if cuenta.metodos.clave}<li>🔒 Contraseña</li>{/if}
 				{#if cuenta.metodos.mail}<li>✉️ Link por mail (tu mail no se guarda: solo una huella para reconocerlo)</li>{/if}
 			</ul>
 			<button type="button" class="u-boton sec" onclick={salir}>Salir</button>

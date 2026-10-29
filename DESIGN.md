@@ -52,7 +52,8 @@ Lo que cambia (detalle de lo pendiente en OPEN-QUESTIONS.md, sección
 | 7 | El mapa general de registros (heatmap, §16.1) **sigue postergado**: "mapa nacional" en esta iteración es el mapa de baños, no un mapa de dónde caga la gente. | Ver Q-N16. |
 | 8 | **Marca y dominio:** "Dónde Cagué", `dondecague.com.ar`. | Q-N4 resuelta. |
 | 9 | **Primera versión con cuentas** (no sin cuentas): un historial que se pierde al cambiar de celular no es un historial real. Implementadas las cuentas (§6.3): passkey, link por mail, sesión, borrado. | Pendiente: registro, historial cifrado (§6.2), medallas, mapa. |
-| 10 | `MAIL_MODO=desactivado`: producción puede arrancar solo con passkeys hasta tener proveedor de mail. | Quien no tenga passkeys en su celular no puede crear cuenta hasta que se habilite el mail (Q-L5). |
+| 10 | `MAIL_MODO=desactivado`: producción puede arrancar solo con passkeys y contraseña hasta tener proveedor de mail. | El link por mail queda para después (Q-L5). |
+| 12 | **Contraseña** como tercer método (seudónimo + contraseña, sin mail), además de passkey y link por mail. Decisión del producto: solo passkey dejaba afuera a mucha gente. | Si te olvidás la contraseña y no tenés otro método, la cuenta no se recupera (no tenemos tu mail). PRIVACY.md P-35. |
 | 11 | Un solo `docker compose` con Caddy para producción (`ORIGEN_PUBLICO`) y prueba (`ORIGEN_PRUEBA`), y un Postgres con una base para cada uno (`docs/despliegue.md`). | Cada contenedor sigue viendo un único `ORIGEN_PUBLICO` (§15.1). |
 
 ### Iteración 3

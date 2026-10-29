@@ -161,8 +161,51 @@ const errores = [];
 	p.on('console', (m) => m.type() === 'error' && !m.text().startsWith('Failed to load resource') && errores.push(m.text()));
 
 	await p.goto(BASE + '/app/entrar');
+	await p.getByRole('radio', { name: 'Contraseña' }).waitFor();
+	verificar(
+		!(await p.getByRole('radio', { name: 'Passkey' }).count()) && !(await p.getByRole('button', { name: /passkey/ }).count()),
+		'prueba: no se ofrece passkey'
+	);
+
+	// Contraseña: alta, salir, error genérico, entrar.
+	const CLAVE = 'mi trono patagonico';
+	await p.getByLabel('Elegí un seudónimo').fill('clave_test');
+	await p.getByText('✓ Está libre.').waitFor();
+	await p.getByLabel('Elegí una contraseña').fill('corta');
+	verificar(await p.getByText(/al menos 10 caracteres/).isVisible(), 'contraseña corta: avisa');
+	await p.getByLabel('Elegí una contraseña').fill(CLAVE);
+	await p.getByLabel('Tengo 18 años o más.').check();
+	await p.getByRole('checkbox').nth(1).check();
+	await p.getByRole('button', { name: 'Crear con contraseña' }).click();
+	await p.waitForURL(BASE + '/app/cuenta');
+	await p.getByText('@clave_test').waitFor();
+	verificar(await p.getByText('🔒 Contraseña').isVisible(), 'alta con contraseña: entra y figura el método');
+	const [huella] = await sql`select huella from claves`;
+	verificar(huella.huella.startsWith('scrypt$') && !huella.huella.includes('trono'), 'en la base solo hay una huella scrypt, no la contraseña');
+	await p.getByRole('button', { name: 'Salir' }).click();
+	await p.waitForURL(BASE + '/');
+	await p.goto(BASE + '/app/entrar?modo=entrar');
+	await p.getByLabel('Tu seudónimo').fill('clave_test');
+	await p.getByLabel('Tu contraseña').fill('otra cosa distinta');
+	await p.getByRole('button', { name: 'Entrar', exact: true }).click();
+	await p.getByText('Seudónimo o contraseña incorrectos.').waitFor();
+	await p.getByLabel('Tu seudónimo').fill('no_existe_nadie');
+	await p.getByLabel('Tu contraseña').fill(CLAVE);
+	await p.getByRole('button', { name: 'Entrar', exact: true }).click();
+	await p.getByText('Seudónimo o contraseña incorrectos.').waitFor();
+	verificar(true, 'contraseña mal o seudónimo inexistente: el mismo mensaje');
+	await p.getByLabel('Tu seudónimo').fill('Clave_Test');
+	await p.getByLabel('Tu contraseña').fill(CLAVE);
+	await p.getByRole('button', { name: 'Entrar', exact: true }).click();
+	await p.waitForURL(BASE + '/app/cuenta');
+	await p.getByText('@clave_test').waitFor();
+	verificar(true, 'entrar con seudónimo y contraseña funciona');
+	await p.getByRole('button', { name: 'Salir' }).click();
+	await p.waitForURL(BASE + '/');
+
+	await p.goto(BASE + '/app/entrar');
+	await p.getByRole('radio', { name: 'Mail' }).click();
 	await p.getByLabel('Tu mail').waitFor();
-	verificar(!(await p.getByRole('button', { name: /passkey/ }).count()), 'prueba: no se ofrece passkey');
 	await p.getByLabel('Elegí un seudónimo').fill('cagon_de_prueba');
 	await p.getByLabel('Tengo 18 años o más.').check();
 	await p.getByRole('checkbox').nth(1).check();
@@ -187,11 +230,13 @@ const errores = [];
 
 	const volcado = execFileSync('/usr/lib/postgresql/16/bin/pg_dump', ['--data-only', DATABASE_URL]).toString();
 	verificar(!volcado.includes('ejemplo.com') && !volcado.includes('alguien.de.prueba'), 'el mail no está guardado en ninguna tabla (pg_dump)');
+	verificar(!volcado.includes('trono patagonico'), 'la contraseña no está guardada en ninguna tabla (pg_dump)');
 
 	await p.goto(BASE + '/app/cuenta');
 	await p.getByRole('button', { name: 'Salir' }).click();
 	await p.waitForURL(BASE + '/');
 	await p.goto(BASE + '/app/entrar?modo=entrar');
+	await p.getByRole('radio', { name: 'Mail' }).click();
 	await p.getByLabel('Tu mail').fill(MAIL.toUpperCase());
 	await p.getByRole('button', { name: 'Mandarme el link' }).click();
 	await p.getByText('Revisá tu mail').waitFor();
@@ -249,7 +294,10 @@ const errores = [];
 	const p = await contexto.newPage();
 	await p.goto(BASE + '/app/entrar');
 	await p.getByRole('button', { name: 'Crear con passkey' }).waitFor();
-	verificar((await p.getByRole('button', { name: 'Prefiero usar mi mail' }).count()) === 0, 'MAIL_MODO=desactivado: no se ofrece el mail');
+	verificar(
+		(await p.getByRole('radio', { name: 'Mail' }).count()) === 0 && (await p.getByRole('radio', { name: 'Contraseña' }).count()) === 1,
+		'MAIL_MODO=desactivado: se ofrecen passkey y contraseña, no mail'
+	);
 	await contexto.close();
 	await bajar(s);
 }

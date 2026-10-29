@@ -9,12 +9,13 @@ export const GET = async ({ cookies }) => {
 	const [c] = await db()`
 		select c.creada_en,
 		       (select count(*) from credenciales_passkey p where p.cuenta_id = c.id)::int as passkeys,
-		       exists (select 1 from logins_mail l where l.cuenta_id = c.id) as mail
+		       exists (select 1 from logins_mail l where l.cuenta_id = c.id) as mail,
+		       exists (select 1 from claves k where k.cuenta_id = c.id) as clave
 		from cuentas c where c.id = ${sesion.id}`;
 	return json({
 		seudonimo: sesion.seudonimo,
 		creada_en: c.creada_en,
-		metodos: { passkeys: c.passkeys, mail: c.mail },
+		metodos: { passkeys: c.passkeys, mail: c.mail, clave: c.clave },
 		reautenticada: sesion.reautenticada
 	});
 };

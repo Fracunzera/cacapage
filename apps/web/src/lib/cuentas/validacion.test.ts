@@ -32,3 +32,17 @@ describe('mail', () => {
 		expect(mailValido('sin arroba.com')).toBe(false);
 	});
 });
+
+import { problemaClave } from './validacion';
+
+describe('contraseña', () => {
+	it('exige largo mínimo y rechaza las obvias', () => {
+		expect(problemaClave('corta')).not.toBeNull();
+		expect(problemaClave('1234567890')).not.toBeNull();
+		expect(problemaClave('aaaaaaaaaaaa')).not.toBeNull();
+		expect(problemaClave('mi trono patagónico')).toBeNull();
+	});
+	it('no puede contener el seudónimo', () => {
+		expect(problemaClave('trono_123456', 'Trono_123')).not.toBeNull();
+	});
+});

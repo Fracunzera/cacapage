@@ -1,4 +1,4 @@
-import type { Cookies } from '@sveltejs/kit';
+import { error, type Cookies } from '@sveltejs/kit';
 import { db } from '../db';
 import { hashToken, tokenAleatorio } from './cripto';
 
@@ -43,4 +43,11 @@ export async function cerrarSesion(cookies: Cookies): Promise<void> {
 	const token = cookies.get(COOKIE_SESION);
 	if (token) await db()`delete from sesiones where id_hash = ${hashToken(token)}`;
 	cookies.delete(COOKIE_SESION, { path: '/', secure: true });
+}
+
+/** La sesión o un 401. */
+export async function exigirSesion(cookies: Cookies): Promise<CuentaSesion> {
+	const s = await leerSesion(cookies);
+	if (!s) error(401, 'No hay sesión.');
+	return s;
 }

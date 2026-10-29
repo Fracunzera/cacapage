@@ -4,32 +4,47 @@
 	import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 	import Logo from '$lib/ui/Logo.svelte';
 	import { api, ErrorApi } from '$lib/cliente/api';
-	import { mailValido, normalizarSeudonimo, problemaAlta, problemaSeudonimo } from '$lib/cuentas/validacion';
+	import {
+		CLAVE_MIN,
+		mailValido,
+		normalizarSeudonimo,
+		problemaAlta,
+		problemaClave,
+		problemaSeudonimo
+	} from '$lib/cuentas/validacion';
 
 	type Modo = 'crear' | 'entrar';
+	type Metodo = 'passkey' | 'clave' | 'mail';
+
 	let modo = $state<Modo>('crear');
-	let passkeys = $state<boolean | null>(null);
-	let mailHabilitado = $state(true);
-	let usarMail = $state(false);
+	let metodos = $state<Metodo[]>([]);
+	let metodo = $state<Metodo>('clave');
 
 	let seudonimo = $state('');
 	let disponible = $state<boolean | null>(null);
 	let mayor = $state(false);
 	let acepta = $state(false);
+	let clave = $state('');
+	let verClave = $state(false);
 	let mail = $state('');
 
 	let ocupado = $state(false);
 	let error = $state<string | null>(null);
 	let mailEnviado = $state(false);
 
+	const NOMBRES: Record<Metodo, string> = { passkey: 'Passkey', clave: 'Contraseña', mail: 'Mail' };
+
 	const problemaSeud = $derived(seudonimo ? problemaSeudonimo(seudonimo) : null);
-	const altaLista = $derived(problemaAlta({ seudonimo, mayor_de_edad: mayor, acepta_terminos: acepta }) === null && disponible !== false);
+	const datosAltaOk = $derived(
+		problemaAlta({ seudonimo, mayor_de_edad: mayor, acepta_terminos: acepta }) === null && disponible !== false
+	);
+	const problemaDeClave = $derived(clave ? problemaClave(clave, seudonimo) : null);
 
 	let temporizador: ReturnType<typeof setTimeout> | undefined;
 	function revisarSeudonimo() {
 		disponible = null;
 		clearTimeout(temporizador);
-		if (!seudonimo || problemaSeudonimo(seudonimo)) return;
+		if (modo !== 'crear' || !seudonimo || problemaSeudonimo(seudonimo)) return;
 		const pedido = normalizarSeudonimo(seudonimo);
 		temporizador = setTimeout(async () => {
 			try {
@@ -45,7 +60,13 @@
 		modo = m;
 		error = null;
 		mailEnviado = false;
-		usarMail = passkeys === false;
+		disponible = null;
+		if (m === 'crear') revisarSeudonimo();
+	}
+
+	function cambiarMetodo(m: Metodo) {
+		metodo = m;
+		error = null;
 	}
 
 	function mensaje(e: unknown): string {
@@ -56,16 +77,11 @@
 		return 'Algo salió mal. Probá de nuevo.';
 	}
 
-	async function crearConPasskey() {
+	async function ejecutar(tarea: () => Promise<void>) {
 		ocupado = true;
 		error = null;
 		try {
-			const { desafio_id, opciones } = await api<{ desafio_id: string; opciones: never }>('/auth/passkey/alta/opciones', {
-				cuerpo: { seudonimo, mayor_de_edad: mayor, acepta_terminos: acepta }
-			});
-			const respuesta = await startRegistration({ optionsJSON: opciones });
-			await api('/auth/passkey/alta/verificar', { cuerpo: { desafio_id, respuesta } });
-			await goto('/app/cuenta');
+			await tarea();
 		} catch (e) {
 			error = mensaje(e);
 		} finally {
@@ -73,40 +89,45 @@
 		}
 	}
 
-	async function entrarConPasskey() {
-		ocupado = true;
-		error = null;
-		try {
+	const alta = () => ({ seudonimo, mayor_de_edad: mayor, acepta_terminos: acepta });
+
+	const crearConPasskey = () =>
+		ejecutar(async () => {
+			const { desafio_id, opciones } = await api<{ desafio_id: string; opciones: never }>('/auth/passkey/alta/opciones', {
+				cuerpo: alta()
+			});
+			const respuesta = await startRegistration({ optionsJSON: opciones });
+			await api('/auth/passkey/alta/verificar', { cuerpo: { desafio_id, respuesta } });
+			await goto('/app/cuenta');
+		});
+
+	const entrarConPasskey = () =>
+		ejecutar(async () => {
 			const { desafio_id, opciones } = await api<{ desafio_id: string; opciones: never }>('/auth/passkey/entrada/opciones', {
 				cuerpo: {}
 			});
 			const respuesta = await startAuthentication({ optionsJSON: opciones });
 			await api('/auth/passkey/entrada/verificar', { cuerpo: { desafio_id, respuesta } });
 			await goto('/app/cuenta');
-		} catch (e) {
-			error = mensaje(e);
-		} finally {
-			ocupado = false;
-		}
-	}
+		});
 
-	async function pedirLink() {
-		ocupado = true;
-		error = null;
-		try {
-			await api('/auth/mail/solicitar', {
-				cuerpo:
-					modo === 'crear'
-						? { mail, alta: { seudonimo, mayor_de_edad: mayor, acepta_terminos: acepta } }
-						: { mail }
-			});
+	const crearConClave = () =>
+		ejecutar(async () => {
+			await api('/auth/clave/alta', { cuerpo: { ...alta(), clave } });
+			await goto('/app/cuenta');
+		});
+
+	const entrarConClave = () =>
+		ejecutar(async () => {
+			await api('/auth/clave/entrada', { cuerpo: { seudonimo, clave } });
+			await goto('/app/cuenta');
+		});
+
+	const pedirLink = () =>
+		ejecutar(async () => {
+			await api('/auth/mail/solicitar', { cuerpo: modo === 'crear' ? { mail, alta: alta() } : { mail } });
 			mailEnviado = true;
-		} catch (e) {
-			error = mensaje(e);
-		} finally {
-			ocupado = false;
-		}
-	}
+		});
 
 	onMount(async () => {
 		if (new URLSearchParams(location.search).get('modo') === 'entrar') modo = 'entrar';
@@ -119,13 +140,12 @@
 		}
 		try {
 			const c = await api<{ passkeys: boolean; mail: boolean }>('/config');
-			passkeys = c.passkeys;
-			mailHabilitado = c.mail;
+			metodos = [...(c.passkeys ? (['passkey'] as const) : []), 'clave', ...(c.mail ? (['mail'] as const) : [])];
 		} catch (e) {
-			passkeys = false;
+			metodos = ['clave'];
 			error = mensaje(e);
 		}
-		usarMail = passkeys === false;
+		metodo = metodos[0];
 	});
 </script>
 
@@ -158,82 +178,120 @@
 			<p class="u-ayuda">¿No llega? Mirá en spam o promociones.</p>
 			<button type="button" class="u-enlace" onclick={() => (mailEnviado = false)}>Usar otro mail</button>
 		</section>
-	{:else if modo === 'crear'}
+	{:else if metodos.length}
 		<section class="u-tarjeta">
-			<label class="u-campo">
-				<span>Elegí un seudónimo</span>
-				<input
-					type="text"
-					bind:value={seudonimo}
-					oninput={revisarSeudonimo}
-					autocomplete="off"
-					autocapitalize="none"
-					spellcheck="false"
-					maxlength="24"
-					placeholder="ej.: trono_patagonico"
-				/>
-			</label>
-			{#if problemaSeud}
-				<p class="u-ayuda aviso">{problemaSeud}</p>
-			{:else if disponible === false}
-				<p class="u-ayuda aviso">Ese ya está tomado.</p>
-			{:else if disponible === true}
-				<p class="u-ayuda bien">✓ Está libre.</p>
-			{:else}
-				<p class="u-ayuda">Nada de tu nombre real: es lo único que se ve de vos.</p>
+			{#if metodos.length > 1}
+				<div class="metodos" role="radiogroup" aria-label="Cómo querés entrar">
+					{#each metodos as m (m)}
+						<button type="button" role="radio" aria-checked={metodo === m} class:elegido={metodo === m} onclick={() => cambiarMetodo(m)}>
+							{NOMBRES[m]}
+						</button>
+					{/each}
+				</div>
 			{/if}
 
-			<div class="checks">
-				<label class="u-check"><input type="checkbox" bind:checked={mayor} /> Tengo 18 años o más.</label>
-				<label class="u-check">
-					<input type="checkbox" bind:checked={acepta} />
-					<span>Acepto los <a href="/terminos" target="_blank">términos</a> y la
-						<a href="/privacidad" target="_blank">política de privacidad</a>.</span>
+			{#if modo === 'crear' || metodo === 'clave'}
+				<label class="u-campo">
+					<span>{modo === 'crear' ? 'Elegí un seudónimo' : 'Tu seudónimo'}</span>
+					<input
+						type="text"
+						bind:value={seudonimo}
+						oninput={revisarSeudonimo}
+						autocomplete="username"
+						autocapitalize="none"
+						spellcheck="false"
+						maxlength="24"
+						placeholder="ej.: trono_patagonico"
+					/>
 				</label>
-			</div>
-
-			{#if passkeys && !usarMail}
-				<button type="button" class="u-boton" disabled={!altaLista || ocupado} onclick={crearConPasskey}>
-					{ocupado ? 'Creando…' : 'Crear con passkey'}
-				</button>
-				<p class="u-ayuda">Entrás con la huella, la cara o el PIN del celular. Sin contraseña.</p>
-				{#if mailHabilitado}
-					<button type="button" class="u-enlace" onclick={() => (usarMail = true)}>Prefiero usar mi mail</button>
+				{#if modo === 'crear'}
+					{#if problemaSeud}
+						<p class="u-ayuda aviso">{problemaSeud}</p>
+					{:else if disponible === false}
+						<p class="u-ayuda aviso">Ese ya está tomado.</p>
+					{:else if disponible === true}
+						<p class="u-ayuda bien">✓ Está libre.</p>
+					{:else}
+						<p class="u-ayuda">Nada de tu nombre real: es lo único que se ve de vos.</p>
+					{/if}
 				{/if}
-			{:else if passkeys !== null}
-				<label class="u-campo mail">
+			{/if}
+
+			{#if metodo === 'clave'}
+				<label class="u-campo con-margen">
+					<span>{modo === 'crear' ? 'Elegí una contraseña' : 'Tu contraseña'}</span>
+					<div class="clave">
+						<input
+							type={verClave ? 'text' : 'password'}
+							bind:value={clave}
+							autocomplete={modo === 'crear' ? 'new-password' : 'current-password'}
+							maxlength="200"
+						/>
+						<button type="button" class="ver" onclick={() => (verClave = !verClave)}>{verClave ? 'Ocultar' : 'Ver'}</button>
+					</div>
+				</label>
+				{#if modo === 'crear'}
+					{#if problemaDeClave}
+						<p class="u-ayuda aviso">{problemaDeClave}</p>
+					{:else}
+						<p class="u-ayuda">Al menos {CLAVE_MIN} caracteres. Una frase corta es más fácil de recordar.</p>
+					{/if}
+				{/if}
+			{/if}
+
+			{#if metodo === 'mail'}
+				<label class="u-campo con-margen">
 					<span>Tu mail</span>
 					<input type="email" bind:value={mail} autocomplete="email" inputmode="email" placeholder="vos@ejemplo.com" />
 				</label>
 				<p class="u-ayuda">Lo usamos solo para mandarte el link. No lo guardamos.</p>
-				<button type="button" class="u-boton" disabled={!altaLista || !mailValido(mail) || ocupado} onclick={pedirLink}>
-					{ocupado ? 'Mandando…' : 'Mandarme el link'}
-				</button>
-				{#if passkeys}
-					<button type="button" class="u-enlace" onclick={() => (usarMail = false)}>Mejor con passkey</button>
-				{/if}
 			{/if}
-		</section>
-	{:else}
-		<section class="u-tarjeta">
-			{#if passkeys && !usarMail}
+
+			{#if modo === 'crear'}
+				<div class="checks">
+					<label class="u-check"><input type="checkbox" bind:checked={mayor} /> Tengo 18 años o más.</label>
+					<label class="u-check">
+						<input type="checkbox" bind:checked={acepta} />
+						<span>Acepto los <a href="/terminos" target="_blank">términos</a> y la
+							<a href="/privacidad" target="_blank">política de privacidad</a>.</span>
+					</label>
+				</div>
+			{/if}
+
+			{#if modo === 'crear'}
+				{#if metodo === 'passkey'}
+					<button type="button" class="u-boton" disabled={!datosAltaOk || ocupado} onclick={crearConPasskey}>
+						{ocupado ? 'Creando…' : 'Crear con passkey'}
+					</button>
+					<p class="u-ayuda">Entrás con la huella, la cara o el PIN del celular. Sin contraseña.</p>
+				{:else if metodo === 'clave'}
+					<button
+						type="button"
+						class="u-boton"
+						disabled={!datosAltaOk || !clave || problemaDeClave !== null || ocupado}
+						onclick={crearConClave}>{ocupado ? 'Creando…' : 'Crear con contraseña'}</button
+					>
+					<p class="u-ayuda">
+						Ojo: no tenemos tu mail, así que si te olvidás la contraseña no hay forma de recuperarla. Guardala en tu
+						gestor de contraseñas.
+					</p>
+				{:else}
+					<button type="button" class="u-boton" disabled={!datosAltaOk || !mailValido(mail) || ocupado} onclick={pedirLink}>
+						{ocupado ? 'Mandando…' : 'Mandarme el link'}
+					</button>
+				{/if}
+			{:else if metodo === 'passkey'}
 				<button type="button" class="u-boton" disabled={ocupado} onclick={entrarConPasskey}>
 					{ocupado ? 'Entrando…' : 'Entrar con passkey'}
 				</button>
-				{#if mailHabilitado}
-					<button type="button" class="u-enlace" onclick={() => (usarMail = true)}>Entrar con mi mail</button>
-				{/if}
-			{:else if passkeys !== null}
-				<label class="u-campo">
-					<span>Tu mail</span>
-					<input type="email" bind:value={mail} autocomplete="email" inputmode="email" placeholder="vos@ejemplo.com" />
-				</label>
+			{:else if metodo === 'clave'}
+				<button type="button" class="u-boton" disabled={!seudonimo || !clave || ocupado} onclick={entrarConClave}>
+					{ocupado ? 'Entrando…' : 'Entrar'}
+				</button>
+			{:else}
 				<button type="button" class="u-boton" disabled={!mailValido(mail) || ocupado} onclick={pedirLink}>
 					{ocupado ? 'Mandando…' : 'Mandarme el link'}
 				</button>
-				{#if passkeys}
-					<button type="button" class="u-enlace" onclick={() => (usarMail = false)}>Mejor con passkey</button>
-				{/if}
 			{/if}
 		</section>
 	{/if}
@@ -264,6 +322,47 @@
 		background: var(--tinta);
 		color: var(--sol);
 	}
+	.metodos {
+		display: flex;
+		gap: 6px;
+		margin: 0 0 16px;
+	}
+	.metodos button {
+		flex: 1;
+		min-height: 44px;
+		border: 2px solid var(--tinta);
+		border-radius: 999px;
+		background: var(--papel);
+		color: var(--tinta);
+		font-size: 15px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.metodos button.elegido {
+		background: var(--celeste-claro);
+		box-shadow: 2px 2px 0 var(--tinta);
+	}
+	.clave {
+		display: flex;
+		gap: 6px;
+	}
+	.clave input {
+		flex: 1;
+		min-width: 0;
+	}
+	.ver {
+		min-width: 76px;
+		border: var(--borde);
+		border-radius: 12px;
+		background: var(--papel);
+		color: var(--tinta);
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.con-margen {
+		margin-top: 14px;
+	}
 	h2 {
 		margin: 0 0 8px;
 		font-size: 22px;
@@ -273,9 +372,6 @@
 	}
 	.checks {
 		margin: 16px 0 4px;
-	}
-	.mail {
-		margin-top: 8px;
 	}
 	.aviso {
 		color: var(--rojo);

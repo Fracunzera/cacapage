@@ -17,6 +17,10 @@
 			<strong>Si entrás con passkey:</strong> la clave pública de la passkey. La parte privada nunca sale de tu celular.
 		</li>
 		<li>
+			<strong>Si entrás con contraseña:</strong> no guardamos la contraseña, solo una huella (un cálculo lento y
+			con sal que no se puede revertir) para verificarla cuando entrás.
+		</li>
+		<li>
 			<strong>Si entrás con mail:</strong> no guardamos tu mail. Guardamos una huella (un código que se calcula a partir
 			del mail y no se puede revertir) para reconocerlo la próxima vez. El mail en sí solo se usa para mandarte el link.
 		</li>
