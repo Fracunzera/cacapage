@@ -12,6 +12,7 @@
 	import { TIPOS, type Registro } from '$lib/boveda/modelo';
 	import { cambiarPublico, sePuedePublicar } from '$lib/boveda/publicar';
 	import ConfirmarPublico from '$lib/boveda/ui/ConfirmarPublico.svelte';
+	import Celebracion from '$lib/boveda/ui/Celebracion.svelte';
 
 	const TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
 
@@ -24,6 +25,7 @@
 	let confirmando = $state(false);
 	let cambiando = $state(false);
 	let error = $state<string | null>(null);
+	let festejo = $state<number | null>(null);
 
 	const conUbicacion = $derived(registros.filter((r) => r.lat !== undefined && r.lon !== undefined));
 
@@ -54,7 +56,8 @@
 		cambiando = true;
 		error = null;
 		try {
-			await cambiarPublico(boveda, elegido, publico);
+			const numero = await cambiarPublico(boveda, elegido, publico);
+			if (numero) festejo = numero;
 		} catch (e) {
 			error = e instanceof ErrorApi && e.estado === 0 ? 'Hace falta conexión para cambiarlo.' : 'No se pudo cambiar.';
 		}
@@ -138,7 +141,9 @@
 			<p class="cuando">{fecha(r.ocurrido_en)}{r.sin_papel ? ' · sin papel 😱' : ''}</p>
 			{#if r.comentario}<p class="comentario">“{r.comentario}”</p>{/if}
 			{#if r.publico}
-				<p class="estado publica">🌎 Pública: está en el mapa de cacas.</p>
+				<p class="estado publica">
+					🌎 Pública: está en el mapa de cacas{r.numero_publico ? ` (N.º ${r.numero_publico.toLocaleString('es-AR')})` : ''}.
+				</p>
 				<button type="button" class="u-boton sec" disabled={cambiando} onclick={() => cambiar(false)}>🔒 Hacerla privada</button>
 			{:else}
 				<p class="estado">🔒 Privada: solo la ves vos.</p>
@@ -155,6 +160,10 @@
 		<strong>{conUbicacion.length}</strong> con ubicación · 🟤 privada · 🟡 pública · Este mapa lo ves solo vos.
 	</p>
 </div>
+
+{#if festejo}
+	<Celebracion novedad={{ tipo: 'publica', numero: festejo }} oncerrar={() => (festejo = null)} />
+{/if}
 
 {#if confirmando && elegido}
 	<ConfirmarPublico registro={elegido} {seudonimo} onsi={() => cambiar(true)} onno={() => (confirmando = false)} />

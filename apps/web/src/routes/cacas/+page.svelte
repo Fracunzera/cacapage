@@ -152,7 +152,7 @@
 			<ul>
 				{#each elegidas as p (p.id)}
 					<li>
-						<strong>@{p.seudonimo}</strong>
+						<strong>@{p.seudonimo} <span class="numero">· N.º {p.numero.toLocaleString('es-AR')}</span></strong>
 						<span>{TIPO[p.tipo]?.icono} {p.banio_id ? 'en el baño' : TIPO[p.tipo]?.texto.toLowerCase()} · {dia(p.dia)}{p.sin_papel ? ' · sin papel 😱' : ''}</span>
 					</li>
 				{/each}
@@ -206,6 +206,10 @@
 		flex-direction: column;
 		margin-bottom: 10px;
 		overflow-wrap: anywhere;
+	}
+	.numero {
+		color: var(--tinta-suave);
+		font-weight: 600;
 	}
 	li span {
 		color: var(--tinta-suave);

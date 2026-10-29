@@ -187,6 +187,10 @@ try {
 	ok(aviso.includes('@trono_e2e') && /no se ve la hora/i.test(aviso), 'la advertencia dice qué se publica (seudónimo, lugar, día; sin hora)');
 	await b.screenshot({ path: join(CAPTURAS, 'publico-aviso.png') });
 	await b.getByRole('button', { name: 'Sí, hacerla pública' }).click();
+	await b.getByRole('heading', { name: 'Tu caca es la N.º 1 del mapa público' }).waitFor();
+	ok((await b.getByRole('dialog').innerText()).includes('¡La primera de todas!'), 'festejo: "tu caca es la N.º 1 del mapa público"');
+	await b.screenshot({ path: join(CAPTURAS, 'publico-numero.png') });
+	await b.getByRole('button', { name: '¡Grande!' }).click();
 	await b.waitForFunction(() => document.querySelector('.numero strong')?.textContent === '6', null, { timeout: 10000 }).catch(async () => {
 		await b.screenshot({ path: join(CAPTURAS, 'publico-falla.png') });
 		throw new Error('no llegó a 6: ' + (await b.locator('main').innerText()).slice(0, 600));
@@ -201,7 +205,10 @@ try {
 	await b.locator('.historial li', { hasText: 'YPF Centro' }).locator('button.fila').click();
 	await b.getByRole('button', { name: '🌎 Hacerla pública' }).click();
 	await b.getByRole('button', { name: 'Sí, hacerla pública' }).click();
-	await b.locator('.historial li', { hasText: 'YPF Centro' }).getByText('pública').waitFor();
+	await b.getByRole('heading', { name: 'Tu caca es la N.º 2 del mapa público' }).waitFor();
+	await b.getByRole('button', { name: '¡Grande!' }).click();
+	await b.locator('.historial li', { hasText: 'YPF Centro' }).getByText('pública N.º 2').waitFor();
+	ok(true, 'la segunda es la N.º 2 y el historial lo muestra');
 	const [enBanio] = await sql`select banio_id, lat from publicaciones where banio_id is not null`;
 	ok(enBanio?.banio_id === 'n1' && enBanio.lat === null, 'en un baño se publica el baño, sin la posición del usuario');
 
@@ -210,6 +217,7 @@ try {
 	ok(api.publicaciones.length === 2 && api.publicaciones.every((p) => p.seudonimo === 'trono_e2e' && !('hora' in p)), 'el mapa público muestra las 2, con seudónimo y sin hora');
 	const ypf = api.publicaciones.find((p) => p.banio_id === 'n1');
 	ok(ypf?.banio_nombre === 'YPF Centro' && ypf.lat === -51.62, 'la del baño se ubica en el baño');
+	ok(api.publicaciones.map((p) => p.numero).sort().join() === '1,2', 'el mapa público trae el número de cada una');
 	const casa = await b.request.put(BASE + '/api/v1/publicaciones/00000000-0000-4000-8000-000000000000', { data: { tipo: 'casa', dia: '2026-10-01', lat: -51.6, lon: -69.2 } });
 	ok(casa.status() === 400, 'el servidor rechaza publicar algo de casa');
 
@@ -237,10 +245,13 @@ try {
 	await b.getByRole('button', { name: 'Borrar' }).click();
 	await b.waitForFunction(() => document.querySelector('.numero strong')?.textContent === '5');
 	ok((await sql`select 1 from publicaciones`).length === 0, 'borrar una caca pública la saca del mapa');
-	// Dejar una pública para probar "empezar de cero".
+	// Volver a publicarla: número nuevo (los números no se reutilizan).
 	await b.locator('.historial li', { hasText: 'YPF Centro' }).locator('button.fila').click();
 	await b.getByRole('button', { name: '🌎 Hacerla pública' }).click();
 	await b.getByRole('button', { name: 'Sí, hacerla pública' }).click();
+	await b.getByRole('heading', { name: 'Tu caca es la N.º 3 del mapa público' }).waitFor();
+	ok(true, 'despublicar y volver a publicar da un número nuevo; no se reutilizan');
+	await b.getByRole('button', { name: '¡Grande!' }).click();
 	await b.locator('.historial li', { hasText: 'YPF Centro' }).getByText('pública').waitFor();
 
 	// Salir borra la copia local; al volver a entrar, el historial vuelve solo.

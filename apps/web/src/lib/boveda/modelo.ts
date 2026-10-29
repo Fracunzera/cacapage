@@ -31,6 +31,8 @@ export interface Registro {
 	comentario?: string;
 	/** Publicado en el mapa público por decisión del dueño (P-38). */
 	publico?: true;
+	/** Su número en el mapa público (mientras sea pública). */
+	numero_publico?: number;
 	actualizado_en: string;
 	/** Marca de borrado, para que el borrado gane al mezclar dos dispositivos. */
 	borrado?: true;

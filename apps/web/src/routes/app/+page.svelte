@@ -10,7 +10,7 @@
 	import Configurar from '$lib/boveda/ui/Configurar.svelte';
 	import Registrar from '$lib/boveda/ui/Registrar.svelte';
 	import Historial from '$lib/boveda/ui/Historial.svelte';
-	import Celebracion from '$lib/boveda/ui/Celebracion.svelte';
+	import Celebracion, { type Festejo } from '$lib/boveda/ui/Celebracion.svelte';
 	import { descargar } from '$lib/boveda/ui/descargar';
 	import { cambiarPublico } from '$lib/boveda/publicar';
 
@@ -22,7 +22,7 @@
 	let general = $state<PaginaGeneral | null>(null);
 	let pendientes = $state(0);
 	let registrando = $state(false);
-	let novedades = $state<Novedad[]>([]);
+	let novedades = $state<Festejo[]>([]);
 	let error = $state<string | null>(null);
 
 	function refrescar() {
@@ -75,16 +75,18 @@
 	async function guardar(r: Registro, publico: boolean) {
 		const nuevas = await boveda!.guardar(r);
 		registrando = false;
+		// Primero los premios; el número del mapa público, al final.
+		novedades = nuevas;
 		if (publico) await publicar(r, true);
 		refrescar();
-		novedades = nuevas;
 		scrollTo({ top: 0 });
 	}
 
 	async function publicar(r: Registro, publico: boolean) {
 		error = null;
 		try {
-			await cambiarPublico(boveda!, r, publico);
+			const numero = await cambiarPublico(boveda!, r, publico);
+			if (numero) novedades = [...novedades, { tipo: 'publica', numero }];
 		} catch (e) {
 			error =
 				e instanceof ErrorApi && e.estado === 0

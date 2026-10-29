@@ -58,7 +58,7 @@
 					<span class="que">
 						<strong>{r.banio_nombre ?? TIPO[r.tipo]?.texto}</strong>
 						<small
-							>{dia(r.ocurrido_en)}{r.sin_papel ? ' · sin papel' : ''}{r.comentario ? ' · 📝' : ''}{r.publico ? ' · 🌎 pública' : ''}</small
+							>{dia(r.ocurrido_en)}{r.sin_papel ? ' · sin papel' : ''}{r.comentario ? ' · 📝' : ''}{r.publico ? ` · 🌎 pública${r.numero_publico ? ` N.º ${r.numero_publico.toLocaleString('es-AR')}` : ''}` : ''}</small
 						>
 					</span>
 				</button>
@@ -67,7 +67,9 @@
 						{#if r.comentario}<p class="comentario">“{r.comentario}”</p>{/if}
 						{#if r.lat !== undefined}<p class="u-ayuda">📍 Con ubicación (±{r.precision_m} m)</p>{/if}
 						{#if r.publico}
-							<p class="u-ayuda">🌎 Está en el mapa público de cacas.</p>
+							<p class="u-ayuda">
+								🌎 Está en el mapa público de cacas{r.numero_publico ? `: es la N.º ${r.numero_publico.toLocaleString('es-AR')}` : ''}.
+							</p>
 							<button type="button" class="u-enlace" disabled={cambiando === r.id} onclick={() => cambiar(r, false)}>🔒 Hacerla privada</button>
 						{:else if sePuedePublicar(r)}
 							<button type="button" class="u-enlace" disabled={cambiando === r.id} onclick={() => (confirmando = r)}>🌎 Hacerla pública</button>

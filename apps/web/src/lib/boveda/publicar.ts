@@ -16,10 +16,12 @@ export function diaLocal(iso: string): string {
 	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export async function cambiarPublico(boveda: Boveda, r: Registro, publico: boolean): Promise<void> {
+/** Devuelve el número en el mapa público al publicar; null al despublicar. */
+export async function cambiarPublico(boveda: Boveda, r: Registro, publico: boolean): Promise<number | null> {
+	let numero: number | null = null;
 	if (publico) {
 		if (!sePuedePublicar(r)) throw new Error('Este registro no se puede hacer público');
-		await api(`/publicaciones/${r.id}`, {
+		({ numero } = await api<{ numero: number }>(`/publicaciones/${r.id}`, {
 			metodo: 'PUT',
 			cuerpo: {
 				tipo: r.tipo,
@@ -27,10 +29,15 @@ export async function cambiarPublico(boveda: Boveda, r: Registro, publico: boole
 				...(r.banio_id ? { banio_id: r.banio_id } : { lat: r.lat, lon: r.lon }),
 				sin_papel: r.sin_papel === true
 			}
-		});
+		}));
 	} else {
 		await api(`/publicaciones/${r.id}`, { metodo: 'DELETE' });
 	}
-	const { publico: _, ...resto } = r;
-	await boveda.guardar({ ...resto, ...(publico ? { publico: true } : {}), actualizado_en: new Date().toISOString() });
+	const { publico: _, numero_publico: __, ...resto } = r;
+	await boveda.guardar({
+		...resto,
+		...(publico ? { publico: true, ...(numero ? { numero_publico: numero } : {}) } : {}),
+		actualizado_en: new Date().toISOString()
+	});
+	return numero;
 }

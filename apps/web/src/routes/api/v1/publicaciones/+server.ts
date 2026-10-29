@@ -5,7 +5,7 @@ import type { Publicacion } from '$lib/publicaciones';
 /** Mapa público de cacas: lo que cada uno eligió publicar, del último año. */
 export const GET = async () => {
 	const filas = await db()`
-		select p.id, c.seudonimo, p.tipo, p.dia, p.banio_id, p.sin_papel,
+		select p.id, p.numero, c.seudonimo, p.tipo, p.dia, p.banio_id, p.sin_papel,
 		       coalesce(p.lat, b.lat) as lat, coalesce(p.lon, b.lon) as lon,
 		       coalesce(b.nombre, b.marca) as banio_nombre, b.categoria
 		from publicaciones p
@@ -18,6 +18,7 @@ export const GET = async () => {
 		limit 20000`;
 	const publicaciones: Publicacion[] = filas.map((f) => ({
 		id: f.id,
+		numero: Number(f.numero),
 		seudonimo: f.seudonimo,
 		tipo: f.tipo,
 		dia: (f.dia as Date).toISOString().slice(0, 10),

@@ -9,6 +9,8 @@ export const DEMORA_HORAS = 2;
 
 export interface Publicacion {
 	id: string;
+	/** "La N.º 100 del mapa público": correlativo, no cambia. */
+	numero: number;
 	seudonimo: string;
 	tipo: Tipo;
 	dia: string;

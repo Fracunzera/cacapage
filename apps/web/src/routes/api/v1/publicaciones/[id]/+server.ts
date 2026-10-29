@@ -39,14 +39,16 @@ export const PUT = async (event) => {
 		lat = red(c.lat);
 		lon = red(c.lon);
 	}
-	await sql`
+	const [fila] = await sql`
 		insert into publicaciones (id, cuenta_id, tipo, banio_id, lat, lon, dia, sin_papel, visible_desde)
 		values (${id}, ${sesion.id}, ${c.tipo}, ${banio}, ${lat}, ${lon}, ${c.dia}, ${c.sin_papel === true},
 		        now() + make_interval(hours => ${DEMORA_HORAS}))
 		on conflict (id) do update set tipo = excluded.tipo, banio_id = excluded.banio_id, lat = excluded.lat,
 			lon = excluded.lon, dia = excluded.dia, sin_papel = excluded.sin_papel
-		where publicaciones.cuenta_id = ${sesion.id}`;
-	return json({ ok: true });
+		where publicaciones.cuenta_id = ${sesion.id}
+		returning numero`;
+	if (!fila) error(409, 'Ese registro no es tuyo.');
+	return json({ ok: true, numero: Number(fila.numero) });
 };
 
 /** Despublicar: se borra en el acto. */
