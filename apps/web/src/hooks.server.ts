@@ -1,5 +1,16 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, ServerInit } from '@sveltejs/kit';
+import { building } from '$app/environment';
+import { migrar } from '$lib/server/db';
 import { ES_PRUEBA } from '$lib/server/entorno';
+import { cfg } from '$lib/server/config';
+
+// Al arrancar: validar la configuración (falla si falta algo) y migrar la base.
+export const init: ServerInit = async () => {
+	if (building) return;
+	cfg();
+	const aplicadas = await migrar();
+	if (aplicadas.length) console.log(`Migraciones aplicadas: ${aplicadas.join(', ')}`);
+};
 
 /** Rutas que solo existen con ENTORNO=prueba. */
 const SOLO_PRUEBA = ['/app/relevamiento'];
@@ -24,6 +35,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Disallow en robots.txt impediría que Google viera el noindex.
 	if (ES_PRUEBA) respuesta.headers.set('X-Robots-Tag', 'noindex, nofollow');
 	respuesta.headers.set('Referrer-Policy', 'no-referrer');
+	if (ruta.startsWith('/api/')) respuesta.headers.set('Cache-Control', 'no-store');
 	respuesta.headers.set('Permissions-Policy', 'geolocation=(self)');
 	return respuesta;
 };

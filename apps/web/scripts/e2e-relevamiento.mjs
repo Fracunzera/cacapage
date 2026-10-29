@@ -11,6 +11,13 @@ const { chromium } = require('playwright');
 const PUERTO = 4173;
 const BASE = `http://localhost:${PUERTO}`;
 const RIO_GALLEGOS = { latitude: -51.6193, longitude: -69.2241 };
+// Lo que el servidor necesita para arrancar (base de datos, pimienta, mail).
+const BASE_ENTORNO = {
+	ORIGEN_PUBLICO: BASE,
+	DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://postgres@127.0.0.1:54329/dondecague_test',
+	PIMIENTA_MAIL: process.env.PIMIENTA_MAIL ?? 'pimienta-de-prueba-solo-para-tests-0123456789',
+	MAIL_MODO: 'consola'
+};
 
 let fallas = 0;
 function verificar(condicion, texto) {
@@ -20,7 +27,7 @@ function verificar(condicion, texto) {
 
 async function levantar(env) {
 	const proceso = spawn('node', ['build'], {
-		env: { ...process.env, PORT: String(PUERTO), ORIGIN: BASE, ...env },
+		env: { ...process.env, ...BASE_ENTORNO, PORT: String(PUERTO), ORIGIN: BASE, ...env },
 		stdio: ['ignore', 'pipe', 'pipe']
 	});
 	let salida = '';

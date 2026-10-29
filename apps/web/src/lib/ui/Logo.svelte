@@ -19,7 +19,7 @@
 		<ellipse cx="21" cy="44" rx="2.6" ry="1.5" fill="#f08a7e" />
 		<ellipse cx="43" cy="44" rx="2.6" ry="1.5" fill="#f08a7e" />
 	</svg>
-	{#if conNombre}<span class="nombre">cacapage</span>{/if}
+	{#if conNombre}<span class="nombre">dónde cagué</span>{/if}
 </span>
 
 <style>

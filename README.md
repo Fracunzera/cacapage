@@ -1,6 +1,6 @@
-# cacapage
+# Dónde Cagué
 
-> Nombre de trabajo. El nombre definitivo está en [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md).
+> Dominio: `dondecague.com.ar`. El repo conserva el nombre de trabajo `cacapage`.
 
 Una web argentina, en castellano rioplatense, para **registrar dónde cagaste**,
 juntar logros con identidad local y, de paso, armar entre todos **el mapa de

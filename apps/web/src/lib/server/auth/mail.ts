@@ -1,0 +1,45 @@
+import nodemailer from 'nodemailer';
+import { cfg } from '../config';
+import { ES_PRUEBA } from '../entorno';
+
+export type TipoMail = 'entrada' | 'alta' | 'sin_cuenta';
+
+const TEXTOS: Record<TipoMail, { asunto: string; cuerpo: (url: string) => string }> = {
+	entrada: {
+		asunto: 'Tu link para entrar a Dónde Cagué',
+		cuerpo: (url) =>
+			`Tocá este link para entrar (vale 15 minutos y una sola vez):\n\n${url}\n\nSi no lo pediste vos, ignorá este mail: sin el link nadie puede entrar.`
+	},
+	alta: {
+		asunto: 'Confirmá tu cuenta en Dónde Cagué',
+		cuerpo: (url) =>
+			`Tocá este link para crear tu cuenta (vale 15 minutos y una sola vez):\n\n${url}\n\nSi no la pediste vos, ignorá este mail y no se crea nada.`
+	},
+	sin_cuenta: {
+		asunto: 'No hay ninguna cuenta con este mail',
+		cuerpo: (url) =>
+			`Alguien (probablemente vos) quiso entrar a Dónde Cagué con este mail, pero no hay ninguna cuenta asociada.\n\nPara crear una: ${url}\n\nSi no fuiste vos, ignorá este mail.`
+	}
+};
+
+let transporte: nodemailer.Transporter | null = null;
+
+/**
+ * El mail se usa solo para mandar el link y se descarta: no se guarda en la base
+ * ni se escribe en logs (PRIVACY.md P-12).
+ */
+export const mailDisponible = () => cfg().mail.modo !== 'desactivado';
+
+export async function enviarMail(destino: string, tipo: TipoMail, url: string): Promise<void> {
+	const { asunto, cuerpo } = TEXTOS[tipo];
+	const c = cfg();
+	const asuntoFinal = ES_PRUEBA ? `[PRUEBA] ${asunto}` : asunto;
+	if (c.mail.modo === 'desactivado') throw new Error('Mail desactivado');
+	if (c.mail.modo === 'consola') {
+		// Solo prueba o localhost (config.ts). Sin la dirección de destino.
+		console.log(`[mail:${tipo}] ${url}`);
+		return;
+	}
+	transporte ??= nodemailer.createTransport(c.mail.url);
+	await transporte.sendMail({ from: c.mail.remitente, to: destino, subject: asuntoFinal, text: cuerpo(url) });
+}

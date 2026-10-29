@@ -423,3 +423,16 @@ Duplicados (un baño mapeado como nodo y como way), estaciones cerradas, baños
 privados sin `access`. En Río Gallegos se curaba a mano; a escala nacional la
 curaduría tiene que ser automática (reglas) más los reportes de los usuarios.
 
+**Q-N4 ✅ (i4) · Dominio.** `dondecague.com.ar`, comprado. Marca: "Dónde Cagué".
+
+**Q-L11 🔴 (i4) · Responsable y contacto en la política de privacidad.**
+`/privacidad` dice "[Responsable y contacto a definir]". Con cuentas de personas
+reales, la Ley 25.326 (art. 6) exige informar quién es el responsable de los
+datos y cómo ejercer los derechos. Hay que completarlo antes de difundir el
+sitio (ligado a Q-L4). Los textos de `/terminos` y `/privacidad` son borradores
+sin revisión legal.
+
+**Q-L5 (i4) · Proveedor de mail.** Mientras no haya uno, producción corre con
+`MAIL_MODO=desactivado` (solo passkeys). Cuando se elija, nombrarlo en
+`/privacidad`.
+

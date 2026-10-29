@@ -1,0 +1,16 @@
+# Los dominios salen de ORIGEN_PUBLICO y ORIGEN_PRUEBA (.env): no se escriben acá.
+# Sin directiva `log`: Caddy no escribe log de acceso (PRIVACY.md P-19).
+
+# Producción.
+{$ORIGEN_PUBLICO} {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy web:3000
+}
+
+# Prueba: nada se indexa (DESIGN.md §15.3).
+{$ORIGEN_PRUEBA} {
+	encode zstd gzip
+	header ?X-Robots-Tag "noindex, nofollow"
+	reverse_proxy web-prueba:3000
+}

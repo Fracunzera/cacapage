@@ -1,0 +1,82 @@
+# Producción (dondecague.com.ar) y prueba (caca.blucaro.site) en el mismo VPS,
+# detrás de un solo Caddy. Desde la raíz del repo:
+#   docker compose --env-file .env -f infra/docker-compose.yml up -d --build
+# Guía completa: docs/despliegue.md
+name: dondecague
+
+x-web: &web
+  build:
+    context: ..
+    dockerfile: apps/web/Dockerfile
+  image: dondecague-web
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16.4-bookworm
+    environment:
+      POSTGRES_USER: dondecague
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: dondecague
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dondecague -d dondecague"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  web:
+    <<: *web
+    environment:
+      ENTORNO: produccion
+      ORIGEN_PUBLICO: ${ORIGEN_PUBLICO:?Falta ORIGEN_PUBLICO en .env}
+      ORIGIN: ${ORIGEN_PUBLICO}
+      DATABASE_URL: postgres://dondecague:${POSTGRES_PASSWORD}@postgres:5432/dondecague
+      PIMIENTA_MAIL: ${PIMIENTA_MAIL:?Falta PIMIENTA_MAIL en .env}
+      MAIL_MODO: ${MAIL_MODO:-desactivado}
+      SMTP_URL: ${SMTP_URL:-}
+      ADDRESS_HEADER: X-Forwarded-For
+      XFF_DEPTH: "1"
+      PORT: "3000"
+
+  web-prueba:
+    <<: *web
+    environment:
+      ENTORNO: prueba
+      ORIGEN_PUBLICO: ${ORIGEN_PRUEBA:?Falta ORIGEN_PRUEBA en .env}
+      ORIGIN: ${ORIGEN_PRUEBA}
+      DATABASE_URL: postgres://dondecague:${POSTGRES_PASSWORD}@postgres:5432/dondecague_prueba
+      PIMIENTA_MAIL: ${PIMIENTA_MAIL_PRUEBA:?Falta PIMIENTA_MAIL_PRUEBA en .env}
+      MAIL_MODO: ${MAIL_MODO_PRUEBA:-consola}
+      SMTP_URL: ${SMTP_URL:-}
+      ADDRESS_HEADER: X-Forwarded-For
+      XFF_DEPTH: "1"
+      PORT: "3000"
+
+  caddy:
+    image: caddy:2.8.4
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ORIGEN_PUBLICO: ${ORIGEN_PUBLICO}
+      ORIGEN_PRUEBA: ${ORIGEN_PRUEBA}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - web-prueba
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

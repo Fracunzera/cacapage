@@ -50,6 +50,10 @@ Lo que cambia (detalle de lo pendiente en OPEN-QUESTIONS.md, sección
 | 5 | **Licencia:** a escala nacional la arquitectura C del ADR 0002 (base 100 % propia) deja de ser viable: no se puede relevar el país a pie. Quedan A o B. | Lo más probable es que los aportes de usuarios salgan bajo ODbL. La pregunta para el abogado pasa de "¿derivada o colectiva?" a "¿cómo se cumple ODbL y qué se puede proteger?" (Q-L6). Lo relevado en Río Gallegos queda separable por `procedencia = gps_campo`. |
 | 6 | El ranking de ciudades (§16.2) se vuelve viable antes: su condición es "2 ciudades con ≥ 10 participantes". | Sigue postergado hasta cumplirla. |
 | 7 | El mapa general de registros (heatmap, §16.1) **sigue postergado**: "mapa nacional" en esta iteración es el mapa de baños, no un mapa de dónde caga la gente. | Ver Q-N16. |
+| 8 | **Marca y dominio:** "Dónde Cagué", `dondecague.com.ar`. | Q-N4 resuelta. |
+| 9 | **Primera versión con cuentas** (no sin cuentas): un historial que se pierde al cambiar de celular no es un historial real. Implementadas las cuentas (§6.3): passkey, link por mail, sesión, borrado. | Pendiente: registro, historial cifrado (§6.2), medallas, mapa. |
+| 10 | `MAIL_MODO=desactivado`: producción puede arrancar solo con passkeys hasta tener proveedor de mail. | Quien no tenga passkeys en su celular no puede crear cuenta hasta que se habilite el mail (Q-L5). |
+| 11 | Un solo `docker compose` con Caddy para producción (`ORIGEN_PUBLICO`) y prueba (`ORIGEN_PRUEBA`), y un Postgres con una base para cada uno (`docs/despliegue.md`). | Cada contenedor sigue viendo un único `ORIGEN_PUBLICO` (§15.1). |
 
 ### Iteración 3
 
@@ -1396,7 +1400,7 @@ Ruta `/app/relevamiento`, que existe solo con `ENTORNO=prueba` (con
   (`formato: cacapage-recorrida`, `procedencia: gps_campo` en cada baño y en su
   geometría). Exportar no borra.
 - Código: `apps/web/src/routes/app/relevamiento/` y
-  `apps/web/src/lib/relevamiento/`. Despliegue: `docs/despliegue-prueba.md`.
+  `apps/web/src/lib/relevamiento/`. Despliegue: `docs/despliegue.md`.
 
 ---
 

@@ -23,7 +23,7 @@
 </script>
 
 <svelte:head>
-	<title>cacapage · ¿Dónde cagaste hoy?</title>
+	<title>Dónde Cagué · ¿Dónde cagaste hoy?</title>
 	<meta name="description" content="Registrá dónde cagaste, juntá medallas y encontrá baños abiertos en toda la Argentina." />
 </svelte:head>
 
@@ -41,13 +41,10 @@
 			Argentina se merece.
 		</p>
 
+		<a class="boton principal" href="/app/entrar">Crear mi cuenta</a>
+		<p class="aclaracion">¿Ya tenés? <a href="/app/entrar?modo=entrar">Entrá acá</a>.</p>
 		{#if data.esPrueba}
-			<a class="boton principal" href="/app/relevamiento">Relevar baños</a>
-			<p class="aclaracion">
-				Estamos en prueba: por ahora está abierta solo la herramienta para cargar baños en la calle.
-			</p>
-		{:else}
-			<span class="boton principal deshabilitado" aria-disabled="true">Muy pronto</span>
+			<a class="boton secundario" href="/app/relevamiento">Relevar baños en la calle</a>
 		{/if}
 
 		<div class="postal" aria-hidden="true">
@@ -95,7 +92,7 @@
 
 <footer class="pie">
 	<Logo tamanio={28} />
-	<p>Hecho en Río Gallegos, para todo el país.</p>
+	<p>Hecho en Río Gallegos, para todo el país. <a href="/privacidad">Privacidad</a> · <a href="/terminos">Términos</a></p>
 </footer>
 
 <style>
@@ -175,9 +172,16 @@
 		transform: translate(3px, 3px);
 		box-shadow: 1px 1px 0 var(--tinta);
 	}
-	.deshabilitado {
-		background: var(--gris);
+	.secundario {
+		margin-top: 18px;
+		background: var(--papel);
 		color: var(--tinta);
+		box-shadow: var(--sombra-chica);
+		font-size: 17px;
+	}
+	.aclaracion a {
+		color: var(--tinta);
+		font-weight: 700;
 	}
 	.aclaracion {
 		max-width: 26rem;
@@ -338,5 +342,8 @@
 		margin: 0;
 		color: var(--tinta-suave);
 		font-size: 14px;
+	}
+	.pie a {
+		color: var(--tinta);
 	}
 </style>

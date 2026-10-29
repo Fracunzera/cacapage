@@ -19,16 +19,27 @@ en el cliente con `packages/core`, `packages/vault` y `packages/platform`.
 
 ## Qué está implementado
 
-Solo la herramienta de relevamiento (`/app/relevamiento`, DESIGN.md §15.6), que
-existe únicamente con `ENTORNO=prueba`. El resto de la app, no.
+- Portada, términos y privacidad (borradores).
+- **Cuentas** (DESIGN.md §6.3): alta con seudónimo y passkey (solo producción) o
+  link por mail (HMAC, el mail no se guarda), sesión, salir, borrar la cuenta.
+  Pantallas `/app/entrar`, `/app/entrar/mail`, `/app/cuenta`; API en
+  `src/routes/api/v1/`; migraciones en `src/lib/server/migraciones/`, que se
+  aplican solas al arrancar.
+- Herramienta de relevamiento (`/app/relevamiento`, DESIGN.md §15.6), solo con
+  `ENTORNO=prueba`.
+
+Todavía no: registrar, historial, bóveda cifrada, medallas, mapa de baños.
 
 ```sh
 pnpm install
 pnpm --filter web check   # tipos
 pnpm --filter web test    # unitarias (modelo y almacenamiento)
 pnpm --filter web build
-pnpm --filter web e2e     # punta a punta en Chromium con GPS simulado
-ENTORNO=prueba node apps/web/build   # correr el build
+# Punta a punta (Chromium con GPS y passkey virtuales). Necesita un Postgres:
+DATABASE_URL=postgres://usuario@host:puerto/base pnpm --filter web e2e
+
+# Correr el build (variables en .env.example y DESIGN.md §15):
+ENTORNO=prueba ORIGEN_PUBLICO=http://localhost:3000 DATABASE_URL=… PIMIENTA_MAIL=… MAIL_MODO=consola node apps/web/build
 ```
 
-Despliegue: `docs/despliegue-prueba.md`.
+Despliegue: `docs/despliegue.md`.
