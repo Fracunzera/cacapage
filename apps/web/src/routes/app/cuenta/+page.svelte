@@ -4,6 +4,7 @@
 	import Logo from '$lib/ui/Logo.svelte';
 	import { api, ErrorApi } from '$lib/cliente/api';
 	import { Boveda } from '$lib/boveda/boveda';
+	import { mailValido } from '$lib/cuentas/validacion';
 
 	interface Cuenta {
 		seudonimo: string;
@@ -17,10 +18,23 @@
 	let borrando = $state(false);
 	let confirmacion = $state('');
 	let pidiendoBorrar = $state(false);
+	let mailDisponible = $state(false);
+	let mail = $state('');
+	let mandando = $state(false);
+	let mailMandado = $state(false);
+	let mailAsociado = $state(false);
+	let cambiandoMail = $state(false);
+
+	async function cargar() {
+		cuenta = await api<Cuenta>('/cuenta');
+	}
 
 	onMount(async () => {
+		mailAsociado = new URL(location.href).searchParams.get('mail') === 'asociado';
+		if (mailAsociado) history.replaceState(null, '', location.pathname);
+		api<{ mail: boolean }>('/config').then((c) => (mailDisponible = c.mail), () => {});
 		try {
-			cuenta = await api<Cuenta>('/cuenta');
+			await cargar();
 		} catch (e) {
 			if (e instanceof ErrorApi && e.estado === 401) await goto('/app/entrar?modo=entrar');
 			else error = e instanceof ErrorApi ? e.message : 'No se pudo cargar la cuenta.';
@@ -32,6 +46,30 @@
 		// La copia local del historial no queda en el celular (P-03).
 		await Boveda.olvidar();
 		await goto('/');
+	}
+
+	async function asociarMail() {
+		mandando = true;
+		error = null;
+		try {
+			await api('/cuenta/mail', { cuerpo: { mail } });
+			mailMandado = true;
+		} catch (e) {
+			error = e instanceof ErrorApi ? e.message : 'No se pudo mandar el mail.';
+		} finally {
+			mandando = false;
+		}
+	}
+
+	async function quitarMail() {
+		if (!confirm('¿Quitar el mail? Vas a poder entrar solo con tu passkey o tu contraseña.')) return;
+		error = null;
+		try {
+			await api('/cuenta/mail', { metodo: 'DELETE' });
+			await cargar();
+		} catch (e) {
+			error = e instanceof ErrorApi ? e.message : 'No se pudo quitar el mail.';
+		}
 	}
 
 	async function borrar() {
@@ -81,6 +119,36 @@
 		</section>
 
 		<a class="u-boton volver" href="/app">💩 Ir a mi trono</a>
+
+		{#if mailDisponible}
+			<section class="u-tarjeta">
+				<h2>Entrar con mail</h2>
+				{#if mailAsociado}<p class="u-ok" role="status">¡Listo! Ya podés entrar con un link a tu mail.</p>{/if}
+				{#if cuenta.metodos.mail && !cambiandoMail}
+					<p>✉️ Tenés un mail asociado: podés pedir un link para entrar desde cualquier celular.</p>
+					<p class="u-ayuda">No lo guardamos: solo una huella para reconocerlo. Por eso no te lo podemos mostrar.</p>
+					<div class="acciones-mail">
+						<button type="button" class="u-enlace" onclick={() => (cambiandoMail = true)}>Cambiar mail</button>
+						{#if cuenta.metodos.passkeys || cuenta.metodos.clave}
+							<button type="button" class="u-enlace quitar" onclick={quitarMail}>Quitar</button>
+						{/if}
+					</div>
+				{:else if mailMandado}
+					<p class="u-ok" role="status">Te mandamos un link a <strong>{mail}</strong>. Abrilo para confirmar (vale 15 minutos).</p>
+					<button type="button" class="u-enlace" onclick={() => (mailMandado = false)}>Usar otro mail</button>
+				{:else}
+					<p>Asociá un mail para poder entrar también con un link, por ejemplo desde un celular nuevo.</p>
+					<label class="u-campo">
+						<span>Tu mail</span>
+						<input type="email" bind:value={mail} autocomplete="email" inputmode="email" autocapitalize="none" />
+					</label>
+					<button type="button" class="u-boton sec" disabled={!mailValido(mail) || mandando} onclick={asociarMail}>
+						{mandando ? 'Mandando…' : 'Mandarme el link'}
+					</button>
+					<p class="u-ayuda">No guardamos tu mail: solo una huella para reconocerlo cuando pidas un link.</p>
+				{/if}
+			</section>
+		{/if}
 
 		<section class="u-tarjeta">
 			<h2>Borrar la cuenta</h2>
@@ -141,6 +209,13 @@
 	}
 	li {
 		margin-bottom: 6px;
+	}
+	.acciones-mail {
+		display: flex;
+		gap: 18px;
+	}
+	.quitar {
+		color: var(--rojo);
 	}
 	.volver {
 		margin: 0 0 18px;

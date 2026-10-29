@@ -226,7 +226,7 @@ const errores = [];
 	verificar(!s.salida.includes(MAIL) && !s.salida.includes('ejemplo.com'), 'el mail no aparece en el log del servidor');
 
 	await p.goto(linkAlta);
-	await p.getByRole('button', { name: 'Entrar' }).click();
+	await p.getByRole('button', { name: 'Continuar' }).click();
 	// Al entrar se va a "Mi trono"; los datos de la cuenta están en /app/cuenta.
 	await p.waitForURL(BASE + '/app');
 	await p.goto(BASE + '/app/cuenta');
@@ -235,7 +235,7 @@ const errores = [];
 	verificar(!p.url().includes('#'), 'el token no queda en la barra de direcciones');
 
 	await p.goto(linkAlta);
-	await p.getByRole('button', { name: 'Entrar' }).click();
+	await p.getByRole('button', { name: 'Continuar' }).click();
 	await p.getByText('venció o ya se usó').waitFor();
 	verificar(true, 'el link no se puede usar dos veces');
 
@@ -254,7 +254,7 @@ const errores = [];
 	const linkEntrada = await esperarLink(s, 'entrada');
 	verificar(Boolean(linkEntrada), 'entrar por mail (con mayúsculas) genera link de entrada');
 	await p.goto(linkEntrada);
-	await p.getByRole('button', { name: 'Entrar' }).click();
+	await p.getByRole('button', { name: 'Continuar' }).click();
 	// Al entrar se va a "Mi trono"; los datos de la cuenta están en /app/cuenta.
 	await p.waitForURL(BASE + '/app');
 	await p.goto(BASE + '/app/cuenta');
@@ -286,6 +286,65 @@ const errores = [];
 	for (const ruta of ['/terminos', '/privacidad']) {
 		const t = await fetch(BASE + ruta);
 		verificar(t.ok && (await t.text()).includes('Borrador'), `${ruta} existe y está marcado como borrador`);
+	}
+
+	// Asociar un mail a una cuenta creada sin mail (con contraseña; con passkey es igual).
+	{
+		const MAIL2 = 'segundo.mail@ejemplo.com';
+		const alta = await p.request.post(BASE + '/api/v1/auth/clave/alta', {
+			data: { seudonimo: 'sin_mail', clave: 'otra frase bastante larga', mayor_de_edad: true, acepta_terminos: true }
+		});
+		verificar(alta.ok(), 'cuenta sin mail creada');
+		await p.goto(BASE + '/app/cuenta');
+		await p.getByRole('heading', { name: 'Entrar con mail' }).waitFor();
+		await p.getByLabel('Tu mail').fill(MAIL2);
+		await p.getByRole('button', { name: 'Mandarme el link' }).click();
+		await p.getByText('Te mandamos un link').waitFor();
+		const linkVincular = await esperarLink(s, 'vincular');
+		verificar(Boolean(linkVincular), 'asociar mail: manda un link para confirmar');
+		const [antes] = await sql`select count(*)::int n from logins_mail l join cuentas c on c.id = l.cuenta_id where c.seudonimo = 'sin_mail'`;
+		verificar(antes.n === 0, 'hasta abrir el link no se asocia nada');
+		await p.goto(linkVincular);
+		await p.getByRole('button', { name: 'Continuar' }).click();
+		await p.getByText('¡Listo! Ya podés entrar con un link a tu mail.').waitFor();
+		verificar(await p.getByText('Tenés un mail asociado').isVisible(), 'asociar mail: queda asociado');
+
+		// Un mail que ya es de otra cuenta: misma respuesta, el aviso va al mail.
+		await p.request.delete(BASE + '/api/v1/cuenta/mail');
+		const ajeno = await p.request.post(BASE + '/api/v1/cuenta/mail', { data: { mail: MAIL } });
+		verificar(ajeno.status() === 202 && Boolean(await esperarLink(s, 'ya_asociado')), 'mail de otra cuenta: 202 y aviso solo al dueño del mail');
+		const [dueno] = await sql`select c.seudonimo from logins_mail l join cuentas c on c.id = l.cuenta_id where c.seudonimo in ('sin_mail', 'cagon_de_prueba')`;
+		verificar(dueno?.seudonimo === 'cagon_de_prueba', 'el mail ajeno sigue siendo de su cuenta');
+
+		// Volver a asociar MAIL2 y entrar con él desde otro navegador.
+		await p.request.post(BASE + '/api/v1/cuenta/mail', { data: { mail: MAIL2 } });
+		const otraVez = await esperarLink(s, 'vincular');
+		const canje = await fetch(BASE + '/api/v1/auth/mail/canjear', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ token: otraVez.split('#')[1] })
+		});
+		verificar((await canje.json()).vinculado === true, 'el canje informa que se asoció');
+		await fetch(BASE + '/api/v1/auth/mail/solicitar', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ mail: MAIL2 })
+		});
+		const entrada = await esperarLink(s, 'entrada');
+		const r2 = await fetch(BASE + '/api/v1/auth/mail/canjear', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ token: entrada.split('#')[1] })
+		});
+		verificar((await r2.json()).seudonimo === 'sin_mail', 'después se puede entrar con ese mail');
+
+		await p.goto(BASE + '/app/cuenta');
+		p.once('dialog', (d) => d.accept());
+		await p.getByRole('button', { name: 'Quitar' }).click();
+		await p.getByLabel('Tu mail').waitFor();
+		verificar(true, 'quitar el mail (queda la contraseña)');
+		const volcado2 = execFileSync('/usr/lib/postgresql/16/bin/pg_dump', ['--data-only', DATABASE_URL]).toString();
+		verificar(!volcado2.includes('segundo.mail'), 'el mail asociado tampoco se guarda en claro');
 	}
 
 	await contexto.close();

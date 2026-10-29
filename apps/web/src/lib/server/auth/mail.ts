@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 import { cfg } from '../config';
 import { ES_PRUEBA } from '../entorno';
 
-export type TipoMail = 'entrada' | 'alta' | 'sin_cuenta';
+export type TipoMail = 'entrada' | 'alta' | 'sin_cuenta' | 'vincular' | 'ya_asociado';
 
 const TEXTOS: Record<TipoMail, { asunto: string; cuerpo: (url: string) => string }> = {
 	entrada: {
@@ -15,6 +15,16 @@ const TEXTOS: Record<TipoMail, { asunto: string; cuerpo: (url: string) => string
 		asunto: 'Confirmá tu cuenta en Dónde Cagué',
 		cuerpo: (url) =>
 			`Tocá este link para crear tu cuenta (vale 15 minutos y una sola vez):\n\n${url}\n\nSi no la pediste vos, ignorá este mail y no se crea nada.`
+	},
+	vincular: {
+		asunto: 'Confirmá tu mail en Dónde Cagué',
+		cuerpo: (url) =>
+			`Tocá este link para poder entrar a tu cuenta también con este mail (vale 15 minutos y una sola vez):\n\n${url}\n\nSi no lo pediste vos, ignorá este mail y no se asocia nada.`
+	},
+	ya_asociado: {
+		asunto: 'Este mail ya tiene una cuenta en Dónde Cagué',
+		cuerpo: (url) =>
+			`Alguien (probablemente vos) quiso asociar este mail a una cuenta de Dónde Cagué, pero ya está asociado a otra cuenta. Un mail sirve para una sola cuenta.\n\nPara entrar con él: ${url}\n\nSi no fuiste vos, ignorá este mail.`
 	},
 	sin_cuenta: {
 		asunto: 'No hay ninguna cuenta con este mail',

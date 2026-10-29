@@ -15,12 +15,27 @@ export const POST = async (event) => {
 	const sql = db();
 	const [t] = await sql`update tokens_mail set usado = true
 		where token_hash = ${hashToken(token)} and not usado and vence_en > now()
-		returning mail_hmac, alta`;
+		returning mail_hmac, alta, vincular_cuenta`;
 	if (!t) error(400, 'El link venció o ya se usó. Pedí otro.');
 
 	let cuentaId: string;
 	let seudonimo: string;
-	if (t.alta) {
+	let vinculado = false;
+	if (t.vincular_cuenta) {
+		// Asociar el mail a una cuenta existente (/api/v1/cuenta/mail).
+		const [c] = await sql`select id, seudonimo from cuentas where id = ${t.vincular_cuenta} and estado = 'activa'`;
+		if (!c) error(400, 'La cuenta ya no existe.');
+		try {
+			await sql`insert into logins_mail (cuenta_id, mail_hmac) values (${c.id}, ${t.mail_hmac})
+				on conflict (cuenta_id) do update set mail_hmac = excluded.mail_hmac, creado_en = current_date`;
+		} catch (e) {
+			if ((e as { code?: string }).code === '23505') error(409, 'Ese mail ya es de otra cuenta.');
+			throw e;
+		}
+		cuentaId = c.id;
+		seudonimo = c.seudonimo;
+		vinculado = true;
+	} else if (t.alta) {
 		const alta = t.alta as DatosAlta;
 		try {
 			cuentaId = await sql.begin(async (tx) => {
@@ -42,5 +57,5 @@ export const POST = async (event) => {
 		seudonimo = c.seudonimo;
 	}
 	await iniciarSesion(event.cookies, cuentaId);
-	return json({ seudonimo });
+	return json({ seudonimo, vinculado });
 };

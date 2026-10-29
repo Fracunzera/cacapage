@@ -37,7 +37,10 @@
 			await boveda.sincronizar();
 		} catch (e) {
 			if (e instanceof ErrorApi && e.estado === 401) return goto('/app/entrar?modo=entrar');
-			error = 'No se pudo sincronizar el historial. Lo de este celular está a salvo.';
+			error =
+				e instanceof ErrorApi && e.estado === 413
+					? e.message
+					: 'No se pudo sincronizar el historial. Lo de este celular está a salvo.';
 		}
 		refrescar();
 	}

@@ -36,6 +36,28 @@ try {
 	ok(g.datos.paginas.length === 1 && g.datos.paginas[0].cifrado === pag.cifrado, 'leer desde seq devuelve la página');
 	ok((await api(`/boveda?desde=${r3.datos.seq}`)).datos.paginas.length === 0, 'desde la última seq: nada nuevo');
 	ok((await api('/boveda/paginas/corto', 'PUT', { ...pag, version_esperada: 0 })).estado === 400, 'id de página inválido: 400');
+	// Tope por cuenta: 10 MB en total y 500 páginas.
+	ok((await api('/boveda/paginas/demasiado_grande_0', 'PUT', { nonce: pag.nonce, cifrado: Buffer.alloc(256 * 1024 + 1).toString('base64url'), version_esperada: 0 })).estado === 400, 'una página de más de 256 KB: 400');
+	const grande = { nonce: pag.nonce, cifrado: Buffer.alloc(256 * 1024, 3).toString('base64url') };
+	const ids = Array.from({ length: 40 }, (_, i) => `grande${String(i).padStart(10, '0')}`);
+	let estados = [];
+	for (const id of ids.slice(0, 39)) estados.push((await api(`/boveda/paginas/${id}`, 'PUT', { ...grande, version_esperada: 0 })).estado);
+	ok(estados.every((e) => e === 200), '39 páginas de 256 KB entran (casi 10 MB)');
+	const lleno = await api(`/boveda/paginas/${ids[39]}`, 'PUT', { ...grande, version_esperada: 0 });
+	ok(lleno.estado === 413 && /10 MB/.test(lleno.datos?.message), 'pasar los 10 MB: 413 con mensaje claro');
+	const reemplazo = await api(`/boveda/paginas/${ids[0]}`, 'PUT', { ...grande, version_esperada: 1 });
+	ok(reemplazo.estado === 200, 'reemplazar una página existente no cuenta doble');
+	for (const id of ids.slice(0, 39)) await api(`/boveda/paginas/${id}`, 'DELETE');
+	const chicas = await Promise.all(
+		Array.from({ length: 505 }, (_, i) => api(`/boveda/paginas/chica${String(i).padStart(11, '0')}`, 'PUT', { ...pag, version_esperada: 0 }))
+	);
+	// Ya hay 1 página: de 505 en paralelo entran 499 y el resto choca con el tope (sin carreras).
+	ok(chicas.filter((r) => r.estado === 200).length === 499 && chicas.filter((r) => r.estado === 413).length === 6, '505 en paralelo: entran justo hasta 500');
+	const otra = await api('/boveda/paginas/chica_de_mas_00000', 'PUT', { ...pag, version_esperada: 0 });
+	ok(otra.estado === 413 && /500 páginas/.test(otra.datos?.message), 'la 501: 413 con mensaje claro');
+	const [{ n }] = await sql`select count(*)::int n from boveda_paginas`;
+	ok(n === 500, 'en la base quedaron exactamente 500');
+
 	const [c] = await sql`select dias_activos from cuentas`;
 	ok(c.dias_activos === 1, 'días activos: 1 (una vez por día)');
 	await sql`update sesiones set reautenticada_hasta = now() + interval '5 minutes'`;

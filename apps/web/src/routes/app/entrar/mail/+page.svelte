@@ -20,8 +20,8 @@
 		ocupado = true;
 		error = null;
 		try {
-			await api('/auth/mail/canjear', { cuerpo: { token } });
-			await goto('/app');
+			const r = await api<{ vinculado: boolean }>('/auth/mail/canjear', { cuerpo: { token } });
+			await goto(r.vinculado ? '/app/cuenta?mail=asociado' : '/app');
 		} catch (e) {
 			error = e instanceof ErrorApi ? e.message : 'Algo salió mal. Probá de nuevo.';
 		} finally {
@@ -43,8 +43,8 @@
 	<section class="u-tarjeta">
 		{#if token}
 			<h2>¡Ya casi!</h2>
-			<p>Tocá el botón para terminar de entrar.</p>
-			<button type="button" class="u-boton" disabled={ocupado} onclick={entrar}>{ocupado ? 'Entrando…' : 'Entrar'}</button>
+			<p>Tocá el botón para terminar.</p>
+			<button type="button" class="u-boton" disabled={ocupado} onclick={entrar}>{ocupado ? 'Un momento…' : 'Continuar'}</button>
 		{:else}
 			<h2>Este link no sirve</h2>
 			<p>Pedí uno nuevo desde la pantalla de entrada.</p>
