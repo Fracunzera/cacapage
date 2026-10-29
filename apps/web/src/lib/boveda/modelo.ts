@@ -23,6 +23,8 @@ export interface Registro {
 	lat?: number;
 	lon?: number;
 	precision_m?: number;
+	/** gps, o manual (dirección, coordenadas o link de un mapa). */
+	fuente_ubicacion?: 'gps' | 'manual';
 	/** Baño del catálogo, solo si el usuario lo eligió (P-05). */
 	banio_id?: string;
 	banio_nombre?: string;

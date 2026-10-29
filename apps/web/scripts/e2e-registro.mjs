@@ -88,7 +88,7 @@ async function registrar(p, tipo, { ubicacion = false, anecdota = '' } = {}) {
 	await p.getByRole('button', { name: '💩 Registrar' }).click();
 	await p.getByRole('radio', { name: tipo }).click();
 	if (ubicacion) {
-		await p.getByRole('button', { name: /Agregar ubicación/ }).click();
+		await p.getByRole('button', { name: /Usar mi ubicación/ }).click();
 		await p.getByText('Ubicación guardada').waitFor();
 	}
 	if (anecdota) await p.getByPlaceholder(/./).fill(anecdota);
@@ -110,7 +110,7 @@ try {
 	// Primer registro: con ubicación, sugiere la YPF a 20 m (de día) y da el logro.
 	await a.getByRole('button', { name: '💩 Registrar' }).click();
 	await a.getByRole('radio', { name: 'Baño público' }).click();
-	await a.getByRole('button', { name: /Agregar ubicación/ }).click();
+	await a.getByRole('button', { name: /Usar mi ubicación/ }).click();
 	await a.getByText('YPF Centro').waitFor();
 	// De noche no hay preselección (P-29): se elige a mano.
 	await a.getByRole('radio', { name: /YPF Centro/ }).check();
@@ -177,7 +177,7 @@ try {
 	await b.getByRole('button', { name: '💩 Registrar' }).click();
 	await b.getByRole('radio', { name: 'Al aire libre' }).click();
 	ok(await b.getByLabel(/Sumarla al mapa público/).isDisabled(), 'sin ubicación no se puede hacer pública');
-	await b.getByRole('button', { name: /Agregar ubicación/ }).click();
+	await b.getByRole('button', { name: /Usar mi ubicación/ }).click();
 	await b.getByText('Ubicación guardada').waitFor();
 	await b.getByRole('radio', { name: 'Ninguno de estos' }).check();
 	await b.getByLabel(/Sumarla al mapa público/).check();

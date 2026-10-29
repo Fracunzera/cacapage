@@ -772,6 +772,27 @@ Postgres sin el `.env` siguen siendo bytes ilegibles.
 - Borrar la cuenta sigue destruyendo la llave (crypto-shredding), pero ya no
   hay garantía frente a un servidor comprometido antes del borrado.
 
+### P-41 · (i5) Cargar la ubicación a mano, sin GPS
+
+**Decisión.** Al registrar, la ubicación puede salir del GPS o cargarse a mano:
+coordenadas (decimales o grados), un link de un mapa (Google Maps, OpenStreetMap,
+Apple Maps, Waze, `geo:`) o una dirección. Las coordenadas y los links largos
+se leen **en el celular**. Dos casos pasan por nuestro servidor, con sesión y
+con límite de pedidos: los links cortos (`maps.app.goo.gl`), que el servidor
+sigue sin bajar las páginas y solo hacia dominios de Google, y las direcciones,
+que el servidor busca en Nominatim (OpenStreetMap), solo en la Argentina. Lo
+buscado no se guarda ni se escribe en logs; la respuesta vuelve al celular y
+la ubicación queda, como siempre, cifrada en el historial.
+
+**Mitiga.** Quien no quiere darle permiso de ubicación al navegador (o no tiene
+GPS) igual puede registrar dónde fue y ver los baños cercanos. El celular no
+habla con Google ni con OpenStreetMap (P-16).
+
+**Cuesta.** Para una dirección o un link corto, nuestro servidor ve esa
+ubicación en memoria mientras la resuelve, y Google o Nominatim reciben el
+pedido (desde la IP del servidor, no la del usuario). Nominatim pide como
+mucho un pedido por segundo: con mucho uso habrá que montar uno propio.
+
 ---
 
 ## Decisiones postergadas (i3)

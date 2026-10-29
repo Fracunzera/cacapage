@@ -8,7 +8,7 @@
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"test": "vitest run",
-		"e2e": "node scripts/e2e-relevamiento.mjs && node scripts/e2e-cuentas.mjs && node scripts/e2e-boveda-api.mjs && node scripts/e2e-mapa.mjs && node scripts/e2e-registro.mjs && node scripts/e2e-opiniones.mjs && node scripts/e2e-google.mjs && node scripts/e2e-seo.mjs"
+		"e2e": "node scripts/e2e-relevamiento.mjs && node scripts/e2e-cuentas.mjs && node scripts/e2e-boveda-api.mjs && node scripts/e2e-mapa.mjs && node scripts/e2e-registro.mjs && node scripts/e2e-opiniones.mjs && node scripts/e2e-google.mjs && node scripts/e2e-seo.mjs && node scripts/e2e-ubicacion.mjs"
 	},
 	"devDependencies": {
 		"@fontsource-variable/fredoka": "5.3.0",

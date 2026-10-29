@@ -65,7 +65,11 @@
 				{#if abierto === r.id}
 					<div class="detalle">
 						{#if r.comentario}<p class="comentario">“{r.comentario}”</p>{/if}
-						{#if r.lat !== undefined}<p class="u-ayuda">📍 Con ubicación (±{r.precision_m} m)</p>{/if}
+						{#if r.lat !== undefined}
+							<p class="u-ayuda">
+								📍 {r.fuente_ubicacion === 'manual' ? 'Ubicación cargada a mano' : `Con ubicación (±${r.precision_m} m)`}
+							</p>
+						{/if}
 						{#if r.publico}
 							<p class="u-ayuda">
 								🌎 Está en el mapa público de cacas{r.numero_publico ? `: es la N.º ${r.numero_publico.toLocaleString('es-AR')}` : ''}.

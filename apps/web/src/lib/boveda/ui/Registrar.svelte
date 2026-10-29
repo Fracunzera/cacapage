@@ -7,6 +7,8 @@
 	import type { Banio, Catalogo } from '$lib/banios/tipos';
 	import { COMENTARIO_MAX, TIPOS, type Registro, type Tipo } from '../modelo';
 	import { candidatos } from '../candidatos';
+	import { api, ErrorApi } from '$lib/cliente/api';
+	import { enArgentina, interpretar, type Punto } from '$lib/ubicacion/interpretar';
 	import { sePuedePublicar } from '../publicar';
 	import ConfirmarPublico from './ConfirmarPublico.svelte';
 
@@ -30,7 +32,12 @@
 	let cuando = $state('');
 	let sinPapel = $state(false);
 	let comentario = $state('');
-	let ubicacion = $state<{ lat: number; lon: number; precision: number } | null>(null);
+	let ubicacion = $state<{ lat: number; lon: number; precision: number; fuente: 'gps' | 'manual'; texto?: string } | null>(null);
+	// Ubicación a mano (sin GPS): dirección, coordenadas o link de un mapa.
+	let aMano = $state(false);
+	let textoUbicacion = $state('');
+	let direcciones = $state<{ nombre: string; lat: number; lon: number }[]>([]);
+	let fueraDelPais = $state(false);
 	let buscando = $state(false);
 	let avisoUbicacion = $state<string | null>(null);
 	let cerca = $state<{ banio: Banio; distancia: number }[]>([]);
@@ -54,6 +61,53 @@
 		if (!publicable) publico = false;
 	});
 
+	/** Fija la ubicación y busca los baños del catálogo que hay cerca. */
+	async function fijar(p: Punto, precision: number, fuente: 'gps' | 'manual', texto?: string) {
+		ubicacion = { lat: p.lat, lon: p.lon, precision, fuente, texto };
+		fueraDelPais = !enArgentina(p);
+		direcciones = [];
+		try {
+			const cat = (await (await fetch('/api/v1/banios')).json()) as Catalogo;
+			const r = candidatos(cat.banios, p, precision, momento);
+			cerca = r.cerca;
+			banioId = enCasa ? null : r.preseleccion;
+		} catch {
+			cerca = [];
+		}
+	}
+
+	async function cargarAMano() {
+		avisoUbicacion = null;
+		direcciones = [];
+		let i = interpretar(textoUbicacion);
+		buscando = true;
+		try {
+			if (i.tipo === 'corto') {
+				const { url } = await api<{ url: string }>('/ubicacion/corto', { cuerpo: { url: i.url } });
+				i = interpretar(url);
+				if (i.tipo !== 'punto') i = { tipo: 'invalido', motivo: 'En ese link no encontramos coordenadas. Probá con las coordenadas.' };
+			}
+			if (i.tipo === 'punto') await fijar(i.punto, 20, 'manual', i.origen === 'enlace' ? 'desde un link' : 'por coordenadas');
+			else if (i.tipo === 'invalido') avisoUbicacion = i.motivo;
+			else {
+				const { resultados } = await api<{ resultados: typeof direcciones }>(`/ubicacion/buscar?q=${encodeURIComponent(i.texto)}`);
+				direcciones = resultados;
+				if (!resultados.length) avisoUbicacion = 'No encontramos esa dirección. Probá con calle, número y ciudad.';
+			}
+		} catch (e) {
+			avisoUbicacion = e instanceof ErrorApi ? e.message : 'No se pudo cargar la ubicación.';
+		} finally {
+			buscando = false;
+		}
+	}
+
+	function cambiarUbicacion() {
+		ubicacion = null;
+		cerca = [];
+		banioId = null;
+		fueraDelPais = false;
+	}
+
 	function ubicar() {
 		if (!('geolocation' in navigator)) {
 			avisoUbicacion = 'Este navegador no puede darte la ubicación.';
@@ -63,20 +117,12 @@
 		avisoUbicacion = null;
 		navigator.geolocation.getCurrentPosition(
 			async (p) => {
-				ubicacion = { lat: p.coords.latitude, lon: p.coords.longitude, precision: Math.round(p.coords.accuracy) };
-				try {
-					const cat = (await (await fetch('/api/v1/banios')).json()) as Catalogo;
-					const r = candidatos(cat.banios, ubicacion, ubicacion.precision, momento);
-					cerca = r.cerca;
-					banioId = enCasa ? null : r.preseleccion;
-				} catch {
-					cerca = [];
-				}
+				await fijar({ lat: p.coords.latitude, lon: p.coords.longitude }, Math.round(p.coords.accuracy), 'gps');
 				buscando = false;
 			},
 			() => {
 				buscando = false;
-				avisoUbicacion = 'No pudimos saber dónde estás. Podés guardar sin ubicación.';
+				avisoUbicacion = 'No pudimos saber dónde estás. Podés escribir la dirección o guardar sin ubicación.';
 			},
 			{ enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
 		);
@@ -95,7 +141,9 @@
 			ocurrido_en: momento.toISOString(),
 			tipo,
 			actualizado_en: new Date().toISOString(),
-			...(ubicacion ? { lat: ubicacion.lat, lon: ubicacion.lon, precision_m: ubicacion.precision } : {}),
+			...(ubicacion
+				? { lat: ubicacion.lat, lon: ubicacion.lon, precision_m: ubicacion.precision, fuente_ubicacion: ubicacion.fuente }
+				: {}),
 			...(elegido && !enCasa ? { banio_id: elegido.id, banio_nombre: titulo(elegido) } : {}),
 			...(sinPapel ? { sin_papel: true } : {}),
 			...(comentario.trim() ? { comentario: comentario.trim().slice(0, COMENTARIO_MAX) } : {})
@@ -143,13 +191,59 @@
 	</fieldset>
 
 	{#if !ubicacion}
-		<button type="button" class="u-boton sec ubicar" onclick={ubicar} disabled={buscando}>
-			{buscando ? 'Buscando…' : '📍 Agregar ubicación'}
-		</button>
-		<p class="u-ayuda">Opcional. Queda cifrada en tu historial: solo la ves vos.</p>
-		{#if avisoUbicacion}<p class="u-ayuda">{avisoUbicacion}</p>{/if}
+		<div class="como-ubicar">
+			<button type="button" class="u-boton sec ubicar" onclick={ubicar} disabled={buscando}>
+				{buscando && !aMano ? 'Buscando…' : '📍 Usar mi ubicación'}
+			</button>
+			<button type="button" class="u-boton sec ubicar" aria-pressed={aMano} onclick={() => (aMano = !aMano)}>
+				✍️ Escribirla
+			</button>
+		</div>
+		{#if aMano}
+			<form
+				class="a-mano"
+				onsubmit={(e) => {
+					e.preventDefault();
+					void cargarAMano();
+				}}
+			>
+				<label class="u-campo">
+					<span>Dirección, coordenadas o link de un mapa</span>
+					<input
+						type="text"
+						bind:value={textoUbicacion}
+						autocomplete="off"
+						enterkeyhint="search"
+						placeholder="Zapiola 50, Río Gallegos · -51.62, -69.22 · maps.app.goo.gl/…"
+					/>
+				</label>
+				<button type="submit" class="u-boton sec buscar" disabled={buscando || !textoUbicacion.trim()}>
+					{buscando ? 'Buscando…' : 'Buscar'}
+				</button>
+			</form>
+			{#if direcciones.length}
+				<fieldset class="banios">
+					<legend>¿Cuál de estas?</legend>
+					{#each direcciones as d, i (i)}
+						<button type="button" class="banio direccion" onclick={() => fijar(d, 50, 'manual', `en ${d.nombre}`)}>
+							<span class="nombre">{d.nombre}</span>
+						</button>
+					{/each}
+				</fieldset>
+			{/if}
+		{/if}
+		<p class="u-ayuda">
+			Opcional. Queda cifrada en tu historial: solo la ves vos.{#if aMano}
+				Las direcciones y los links cortos se buscan a través de nuestro servidor, sin guardarlos.{/if}
+		</p>
+		{#if avisoUbicacion}<p class="u-ayuda aviso" role="status">{avisoUbicacion}</p>{/if}
 	{:else}
-		<p class="u-ayuda">📍 Ubicación guardada (±{ubicacion.precision} m). Solo la ves vos.</p>
+		<p class="u-ayuda">
+			📍 {ubicacion.fuente === 'gps' ? `Ubicación guardada (±${ubicacion.precision} m)` : `Ubicación cargada ${ubicacion.texto}`}.
+			Solo la ves vos.
+			<button type="button" class="u-enlace cambiar" onclick={cambiarUbicacion}>Cambiar</button>
+		</p>
+		{#if fueraDelPais}<p class="u-ayuda aviso">Ojo: ese lugar queda fuera de la Argentina.</p>{/if}
 		{#if cerca.length && !enCasa}
 			<fieldset class="banios">
 				<legend>¿En cuál?</legend>
@@ -297,6 +391,43 @@
 	}
 	.banio .dist {
 		color: var(--tinta-suave);
+		font-size: 14px;
+	}
+	.como-ubicar {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 8px;
+	}
+	.como-ubicar .u-boton {
+		padding: 8px 6px;
+	}
+	.como-ubicar .u-boton[aria-pressed='true'] {
+		background: var(--sol-claro);
+	}
+	.a-mano {
+		margin-top: 12px;
+	}
+	.a-mano .u-campo {
+		margin-bottom: 0;
+	}
+	.buscar {
+		margin-top: 8px;
+		min-height: 44px;
+		font-size: 16px;
+	}
+	.direccion {
+		width: 100%;
+		color: var(--tinta);
+		font-family: inherit;
+		font-size: 15px;
+		text-align: left;
+		cursor: pointer;
+	}
+	.aviso {
+		color: var(--rojo);
+	}
+	.cambiar {
+		margin-left: 6px;
 		font-size: 14px;
 	}
 	.papel {

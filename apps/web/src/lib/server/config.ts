@@ -21,6 +21,8 @@ export interface Config {
 	osm: { importar: boolean; servidores: string[] };
 	/** Entrar con Google; null si no está configurado (PRIVACY.md P-39). */
 	google: { clientId: string; clientSecret: string; urlAutorizacion: string; urlToken: string } | null;
+	/** Buscador de direcciones (Nominatim de OpenStreetMap), PRIVACY.md P-41. */
+	nominatimUrl: string;
 	/** Carpeta con el mapa base (argentina.pmtiles). Ver docs/despliegue.md. */
 	teselasDir: string;
 }
@@ -85,6 +87,7 @@ function leer(): Config {
 		passkeys: ENTORNO === 'produccion',
 		osm: { importar: importar === 'si', servidores },
 		google,
+		nominatimUrl: env.NOMINATIM_URL || 'https://nominatim.openstreetmap.org/search',
 		teselasDir: env.TESELAS_DIR || '/datos/teselas'
 	};
 }
