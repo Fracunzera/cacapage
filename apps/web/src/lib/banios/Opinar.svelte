@@ -6,7 +6,7 @@
 	let { banioId, onoculto }: { banioId: string; onoculto?: () => void } = $props();
 
 	let datos = $state<Opiniones | null>(null);
-	let conSesion = $state<boolean | null>(null);
+	const conSesion = $derived(datos?.con_sesion ?? null);
 	let reportando = $state(false);
 	let motivo = $state<Motivo | null>(null);
 	let ocupado = $state(false);
@@ -21,19 +21,12 @@
 		try {
 			datos = await api<Opiniones>(`/banios/${id}/opiniones`);
 		} catch {
-			datos = { promedio: null, cantidad: 0, mio: null, reportado: false };
+			datos = { promedio: null, cantidad: 0, mio: null, reportado: false, con_sesion: false };
 		}
 	}
 
 	$effect(() => {
 		void cargar(banioId);
-	});
-
-	$effect(() => {
-		api('/cuenta').then(
-			() => (conSesion = true),
-			() => (conSesion = false)
-		);
 	});
 
 	async function puntuar(n: number) {

@@ -19,6 +19,6 @@ export const GET = async ({ params, cookies }) => {
 		mio = m?.puntaje ?? null;
 		reportado = Boolean(r);
 	}
-	const datos: Opiniones = { promedio: p.promedio === null ? null : Math.round(p.promedio * 10) / 10, cantidad: p.cantidad, mio, reportado };
+	const datos: Opiniones = { promedio: p.promedio === null ? null : Math.round(p.promedio * 10) / 10, cantidad: p.cantidad, mio, reportado, con_sesion: sesion !== null };
 	return json(datos);
 };

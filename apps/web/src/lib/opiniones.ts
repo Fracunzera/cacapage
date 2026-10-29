@@ -17,4 +17,6 @@ export interface Opiniones {
 	/** Solo con sesión: lo que puso esta cuenta. */
 	mio: number | null;
 	reportado: boolean;
+	/** Si quien pregunta entró: para ofrecer puntuar o pedir que entre. */
+	con_sesion: boolean;
 }
