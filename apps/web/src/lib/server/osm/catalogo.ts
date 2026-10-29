@@ -3,7 +3,7 @@ import { db } from '../db';
 import { ATRIBUCION_OSM, type Banio, type Catalogo } from '$lib/banios/tipos';
 
 interface Cache {
-	importacion: number | null;
+	version: string;
 	etag: string;
 	cuerpo: Buffer;
 	gzip: Buffer;
@@ -18,12 +18,17 @@ export async function catalogo(): Promise<Cache> {
 	const [ultima] = await sql`
 		select id, osm_base, empezada_en from osm.importaciones where estado = 'ok' order by id desc limit 1`;
 	const id = (ultima?.id as number | undefined) ?? null;
-	if (cache && cache.importacion === id) return cache;
+	// Los baños ocultos por reportes también cambian el catálogo.
+	const [{ ocultos }] = await sql`select count(*)::int as ocultos from banios_ocultos`;
+	const version = `${id ?? 0}-${ocultos}`;
+	if (cache && cache.version === version) return cache;
 
 	const filas = id
 		? await sql`
 			select id, categoria, existencia, nombre, marca, lat, lon, atributos, osm_modificado
-			from osm.candidatos order by id`
+			from osm.candidatos c
+			where not exists (select 1 from banios_ocultos o where o.banio_id = c.id)
+			order by id`
 		: [];
 	const banios: Banio[] = filas.map((f) => ({
 		id: f.id,
@@ -43,6 +48,6 @@ export async function catalogo(): Promise<Cache> {
 		banios
 	};
 	const cuerpo = Buffer.from(JSON.stringify(datos));
-	cache = { importacion: id, etag: `"banios-${id ?? 0}"`, cuerpo, gzip: gzipSync(cuerpo, { level: 9 }) };
+	cache = { version, etag: `"banios-${version}"`, cuerpo, gzip: gzipSync(cuerpo, { level: 9 }) };
 	return cache;
 }

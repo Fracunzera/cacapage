@@ -9,6 +9,7 @@
 	import { cumple, frescura, lineas, procedencia, titulo, VIDA_MESES } from '$lib/banios/presentar';
 	import { NOMBRE_CATEGORIA, type Banio, type Catalogo } from '$lib/banios/tipos';
 	import type { Publicacion } from '$lib/publicaciones';
+	import Opinar from '$lib/banios/Opinar.svelte';
 
 	type Filtro = 'gratis' | 'accesible' | 'cambiador';
 	const FILTROS: { id: Filtro; texto: string }[] = [
@@ -322,6 +323,14 @@
 					<a href="/cacas">ver</a>
 				</p>
 			{/if}
+			<Opinar
+				banioId={b.id}
+				onoculto={() => {
+					// Salió del mapa por reportes: se saca ya, sin esperar al catálogo nuevo.
+					if (catalogo) catalogo = { ...catalogo, banios: catalogo.banios.filter((x) => x.id !== b.id) };
+					elegido = null;
+				}}
+			/>
 			<p class="fuente">{procedencia(b)}</p>
 			<div class="acciones">
 				<a

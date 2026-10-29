@@ -13,6 +13,7 @@ export const GET = async () => {
 		left join osm.candidatos b on b.id = p.banio_id
 		where p.visible_desde <= now() and p.dia > current_date - 365
 		  and (p.lat is not null or b.id is not null)
+		  and (p.banio_id is null or not exists (select 1 from banios_ocultos o where o.banio_id = p.banio_id))
 		order by p.dia desc
 		limit 20000`;
 	const publicaciones: Publicacion[] = filas.map((f) => ({

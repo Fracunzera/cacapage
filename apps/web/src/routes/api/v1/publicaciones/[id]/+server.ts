@@ -29,7 +29,8 @@ export const PUT = async (event) => {
 	let lon: number | null = null;
 	if (c.banio_id) {
 		if (typeof c.banio_id !== 'string' || !/^[nwr]\d+$/.test(c.banio_id)) error(400, 'Baño inválido.');
-		const [b] = await sql`select 1 from osm.candidatos where id = ${c.banio_id}`;
+		const [b] = await sql`select 1 from osm.candidatos c where id = ${c.banio_id}
+			and not exists (select 1 from banios_ocultos o where o.banio_id = c.id)`;
 		if (!b) error(400, 'Ese baño no está en el mapa.');
 		banio = c.banio_id;
 	} else {
