@@ -3,7 +3,7 @@ import { mailValido } from '$lib/cuentas/validacion';
 import { hashToken, hmacMail, tokenAleatorio } from '$lib/server/auth/cripto';
 import { permitir } from '$lib/server/auth/limites';
 import { enviarMail, mailDisponible } from '$lib/server/auth/mail';
-import { exigirSesion } from '$lib/server/auth/sesiones';
+import { exigirReautenticacion } from '$lib/server/auth/sesiones';
 import { cfg } from '$lib/server/config';
 import { db } from '$lib/server/db';
 import { aceptado, cuerpoJson, limitarPorIp, sinContenido } from '$lib/server/http';
@@ -15,7 +15,7 @@ import { aceptado, cuerpoJson, limitarPorIp, sinContenido } from '$lib/server/ht
  * al dueño del mail). Si la cuenta ya tenía un mail, lo reemplaza.
  */
 export const POST = async (event) => {
-	const sesion = await exigirSesion(event.cookies);
+	const sesion = await exigirReautenticacion(event.cookies);
 	if (!mailDisponible()) error(503, 'Entrar con mail todavía no está disponible.');
 	limitarPorIp(event, 'mail', 10, 3600_000);
 	if (!permitir(`vincular:${sesion.id}`, 5, 3600_000)) error(429, 'Ya mandaste varios links. Probá en un rato.');
@@ -41,7 +41,7 @@ export const POST = async (event) => {
 
 /** Quitar el mail. Solo si queda otra forma de entrar (passkey o contraseña). */
 export const DELETE = async ({ cookies }) => {
-	const sesion = await exigirSesion(cookies);
+	const sesion = await exigirReautenticacion(cookies);
 	const sql = db();
 	const [m] = await sql`
 		select exists (select 1 from credenciales_passkey where cuenta_id = ${sesion.id})

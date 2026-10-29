@@ -45,6 +45,19 @@ export async function cerrarSesion(cookies: Cookies): Promise<void> {
 	cookies.delete(COOKIE_SESION, { path: '/', secure: true });
 }
 
+export const PEDIR_REAUTENTICACION = 'Por seguridad, volvé a entrar (hace menos de 5 minutos) para cambiar cómo entrás a tu cuenta.';
+
+/**
+ * La sesión, y además que se haya entrado hace menos de 5 minutos: para lo que
+ * permitiría quedarse con la cuenta (cambiar o quitar formas de entrar) o
+ * borrarla. Con la custodia del historial (P-40), una sesión robada no alcanza.
+ */
+export async function exigirReautenticacion(cookies: Cookies): Promise<CuentaSesion> {
+	const s = await exigirSesion(cookies);
+	if (!s.reautenticada) error(403, PEDIR_REAUTENTICACION);
+	return s;
+}
+
 /** La sesión o un 401. */
 export async function exigirSesion(cookies: Cookies): Promise<CuentaSesion> {
 	const s = await leerSesion(cookies);

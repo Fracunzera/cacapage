@@ -27,7 +27,7 @@ function verificar(condicion, texto) {
 }
 
 async function levantar(env) {
-	const proceso = spawn('node', ['build'], {
+	const proceso = spawn('node', ['servidor.js'], {
 		env: { ...process.env, ...BASE_ENTORNO, PORT: String(PUERTO), ORIGIN: BASE, ...env },
 		stdio: ['ignore', 'pipe', 'pipe']
 	});
@@ -55,7 +55,7 @@ async function bajar(s) {
 {
 	const env = { ...process.env };
 	delete env.ENTORNO;
-	const p = spawn('node', ['build'], { env: { ...env, PORT: String(PUERTO) }, stdio: ['ignore', 'pipe', 'pipe'] });
+	const p = spawn('node', ['servidor.js'], { env: { ...env, PORT: String(PUERTO) }, stdio: ['ignore', 'pipe', 'pipe'] });
 	let err = '';
 	p.stderr.on('data', (d) => (err += d));
 	const codigo = await new Promise((ok) => p.once('exit', ok));

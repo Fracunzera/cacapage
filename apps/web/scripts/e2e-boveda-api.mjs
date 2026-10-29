@@ -6,7 +6,7 @@ const URL_DB = process.env.DATABASE_URL ?? 'postgres://postgres@127.0.0.1:54329/
 const sql = postgres(URL_DB, { onnotice: () => {} });
 await sql.unsafe('drop schema if exists osm cascade; drop schema public cascade; create schema public;');
 const BASE = 'http://localhost:4177';
-const p = spawn('node', ['build'], { env: { ...process.env, ENTORNO: 'prueba', PORT: '4177', ORIGIN: BASE, ORIGEN_PUBLICO: BASE, DATABASE_URL: URL_DB, PIMIENTA_MAIL: 'x'.repeat(40), MAIL_MODO: 'consola', OSM_IMPORTAR: 'no' } });
+const p = spawn('node', ['servidor.js'], { env: { ...process.env, ENTORNO: 'prueba', PORT: '4177', ORIGIN: BASE, ORIGEN_PUBLICO: BASE, DATABASE_URL: URL_DB, PIMIENTA_MAIL: 'x'.repeat(40), MAIL_MODO: 'consola', OSM_IMPORTAR: 'no' } });
 await new Promise((r) => setTimeout(r, 2500));
 let fallas = 0;
 const ok = (c, t) => { console.log(`${c ? 'ok  ' : 'FALLA'} ${t}`); if (!c) fallas++; };
@@ -19,6 +19,18 @@ async function api(ruta, metodo = 'GET', cuerpo) {
 try {
 	ok((await api('/boveda')).estado === 401, 'sin sesión: 401');
 	ok((await api('/auth/clave/alta', 'POST', { seudonimo: 'boveda_test', clave: 'una frase larga ok', mayor_de_edad: true, acepta_terminos: true })).estado === 200, 'alta con contraseña');
+	// Contraseña equivocada: demora creciente, no bloqueo de una hora.
+	const entrar = (clave) => fetch(BASE + '/api/v1/auth/clave/entrada', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seudonimo: 'boveda_test', clave }) });
+	const primeros = [];
+	for (let i = 0; i < 6; i++) primeros.push((await entrar('esta no es la clave')).status);
+	ok(primeros.every((s) => s === 400), 'los primeros fallos solo dicen "incorrecta"');
+	const demorado = await entrar('una frase larga ok');
+	ok(demorado.status === 429 && demorado.headers.get('retry-after') === '2', 'después, una espera corta (2 s), aun con la contraseña correcta');
+	await new Promise((r) => setTimeout(r, 2100));
+	const bien = await entrar('una frase larga ok');
+	ok(bien.status === 200, 'pasada la espera, entra; un acierto borra la demora');
+	ok((await entrar('esta no es la clave')).status === 400, 'y el contador volvió a cero');
+
 	const env = Buffer.alloc(60, 7).toString('base64url');
 	ok((await api('/boveda/llaves', 'PUT', { metodo: 'recuperacion', envuelta: env, parametros: { kdf: 'PBKDF2', it: 600000 }, crear: true })).estado === 200, 'crear llave');
 	ok((await api('/boveda/llaves', 'PUT', { metodo: 'recuperacion', envuelta: env, parametros: {}, crear: true })).estado === 409, 'segunda creación: 409 (no dos bóvedas)');

@@ -62,7 +62,7 @@ const google = createServer((req, res) => {
 	res.writeHead(404).end();
 }).listen(4183);
 
-const app = spawn('node', ['build'], {
+const app = spawn('node', ['servidor.js'], {
 	env: {
 		...process.env,
 		ENTORNO: 'produccion',

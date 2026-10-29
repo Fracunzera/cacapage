@@ -1,5 +1,4 @@
-import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { open, type FileHandle } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { error } from '@sveltejs/kit';
@@ -14,8 +13,25 @@ import { cfg } from '$lib/server/config';
 export const GET: RequestHandler = async ({ params, request }) => {
 	if (!/^[a-z0-9-]+\.pmtiles$/.test(params.archivo)) error(404, 'No encontrado');
 	const ruta = join(cfg().teselasDir, params.archivo);
-	const info = await stat(ruta).catch(() => null);
-	if (!info?.isFile()) error(404, 'No hay mapa base cargado');
+	// Se abre antes de responder: si no se puede leer (permisos), es un 500 y
+	// no una conexión cortada a mitad de camino.
+	let archivo: FileHandle;
+	try {
+		archivo = await open(ruta, 'r');
+	} catch (e) {
+		const codigo = (e as NodeJS.ErrnoException).code;
+		if (codigo === 'ENOENT' || codigo === 'ENOTDIR') error(404, 'No hay mapa base cargado');
+		console.error(`Teselas: no se puede abrir ${params.archivo} (${codigo})`);
+		error(500, 'No se pudo leer el mapa base');
+	}
+	const info = await archivo.stat();
+	if (!info.isFile()) {
+		await archivo.close();
+		error(404, 'No hay mapa base cargado');
+	}
+	/** El stream cierra el archivo al terminar o si el cliente corta. */
+	const leer = (opciones: { start?: number; end?: number } = {}) =>
+		Readable.toWeb(archivo.createReadStream({ ...opciones, autoClose: true })) as ReadableStream;
 
 	const cabeceras: Record<string, string> = {
 		'Content-Type': 'application/vnd.pmtiles',
@@ -25,10 +41,7 @@ export const GET: RequestHandler = async ({ params, request }) => {
 		'Last-Modified': info.mtime.toUTCString()
 	};
 	const rango = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range') ?? '');
-	if (!rango) {
-		const flujo = Readable.toWeb(createReadStream(ruta)) as ReadableStream;
-		return new Response(flujo, { headers: { ...cabeceras, 'Content-Length': String(info.size) } });
-	}
+	if (!rango) return new Response(leer(), { headers: { ...cabeceras, 'Content-Length': String(info.size) } });
 	let desde: number;
 	let hasta: number;
 	if (rango[1] === '') {
@@ -38,10 +51,11 @@ export const GET: RequestHandler = async ({ params, request }) => {
 		desde = Number(rango[1]);
 		hasta = rango[2] === '' ? info.size - 1 : Math.min(Number(rango[2]), info.size - 1);
 	}
-	if (desde > hasta || desde >= info.size)
+	if (desde > hasta || desde >= info.size) {
+		await archivo.close();
 		return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${info.size}` } });
-	const flujo = Readable.toWeb(createReadStream(ruta, { start: desde, end: hasta })) as ReadableStream;
-	return new Response(flujo, {
+	}
+	return new Response(leer({ start: desde, end: hasta }), {
 		status: 206,
 		headers: { ...cabeceras, 'Content-Range': `bytes ${desde}-${hasta}/${info.size}`, 'Content-Length': String(hasta - desde + 1) }
 	});

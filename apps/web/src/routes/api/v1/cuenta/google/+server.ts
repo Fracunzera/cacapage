@@ -1,11 +1,11 @@
 import { error } from '@sveltejs/kit';
-import { exigirSesion } from '$lib/server/auth/sesiones';
+import { exigirReautenticacion } from '$lib/server/auth/sesiones';
 import { db } from '$lib/server/db';
 import { sinContenido } from '$lib/server/http';
 
 /** Quitar Google. Solo si queda otra forma de entrar. */
 export const DELETE = async ({ cookies }) => {
-	const sesion = await exigirSesion(cookies);
+	const sesion = await exigirReautenticacion(cookies);
 	const sql = db();
 	const [m] = await sql`
 		select exists (select 1 from credenciales_passkey where cuenta_id = ${sesion.id})

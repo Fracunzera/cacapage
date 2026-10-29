@@ -25,7 +25,7 @@ const nominatim = createServer((req, res) => {
 }).listen(4187);
 
 const BASE = 'http://localhost:4186';
-const app = spawn('node', ['build'], {
+const app = spawn('node', ['servidor.js'], {
 	env: {
 		...process.env,
 		ENTORNO: 'produccion',
@@ -75,7 +75,7 @@ try {
 	const contexto = await navegador.newContext({ viewport: { width: 390, height: 844 } });
 	const p = await contexto.newPage();
 	const errores = [];
-	p.on('console', (m) => m.type() === 'error' && !m.location().url.endsWith('/tiles/argentina.pmtiles') && errores.push(m.text()));
+	p.on('console', (m) => m.type() === 'error' && !/\/tiles\/(argentina|mundo)\.pmtiles$/.test(m.location().url) && errores.push(m.text()));
 	await p.request.post(BASE + '/api/v1/auth/clave/alta', {
 		data: { seudonimo: 'sin_gps', clave: 'una frase bastante larga', mayor_de_edad: true, acepta_terminos: true }
 	});
@@ -119,7 +119,7 @@ try {
 	await p.getByRole('button', { name: 'Buscar' }).click();
 	await p.getByRole('button', { name: /Zapiola 50, Río Gallegos/ }).click();
 	await p.getByText('Ubicación cargada en Zapiola 50').waitFor();
-	ok(pedidos.at(-1).pais === 'ar' && /DondeCague/.test(pedidos.at(-1).ua), 'dirección: se busca en Nominatim, solo Argentina, identificándonos');
+	ok(pedidos.at(-1).pais === null && /DondeCague/.test(pedidos.at(-1).ua), 'dirección: se busca en Nominatim, en todo el mundo, identificándonos');
 	ok(!log.includes('Zapiola') && !log.includes('Que No Existe'), 'lo buscado no queda en el log del servidor');
 	await p.screenshot({ path: (process.env.E2E_CAPTURAS ?? '/tmp') + '/ubicacion-a-mano.png' });
 
@@ -128,6 +128,22 @@ try {
 	await p.getByRole('button', { name: '¡Grande!' }).click();
 	await p.locator('.historial li button.fila').first().click();
 	ok(await p.getByText('Ubicación cargada a mano').isVisible(), 'el registro queda con la ubicación cargada a mano');
+
+	// Fuera de la Argentina: se registra y se publica igual; no se sugieren baños.
+	await p.getByRole('button', { name: '💩 Registrar' }).click();
+	await p.getByRole('radio', { name: 'Al aire libre' }).click();
+	await p.getByRole('button', { name: /Escribirla/ }).click();
+	await campo().fill('40.4168, -3.7038');
+	await p.getByRole('button', { name: 'Buscar' }).click();
+	await p.getByText('Fuera de la Argentina').waitFor();
+	ok((await p.getByText('¿En cuál?').count()) === 0, 'fuera de la Argentina no se sugieren baños');
+	await p.getByLabel(/Sumarla al mapa público/).check();
+	await p.getByRole('button', { name: 'Guardar' }).click();
+	await p.getByRole('button', { name: 'Sí, hacerla pública' }).click();
+	await p.getByRole('heading', { name: /Tu caca es la N.º 1 del mapa público/ }).waitFor();
+	await p.getByRole('button', { name: '¡Grande!' }).click();
+	const [madrid] = await sql`select lat, lon from publicaciones`;
+	ok(madrid?.lat === 40.4168 && madrid?.lon === -3.7038, 'se publica desde cualquier país (Madrid)');
 	ok(errores.length === 0, `sin errores de consola${errores.length ? ': ' + errores.join(' | ') : ''}`);
 } catch (e) {
 	fallas++;

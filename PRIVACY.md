@@ -714,6 +714,11 @@ el registro, "empezar de cero" o borrar la cuenta la borran en el acto. Tope de
   seudónimo da una cota inferior de su frecuencia. Solo de lo que eligió
   publicar.
 
+**(i5) Desde cualquier país.** Se puede registrar y publicar fuera de la
+Argentina: el punto publicado dice entonces en qué país estuvo la persona ese
+día (como cualquier punto). Los baños del catálogo siguen siendo solo de la
+Argentina.
+
 **Cuesta.** Es la primera superficie pública con datos individuales y
 seudónimo. La política de privacidad publicada cambió (versión
 `privacidad-borrador-2026-10-30c`) y la revisión legal pendiente (Q-L*) tiene
@@ -780,7 +785,7 @@ Apple Maps, Waze, `geo:`) o una dirección. Las coordenadas y los links largos
 se leen **en el celular**. Dos casos pasan por nuestro servidor, con sesión y
 con límite de pedidos: los links cortos (`maps.app.goo.gl`), que el servidor
 sigue sin bajar las páginas y solo hacia dominios de Google, y las direcciones,
-que el servidor busca en Nominatim (OpenStreetMap), solo en la Argentina. Lo
+que el servidor busca en Nominatim (OpenStreetMap), en todo el mundo. Lo
 buscado no se guarda ni se escribe en logs; la respuesta vuelve al celular y
 la ubicación queda, como siempre, cifrada en el historial.
 

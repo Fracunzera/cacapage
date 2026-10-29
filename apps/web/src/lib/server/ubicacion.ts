@@ -39,7 +39,7 @@ async function turno() {
 export async function buscarDireccion(q: string, url: string, origen: string, f: typeof fetch = fetch): Promise<Resultado[]> {
 	await turno();
 	const u = new URL(url);
-	u.search = new URLSearchParams({ q, format: 'jsonv2', countrycodes: 'ar', limit: '5', 'accept-language': 'es' }).toString();
+	u.search = new URLSearchParams({ q, format: 'jsonv2', limit: '5', 'accept-language': 'es' }).toString();
 	const r = await f(u, {
 		headers: { 'user-agent': `DondeCague/1.0 (+${origen}; dondecague@gmail.com)`, referer: origen },
 		signal: AbortSignal.timeout(10_000)

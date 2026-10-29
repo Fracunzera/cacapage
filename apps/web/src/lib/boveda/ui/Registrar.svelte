@@ -66,6 +66,12 @@
 		ubicacion = { lat: p.lat, lon: p.lon, precision, fuente, texto };
 		fueraDelPais = !enArgentina(p);
 		direcciones = [];
+		// Los baños del catálogo son solo de la Argentina: afuera no se sugieren.
+		if (fueraDelPais) {
+			cerca = [];
+			banioId = null;
+			return;
+		}
 		try {
 			const cat = (await (await fetch('/api/v1/banios')).json()) as Catalogo;
 			const r = candidatos(cat.banios, p, precision, momento);
@@ -243,7 +249,9 @@
 			Solo la ves vos.
 			<button type="button" class="u-enlace cambiar" onclick={cambiarUbicacion}>Cambiar</button>
 		</p>
-		{#if fueraDelPais}<p class="u-ayuda aviso">Ojo: ese lugar queda fuera de la Argentina.</p>{/if}
+		{#if fueraDelPais}
+			<p class="u-ayuda">🌍 Fuera de la Argentina: se guarda igual, pero todavía no tenemos baños de ahí para sugerirte.</p>
+		{/if}
 		{#if cerca.length && !enCasa}
 			<fieldset class="banios">
 				<legend>¿En cuál?</legend>

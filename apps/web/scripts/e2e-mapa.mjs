@@ -37,9 +37,11 @@ const overpass = createServer((req, res) => {
 
 const teselas = await mkdtemp(join(tmpdir(), 'teselas-'));
 if (process.env.E2E_PMTILES) await copyFile(process.env.E2E_PMTILES, join(teselas, 'argentina.pmtiles'));
+// E2E_PMTILES_MUNDO: un mundo.pmtiles (alcanza con uno chico, hasta zoom 4).
+if (process.env.E2E_PMTILES_MUNDO) await copyFile(process.env.E2E_PMTILES_MUNDO, join(teselas, 'mundo.pmtiles'));
 
 const BASE = 'http://localhost:4178';
-const app = spawn('node', ['build'], {
+const app = spawn('node', ['servidor.js'], {
 	env: {
 		...process.env,
 		ENTORNO: 'produccion',
@@ -99,10 +101,15 @@ try {
 		viewport: { width: 390, height: 780 }
 	});
 	const pagina = await contexto.newPage();
+	const pedidosTeselas = new Set();
+	pagina.on('request', (r) => r.url().includes('/tiles/') && pedidosTeselas.add(new URL(r.url()).pathname));
 	const errores = [];
 	pagina.on('console', (m) => {
 		// Sin mapa base, el chequeo de /tiles da 404 a propósito.
-		const esperado = !process.env.E2E_PMTILES && m.location().url.endsWith('/tiles/argentina.pmtiles');
+		const url = m.location().url;
+		const esperado =
+			(!process.env.E2E_PMTILES && url.endsWith('/tiles/argentina.pmtiles')) ||
+			(!process.env.E2E_PMTILES_MUNDO && url.endsWith('/tiles/mundo.pmtiles'));
 		if (m.type() === 'error' && !esperado) errores.push(`${m.text()} (${m.location().url})`);
 	});
 	pagina.on('pageerror', (e) => errores.push(String(e)));
@@ -111,6 +118,8 @@ try {
 	await pagina.waitForFunction(() => document.querySelector('canvas.maplibregl-canvas'));
 	await esperar(2500);
 	await pagina.screenshot({ path: join(process.env.E2E_CAPTURAS ?? teselas, 'mapa-pais.png') });
+	if (process.env.E2E_PMTILES_MUNDO)
+		ok(pedidosTeselas.has('/tiles/mundo.pmtiles') && pedidosTeselas.has('/tiles/argentina.pmtiles'), 'con los dos archivos, el mapa usa mundo y Argentina');
 	await pagina.getByRole('button', { name: /Cerca mío/ }).click();
 	await pagina.getByRole('heading', { name: 'Los más cercanos' }).waitFor();
 	await esperar(2500);

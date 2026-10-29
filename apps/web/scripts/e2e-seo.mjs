@@ -18,7 +18,7 @@ const ok = (c, t) => {
 
 async function levantar(entorno, puerto) {
 	const base = `http://localhost:${puerto}`;
-	const p = spawn('node', ['build'], {
+	const p = spawn('node', ['servidor.js'], {
 		env: {
 			...process.env,
 			ENTORNO: entorno,

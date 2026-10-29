@@ -67,6 +67,7 @@
 	async function asociarMail() {
 		mandando = true;
 		error = null;
+		error = null;
 		try {
 			await api('/cuenta/mail', { cuerpo: { mail } });
 			mailMandado = true;
@@ -233,7 +234,12 @@
 	{:else if !error}
 		<p>Cargando…</p>
 	{/if}
-	{#if error}<p class="u-error" role="alert">{error}</p>{/if}
+	{#if error}
+		<p class="u-error" role="alert">
+			{error}
+			{#if error.includes('volvé a entrar')}<a href="/app/entrar?modo=entrar">Volver a entrar</a>{/if}
+		</p>
+	{/if}
 </main>
 
 <style>

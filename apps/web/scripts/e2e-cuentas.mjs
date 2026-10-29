@@ -24,7 +24,7 @@ const sql = postgres(DATABASE_URL, { onnotice: () => {} });
 await sql.unsafe('drop schema if exists osm cascade; drop schema public cascade; create schema public;');
 
 async function levantar(entorno, extra = {}) {
-	const proceso = spawn('node', ['build'], {
+	const proceso = spawn('node', ['servidor.js'], {
 		env: {
 			...process.env,
 			ENTORNO: entorno,
@@ -308,6 +308,20 @@ const errores = [];
 		await p.getByRole('button', { name: 'Continuar' }).click();
 		await p.getByText('¡Listo! Ya podés entrar con un link a tu mail.').waitFor();
 		verificar(await p.getByText('Tenés un mail asociado').isVisible(), 'asociar mail: queda asociado');
+
+		// Cambiar o quitar el mail pide haber entrado hace menos de 5 minutos.
+		await sql`update sesiones set reautenticada_hasta = now() - interval '1 minute'`;
+		const sinReauth = await p.request.post(BASE + '/api/v1/cuenta/mail', { data: { mail: 'otro.mail@ejemplo.com' } });
+		const quitarSinReauth = await p.request.delete(BASE + '/api/v1/cuenta/mail');
+		verificar(sinReauth.status() === 403 && quitarSinReauth.status() === 403, 'cambiar o quitar el mail sin reautenticación: 403');
+		await p.goto(BASE + '/app/cuenta');
+		await p.getByRole('button', { name: 'Cambiar mail' }).click();
+		await p.getByLabel('Tu mail').fill('otro.mail@ejemplo.com');
+		await p.getByRole('button', { name: 'Mandarme el link' }).click();
+		await p.getByRole('link', { name: 'Volver a entrar' }).waitFor();
+		verificar(true, 'en "Mi cuenta" pide volver a entrar, con el link');
+		await sql`update sesiones set reautenticada_hasta = now() + interval '5 minutes'`;
+		await p.goto(BASE + '/app/cuenta');
 
 		// Un mail que ya es de otra cuenta: misma respuesta, el aviso va al mail.
 		await p.request.delete(BASE + '/api/v1/cuenta/mail');

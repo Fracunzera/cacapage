@@ -6,7 +6,7 @@
 	import urlTrabajador from 'maplibre-gl/dist/maplibre-gl-csp-worker.js?url';
 	import Logo from '$lib/ui/Logo.svelte';
 	import Seo from '$lib/ui/Seo.svelte';
-	import { ARGENTINA, estiloBase } from '$lib/banios/estilo';
+	import { ARGENTINA, detectarTeselas, estiloBase } from '$lib/banios/estilo';
 	import { cumple, frescura, lineas, procedencia, titulo, VIDA_MESES } from '$lib/banios/presentar';
 	import { NOMBRE_CATEGORIA, type Banio, type Catalogo } from '$lib/banios/tipos';
 	import type { Publicacion } from '$lib/publicaciones';
@@ -137,23 +137,20 @@
 				import('maplibre-gl/dist/maplibre-gl-csp.js'),
 				import('pmtiles'),
 				fetch('/api/v1/banios'),
-				fetch('/tiles/argentina.pmtiles', { headers: { range: 'bytes=0-0' } }).then((r) => r.ok, () => false)
+				detectarTeselas()
 			]);
 			if (!vivo) return;
 			catalogo = respuesta.ok ? ((await respuesta.json()) as Catalogo) : { osm_base: null, importado_en: null, atribucion: '', banios: [] };
 			porId = new Map(catalogo.banios.map((b) => [b.id, b]));
-			sinMapaBase = !teselas;
+			sinMapaBase = !teselas.argentina && !teselas.mundo;
 
 			maplibregl.setWorkerUrl(urlTrabajador);
 			maplibregl.addProtocol('pmtiles', new Protocol().tile);
 			const m = new maplibregl.Map({
 				container: contenedor,
 				style: estiloBase(location.origin, teselas),
+				// Arranca en la Argentina, pero se puede ir a cualquier lado.
 				bounds: ARGENTINA,
-				maxBounds: [
-					[-90, -60],
-					[-40, -15]
-				],
 				attributionControl: { compact: true },
 				locale: {
 					'NavigationControl.ZoomIn': 'Acercar',
@@ -190,7 +187,7 @@
 					type: 'symbol',
 					source: 'banios',
 					filter: ['has', 'point_count'],
-					layout: teselas
+					layout: !sinMapaBase
 						? { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Medium'], 'text-size': 13 }
 						: {},
 					paint: { 'text-color': '#3b2314' }

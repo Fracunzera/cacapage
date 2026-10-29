@@ -20,7 +20,7 @@ await sql.unsafe('drop schema if exists osm cascade; drop schema public cascade;
 
 const BASE = 'http://localhost:4180';
 const CAPTURAS = process.env.E2E_CAPTURAS ?? tmpdir();
-const app = spawn('node', ['build'], {
+const app = spawn('node', ['servidor.js'], {
 	env: {
 		...process.env,
 		ENTORNO: 'produccion',
@@ -71,7 +71,7 @@ async function celular() {
 	});
 	const p = await contexto.newPage();
 	// Sin mapa base en esta prueba: el chequeo de /tiles da 404 a propósito.
-	p.on('console', (m) => m.type() === 'error' && !m.location().url.endsWith('/tiles/argentina.pmtiles') && errores.push(`${m.text()} (${m.location().url})`));
+	p.on('console', (m) => m.type() === 'error' && !/\/tiles\/(argentina|mundo)\.pmtiles$/.test(m.location().url) && errores.push(`${m.text()} (${m.location().url})`));
 	p.on('pageerror', (e) => errores.push(String(e)));
 	p.on('dialog', (d) => d.accept());
 	return p;

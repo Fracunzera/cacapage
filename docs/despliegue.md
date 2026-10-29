@@ -134,25 +134,40 @@ Dos partes, y la primera es automática:
    Si los tres servidores de Overpass fallan, queda registrado y se reintenta
    a las 6 horas. Mientras tanto se sigue mostrando la importación anterior.
 
-2. **El mapa base** (calles, ciudades): un archivo `teselas/argentina.pmtiles`
-   en la carpeta del repo. Sin ese archivo, el mapa muestra los baños sobre un
-   fondo liso. Se baja una vez (1,1 GB, tarda unos minutos) y conviene
-   renovarlo cada algunos meses:
+2. **El mapa base**: dos archivos en `teselas/`, en la carpeta del repo. Se
+   sirven en `/tiles/argentina.pmtiles` y `/tiles/mundo.pmtiles`.
+   - `argentina.pmtiles`: la Argentina hasta zoom 14 (cada cuadra), 1,1 GB.
+   - `mundo.pmtiles`: todo el mundo hasta zoom 8 (países, ciudades, rutas y
+     ríos), 560 MB.
+
+   El mapa usa el mundo de fondo y, desde el zoom 9, encima el detalle de la
+   Argentina. Si falta uno, funciona con el otro; si faltan los dos, muestra
+   los baños sobre un fondo liso.
+
+   **Siempre a un `.tmp` y después `mv`:** `pmtiles extract` tarda varios
+   minutos y la app lee el archivo mientras tanto; `mv` lo reemplaza de una
+   sola vez. Para bajarlos (la primera vez) o renovarlos (cada algunos meses):
 
    ```sh
    cd ~/cacapage
    mkdir -p teselas ~/bin
+   # Una sola vez: el programa pmtiles (si `uname -m` dice aarch64, cambiá x86_64 por arm64)
    curl -L https://github.com/protomaps/go-pmtiles/releases/download/v1.28.0/go-pmtiles_1.28.0_Linux_x86_64.tar.gz | tar xz -C ~/bin pmtiles
-   ~/bin/pmtiles extract https://build.protomaps.com/$(date -d yesterday +%Y%m%d).pmtiles teselas/argentina.pmtiles \
-       --bbox=-73.6,-55.1,-53.6,-21.7 --maxzoom=14
-   docker compose --env-file .env -f infra/docker-compose.yml up -d
+
+   FECHA=$(date -d yesterday +%Y%m%d)   # los builds diarios de Protomaps se llaman AAAAMMDD
+   ~/bin/pmtiles extract https://build.protomaps.com/$FECHA.pmtiles teselas/argentina.pmtiles.tmp \
+       --bbox=-73.6,-55.1,-53.6,-21.7 --maxzoom=14 && mv teselas/argentina.pmtiles.tmp teselas/argentina.pmtiles
+   ~/bin/pmtiles extract https://build.protomaps.com/$FECHA.pmtiles teselas/mundo.pmtiles.tmp \
+       --maxzoom=8 && mv teselas/mundo.pmtiles.tmp teselas/mundo.pmtiles
+
+   # Que el contenedor (usuario node) los pueda leer
+   chmod 644 teselas/*.pmtiles
    ```
 
-   Si el VPS no es x86_64 (`uname -m` dice `aarch64`), cambiar `x86_64` por
-   `arm64` en el link. `--maxzoom=14` alcanza para ver cada cuadra; con 13 pesa
-   la mitad (558 MB) y con 15, el doble.
-
-   No hace falta tocar nginx: la app sirve el archivo por rangos.
+   No hace falta reiniciar ni tocar nginx: la app lee los archivos en cada
+   pedido, por rangos. Si un archivo no se puede leer (por ejemplo, quedó con
+   permisos `600` de root), `/tiles/…` responde 500 y el log dice
+   `Teselas: no se puede abrir … (EACCES)`: es el `chmod 644` de arriba.
 
 Para probar: `https://dondecague.com.ar/mapa`, "Cerca mío". La ubicación se usa
 solo en el celular (PRIVACY.md P-36).

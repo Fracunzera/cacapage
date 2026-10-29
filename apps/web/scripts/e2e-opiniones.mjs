@@ -16,7 +16,7 @@ const sql = postgres(URL_DB, { onnotice: () => {} });
 await sql.unsafe('drop schema if exists osm cascade; drop schema public cascade; create schema public;');
 
 const BASE = 'http://localhost:4181';
-const app = spawn('node', ['build'], {
+const app = spawn('node', ['servidor.js'], {
 	env: {
 		...process.env,
 		ENTORNO: 'produccion',
@@ -137,7 +137,7 @@ try {
 	});
 	const p = await contexto.newPage();
 	const errores = [];
-	p.on('console', (m) => m.type() === 'error' && !m.location().url.endsWith('/tiles/argentina.pmtiles') && errores.push(m.text()));
+	p.on('console', (m) => m.type() === 'error' && !/\/tiles\/(argentina|mundo)\.pmtiles$/.test(m.location().url) && errores.push(m.text()));
 	await p.request.post(BASE + '/api/v1/auth/clave/alta', {
 		data: { seudonimo: 'eva_banios', clave: 'una frase bastante larga', mayor_de_edad: true, acepta_terminos: true }
 	});

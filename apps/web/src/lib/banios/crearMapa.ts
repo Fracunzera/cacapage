@@ -2,18 +2,15 @@
 // teselas propias y fuentes propias (PRIVACY.md P-16).
 import type { Map as Mapa } from 'maplibre-gl';
 import urlTrabajador from 'maplibre-gl/dist/maplibre-gl-csp-worker.js?url';
-import { ARGENTINA, estiloBase } from './estilo';
+import { ARGENTINA, detectarTeselas, estiloBase, type Teselas } from './estilo';
 
 let protocolo = false;
 
-export async function crearMapa(contenedor: HTMLElement): Promise<{ mapa: Mapa; conTeselas: boolean }> {
-	const [{ default: maplibregl }, { Protocol }, conTeselas] = await Promise.all([
+export async function crearMapa(contenedor: HTMLElement): Promise<{ mapa: Mapa; teselas: Teselas }> {
+	const [{ default: maplibregl }, { Protocol }, teselas] = await Promise.all([
 		import('maplibre-gl/dist/maplibre-gl-csp.js'),
 		import('pmtiles'),
-		fetch('/tiles/argentina.pmtiles', { headers: { range: 'bytes=0-0' } }).then(
-			(r) => r.ok,
-			() => false
-		)
+		detectarTeselas()
 	]);
 	if (!protocolo) {
 		maplibregl.setWorkerUrl(urlTrabajador);
@@ -22,7 +19,7 @@ export async function crearMapa(contenedor: HTMLElement): Promise<{ mapa: Mapa; 
 	}
 	const mapa = new maplibregl.Map({
 		container: contenedor,
-		style: estiloBase(location.origin, conTeselas),
+		style: estiloBase(location.origin, teselas),
 		bounds: ARGENTINA,
 		attributionControl: { compact: true },
 		locale: {
@@ -33,7 +30,7 @@ export async function crearMapa(contenedor: HTMLElement): Promise<{ mapa: Mapa; 
 	});
 	mapa.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 	await new Promise<void>((ok) => mapa.once('load', () => ok()));
-	return { mapa, conTeselas };
+	return { mapa, teselas };
 }
 
 /** Encuadra los puntos; con uno solo, acerca a nivel de barrio. */

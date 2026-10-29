@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { normalizarSeudonimo, problemaAlta, type DatosAlta } from '$lib/cuentas/validacion';
 import { seudonimoLibre } from '$lib/server/auth/cuentas';
 import { iniciar, type ModoGoogle } from '$lib/server/auth/google';
-import { leerSesion } from '$lib/server/auth/sesiones';
+import { leerSesion, PEDIR_REAUTENTICACION } from '$lib/server/auth/sesiones';
 import { cuerpoJson, limitarPorIp } from '$lib/server/http';
 
 /** Devuelve la URL de Google a la que tiene que ir el navegador. */
@@ -19,6 +19,7 @@ export const POST = async (event) => {
 	if (modo === 'vincular') {
 		const sesion = await leerSesion(event.cookies);
 		if (!sesion) error(401, 'No hay sesión.');
+		if (!sesion.reautenticada) error(403, PEDIR_REAUTENTICACION);
 		return json({ url: iniciar(event.cookies, 'vincular', { cuenta: sesion.id }) });
 	}
 	if (modo !== 'entrar') error(400, 'Modo inválido.');
