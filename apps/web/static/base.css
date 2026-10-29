@@ -203,3 +203,85 @@ input {
 	text-decoration-thickness: 3px;
 	cursor: pointer;
 }
+
+/* Pantallas de mapa a pantalla completa (Mi mapa, mapa de cacas). */
+body:has(.u-pantalla-mapa) {
+	display: flex;
+	flex-direction: column;
+	height: 100dvh;
+	overflow: hidden;
+}
+.u-pantalla-mapa {
+	position: relative;
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+}
+.u-lienzo {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+}
+.u-filtros {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	padding: 8px 16px;
+	overflow-x: auto;
+	background: var(--crema);
+	border-bottom: 2px solid var(--tinta);
+}
+.u-chip {
+	flex: none;
+	min-height: 36px;
+	padding: 4px 12px;
+	border: 2px solid var(--tinta);
+	border-radius: 999px;
+	background: var(--papel);
+	color: var(--tinta);
+	font-family: inherit;
+	font-size: 15px;
+	font-weight: 600;
+	cursor: pointer;
+}
+.u-chip[aria-pressed='true'] {
+	background: var(--tinta);
+	color: var(--sol);
+}
+/* Ficha que sube desde abajo, encima del mapa. */
+.u-hoja {
+	position: absolute;
+	z-index: 3;
+	left: 8px;
+	right: 8px;
+	bottom: 8px;
+	max-width: 30rem;
+	max-height: 60%;
+	margin: 0 auto;
+	overflow-y: auto;
+	padding: 16px 16px 14px;
+	border: var(--borde);
+	border-radius: var(--radio);
+	background: var(--papel);
+	box-shadow: var(--sombra);
+}
+.u-cerrar {
+	float: right;
+	width: 36px;
+	height: 36px;
+	border: 2px solid var(--tinta);
+	border-radius: 50%;
+	background: var(--crema);
+	color: var(--tinta);
+	font-size: 16px;
+	cursor: pointer;
+}
+.u-pie-mapa {
+	margin: 0;
+	padding: 5px 16px calc(5px + env(safe-area-inset-bottom));
+	background: var(--crema);
+	border-top: 2px solid var(--tinta);
+	color: var(--tinta-suave);
+	font-size: 13px;
+}

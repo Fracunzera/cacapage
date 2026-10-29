@@ -154,7 +154,7 @@
 		<h2>¿Empezar de cero?</h2>
 		<p>
 			Sin el código, tu historial no se puede abrir: está cifrado y no tenemos copia de la llave. Podés empezar uno
-			nuevo, pero <strong>el anterior se borra para siempre</strong>, con sus medallas.
+			nuevo, pero <strong>el anterior se borra para siempre</strong>, con sus medallas y sus cacas públicas.
 		</p>
 		<button type="button" class="u-boton peligro" disabled={ocupado} onclick={empezarDeCero}>Borrar y empezar de cero</button>
 		<button type="button" class="u-enlace" onclick={() => (paso = 'recuperar')}>Mejor busco el código</button>

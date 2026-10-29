@@ -1,7 +1,31 @@
 <script lang="ts">
 	import { TIPOS, type Registro } from '../modelo';
+	import { sePuedePublicar } from '../publicar';
+	import ConfirmarPublico from './ConfirmarPublico.svelte';
 
-	let { registros, onborrar }: { registros: Registro[]; onborrar: (r: Registro) => void } = $props();
+	let {
+		registros,
+		seudonimo,
+		onborrar,
+		onpublico
+	}: {
+		registros: Registro[];
+		seudonimo: string;
+		onborrar: (r: Registro) => void;
+		onpublico: (r: Registro, publico: boolean) => Promise<void>;
+	} = $props();
+	let confirmando = $state.raw<Registro | null>(null);
+	let cambiando = $state<string | null>(null);
+
+	async function cambiar(r: Registro, publico: boolean) {
+		confirmando = null;
+		cambiando = r.id;
+		try {
+			await onpublico(r, publico);
+		} finally {
+			cambiando = null;
+		}
+	}
 
 	const TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
 	const mes = (iso: string) => {
@@ -33,13 +57,21 @@
 					<span class="icono" aria-hidden="true">{TIPO[r.tipo]?.icono}</span>
 					<span class="que">
 						<strong>{r.banio_nombre ?? TIPO[r.tipo]?.texto}</strong>
-						<small>{dia(r.ocurrido_en)}{r.sin_papel ? ' · sin papel' : ''}{r.comentario ? ' · 📝' : ''}</small>
+						<small
+							>{dia(r.ocurrido_en)}{r.sin_papel ? ' · sin papel' : ''}{r.comentario ? ' · 📝' : ''}{r.publico ? ' · 🌎 pública' : ''}</small
+						>
 					</span>
 				</button>
 				{#if abierto === r.id}
 					<div class="detalle">
 						{#if r.comentario}<p class="comentario">“{r.comentario}”</p>{/if}
 						{#if r.lat !== undefined}<p class="u-ayuda">📍 Con ubicación (±{r.precision_m} m)</p>{/if}
+						{#if r.publico}
+							<p class="u-ayuda">🌎 Está en el mapa público de cacas.</p>
+							<button type="button" class="u-enlace" disabled={cambiando === r.id} onclick={() => cambiar(r, false)}>🔒 Hacerla privada</button>
+						{:else if sePuedePublicar(r)}
+							<button type="button" class="u-enlace" disabled={cambiando === r.id} onclick={() => (confirmando = r)}>🌎 Hacerla pública</button>
+						{/if}
 						<button
 							type="button"
 							class="u-enlace borrar"
@@ -55,6 +87,11 @@
 {:else}
 	<p class="vacio">Todavía no registraste nada. El trono te espera.</p>
 {/each}
+
+{#if confirmando}
+	{@const r = confirmando}
+	<ConfirmarPublico registro={r} {seudonimo} onsi={() => cambiar(r, true)} onno={() => (confirmando = null)} />
+{/if}
 
 <style>
 	h3 {
@@ -112,6 +149,9 @@
 	.comentario {
 		margin: 0 0 6px;
 		font-style: italic;
+	}
+	.detalle .u-enlace {
+		margin-right: 16px;
 	}
 	.borrar {
 		color: var(--rojo);

@@ -7,8 +7,14 @@
 	import type { Banio, Catalogo } from '$lib/banios/tipos';
 	import { COMENTARIO_MAX, TIPOS, type Registro, type Tipo } from '../modelo';
 	import { candidatos } from '../candidatos';
+	import { sePuedePublicar } from '../publicar';
+	import ConfirmarPublico from './ConfirmarPublico.svelte';
 
-	let { onguardar, oncancelar }: { onguardar: (r: Registro) => Promise<void>; oncancelar: () => void } = $props();
+	let {
+		seudonimo,
+		onguardar,
+		oncancelar
+	}: { seudonimo: string; onguardar: (r: Registro, publico: boolean) => Promise<void>; oncancelar: () => void } = $props();
 
 	const EJEMPLOS = [
 		'Se cortó la luz en lo mejor…',
@@ -30,6 +36,8 @@
 	let cerca = $state<{ banio: Banio; distancia: number }[]>([]);
 	let banioId = $state<string | null>(null);
 	let guardando = $state(false);
+	let publico = $state(false);
+	let confirmando = $state.raw<Registro | null>(null);
 	let error = $state<string | null>(null);
 
 	const local = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -38,6 +46,13 @@
 	const enCasa = $derived(tipo === 'casa' || tipo === 'laburo' || tipo === 'casa_ajena');
 	const momento = $derived(ahora || !cuando ? new Date() : new Date(cuando));
 	const enElFuturo = $derived(!ahora && momento.getTime() > Date.now() + 60_000);
+	const banioElegido = $derived(enCasa ? undefined : cerca.find((c) => c.banio.id === banioId)?.banio);
+	const publicable = $derived(
+		tipo !== null && sePuedePublicar({ tipo, banio_id: banioElegido?.id, lat: ubicacion?.lat })
+	);
+	$effect(() => {
+		if (!publicable) publico = false;
+	});
 
 	function ubicar() {
 		if (!('geolocation' in navigator)) {
@@ -72,12 +87,10 @@
 		if (id && (!tipo || enCasa)) tipo = 'banio_publico';
 	}
 
-	async function guardar() {
-		if (!tipo || enElFuturo) return;
-		guardando = true;
-		error = null;
-		const elegido = cerca.find((c) => c.banio.id === banioId)?.banio;
-		const r: Registro = {
+	function armar(): Registro | null {
+		if (!tipo || enElFuturo) return null;
+		const elegido = banioElegido;
+		return {
 			id: crypto.randomUUID(),
 			ocurrido_en: momento.toISOString(),
 			tipo,
@@ -87,8 +100,21 @@
 			...(sinPapel ? { sin_papel: true } : {}),
 			...(comentario.trim() ? { comentario: comentario.trim().slice(0, COMENTARIO_MAX) } : {})
 		};
+	}
+
+	function pedirGuardar() {
+		const r = armar();
+		if (!r) return;
+		if (publico) confirmando = r;
+		else void guardar(r, false);
+	}
+
+	async function guardar(r: Registro, comoPublico: boolean) {
+		confirmando = null;
+		guardando = true;
+		error = null;
 		try {
-			await onguardar(r);
+			await onguardar(r, comoPublico);
 		} catch {
 			error = 'No se pudo guardar. Probá de nuevo.';
 			guardando = false;
@@ -150,12 +176,35 @@
 		<span class="pie-anecdota"><span>🔒 Solo lo ves vos</span><span>{comentario.length}/{COMENTARIO_MAX}</span></span>
 	</label>
 
-	<button type="button" class="u-boton" disabled={!tipo || guardando || enElFuturo} onclick={guardar}>
+	{#if tipo && !enCasa}
+		<label class="u-check publico">
+			<input type="checkbox" bind:checked={publico} disabled={!publicable} />
+			<span>
+				🌎 Sumarla al mapa público de cacas
+				{#if !publicable}<small>Necesita la ubicación.</small>{/if}
+			</span>
+		</label>
+	{/if}
+
+	<button type="button" class="u-boton" disabled={!tipo || guardando || enElFuturo} onclick={pedirGuardar}>
 		{guardando ? 'Guardando…' : tipo ? 'Guardar' : 'Elegí dónde fue'}
 	</button>
 	<button type="button" class="u-enlace" onclick={oncancelar}>Cancelar</button>
 	{#if error}<p class="u-error" role="alert">{error}</p>{/if}
 </section>
+
+{#if confirmando}
+	{@const r = confirmando}
+	<ConfirmarPublico
+		registro={r}
+		{seudonimo}
+		onsi={() => guardar(r, true)}
+		onno={() => {
+			confirmando = null;
+			publico = false;
+		}}
+	/>
+{/if}
 
 <style>
 	h2 {
@@ -252,6 +301,11 @@
 	}
 	.papel {
 		margin-top: 12px;
+	}
+	.publico small {
+		display: block;
+		color: var(--tinta-suave);
+		font-size: 13px;
 	}
 	.anecdota {
 		display: block;

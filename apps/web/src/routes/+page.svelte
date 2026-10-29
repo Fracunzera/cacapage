@@ -50,6 +50,7 @@
 		<a class="boton principal" href="/app/entrar">Crear mi cuenta</a>
 		<p class="aclaracion">¿Ya tenés? <a href="/app/entrar?modo=entrar">Entrá acá</a>.</p>
 		<a class="boton secundario" href="/mapa">🧻 Buscar un baño cerca</a>
+		<a class="boton secundario" href="/cacas">🌎 Ver el mapa de cacas</a>
 		{#if data.esPrueba}
 			<a class="boton secundario" href="/app/relevamiento">Relevar baños en la calle</a>
 		{/if}

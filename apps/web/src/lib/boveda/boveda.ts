@@ -198,7 +198,9 @@ export class Boveda {
 	}
 
 	/** Guarda (o actualiza) un registro y devuelve las medallas o logros nuevos. */
-	async guardar(r: Registro): Promise<Novedad[]> {
+	async guardar(registro: Registro): Promise<Novedad[]> {
+		// Copia plana: lo que llega de la interfaz puede ser un proxy reactivo, que IndexedDB no sabe guardar.
+		const r = JSON.parse(JSON.stringify(registro)) as Registro;
 		const mes = mesDe(r.ocurrido_en);
 		const p = await this.pagina(mes, (): PaginaMes => ({ v: 1, tipo: 'mes', mes, registros: [] }));
 		const contenido = mezclar(p.contenido as PaginaMes, { v: 1, tipo: 'mes', mes, registros: [r] });

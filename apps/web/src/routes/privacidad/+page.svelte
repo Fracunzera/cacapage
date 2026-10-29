@@ -25,11 +25,22 @@
 			del mail y no se puede revertir) para reconocerlo la próxima vez. El mail en sí solo se usa para mandarte el link.
 		</li>
 		<li><strong>Tu sesión:</strong> un identificador para que no tengas que entrar cada vez. Vence a los 30 días.</li>
+		<li>
+			<strong>Tu historial</strong> (dónde y cuándo hiciste, tus anécdotas, tus medallas): cifrado en tu celular antes
+			de subirlo. Guardamos bytes que no podemos leer; la llave la tenés vos, con tu código de recuperación. Ni
+			siquiera sabemos cuántos registros tenés.
+		</li>
+		<li>
+			<strong>Lo que vos elegís hacer público.</strong> Si marcás una caca como pública, guardamos y mostramos a
+			cualquiera, en el mapa de cacas: tu seudónimo, el día (no la hora), el tipo de lugar, y el baño o el punto
+			donde estabas (redondeado a unos 10 metros). Aparece unas horas después. Lo de casa, el laburo o lo de alguien
+			no se puede hacer público. La podés volver a poner privada cuando quieras y se borra en el acto.
+		</li>
 	</ul>
 
 	<h2>Qué no guardamos</h2>
 	<ul>
-		<li>Tu ubicación. El servidor nunca recibe tus coordenadas.</li>
+		<li>Tu ubicación, salvo la de las cacas que vos hacés públicas, una por una.</li>
 		<li>Tu dirección IP ni datos de tu navegador asociados a tu cuenta.</li>
 		<li>Nada sobre tu cuerpo o tu salud.</li>
 	</ul>

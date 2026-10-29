@@ -57,6 +57,7 @@ individuales:**
 | Insignias públicas | Público, opt-in | Que la persona completó un logro | Sin lugar ni fecha; las de ruta solo completas (P-20). |
 | Tarjetas compartibles | Quien reciba el link | Lo mismo que la insignia; **(i3)** para medallas, el nombre implica la cantidad de registros (múltiplo de 5) | Acto explícito del usuario en el momento; sin fecha ni lugar (P-33). |
 | **(i3)** Anuncio de medalla a amigos | Amigos elegidos | Que hubo un registro ese día | Solo si el usuario lo pide para esa medalla; cola diferida (P-33). |
+| **(i5)** Mapa de cacas (`/cacas`) y visitas públicas en la ficha de un baño | Público, sin cuenta | **Registro individual con seudónimo:** el baño o el punto (±11 m), el tipo de lugar y el día | **Excepción a la regla de abajo, por decisión del producto (P-38):** opt-in registro por registro con advertencia explícita, nunca casa/laburo/lo de alguien, sin hora, 2 h de demora, despublicar borra en el acto. |
 
 **Regla para cualquier superficie nueva** (vista social, perfil público, liga,
 ranking, mapa general, estadísticas para comercios adheridos):
@@ -67,6 +68,10 @@ ranking, mapa general, estadísticas para comercios adheridos):
    (destinatarios elegidos, etiqueta de zona, viajes a la vuelta, vencimiento);
 3. y en ambos casos se agrega a esta tabla y se repite el ejercicio de ataque
    de desanonimización antes de implementarla.
+
+**(i5)** El mapa de cacas no cumple el punto 2: es individual, público y con
+seudónimo. Se adoptó igual, como decisión del producto, con las protecciones y
+el ejercicio de ataque de P-38.
 
 Una superficie que no está en esta tabla no existe. Si alguien la agrega sin
 pasar por acá, reintroduce el problema que este documento entero intenta
@@ -668,13 +673,56 @@ historial de otra persona, con hora y ubicación exactas (A5).
 perdió pierde el historial (P-03): "Perdí el código" solo permite empezar de
 cero.
 
+### P-38 · (i5) Cacas públicas: opt-in por registro, con seudónimo
+
+**Estado:** adoptada por decisión del producto. Reemplaza, para lo que cada uno
+elige publicar, a P-01 ("el servidor nunca recibe coordenadas") y a la regla del
+invariante de superficies, y reactiva una forma del mapa general (X-01) que no
+es el agregado de §16.1.
+
+**Decisión.** Cada registro es privado. El dueño puede hacerlo público, uno por
+uno, al registrarlo o después (desde el historial o "Mi mapa"), siempre después
+de una advertencia que dice exactamente qué se ve. Se publica:
+
+- el seudónimo;
+- el día (no la hora);
+- el tipo de lugar (baño público, ruta, aire libre u otro);
+- si fue en un baño del catálogo, **el baño** (no la posición del usuario); si
+  no, el punto redondeado a 4 decimales (~11 m);
+- "sin papel", si lo marcó.
+
+No se publica nunca: la hora, la anécdota, la precisión del GPS. Casa, laburo y
+lo de alguien no se pueden publicar (la interfaz no lo ofrece y el servidor lo
+rechaza). Cada publicación aparece 2 horas después de hecha. Despublicar, borrar
+el registro, "empezar de cero" o borrar la cuenta la borran en el acto. Tope de
+60 publicaciones por día por cuenta.
+
+**Ejercicio de ataque.**
+- *Seguir a alguien* (A2): con el seudónimo se ve por dónde anduvo, por día.
+  Lo acotan la demora de 2 h (no hay "dónde está ahora") y que es opt-in caso
+  por caso. No se elimina: la advertencia lo dice.
+- *Encontrar la casa* (A1/A2): casa no se puede publicar, pero alguien puede
+  registrar su casa como "otro" y publicarla. La advertencia muestra que se
+  publica "el lugar donde estabas, con unos 10 m de precisión". Riesgo residual
+  aceptado por el producto.
+- *Rutina* (A2): varias publicaciones en el mismo punto en días hábiles revelan
+  un lugar habitual. Igual que el anterior.
+- *Frecuencia intestinal* (P-02, P-33): contar las publicaciones de un
+  seudónimo da una cota inferior de su frecuencia. Solo de lo que eligió
+  publicar.
+
+**Cuesta.** Es la primera superficie pública con datos individuales y
+seudónimo. La política de privacidad publicada cambió (versión
+`privacidad-borrador-2026-10-30c`) y la revisión legal pendiente (Q-L*) tiene
+que incluirla.
+
 ---
 
 ## Decisiones postergadas (i3)
 
 | Id | Qué | Por qué se posterga | Condición para volver |
 |---|---|---|---|
-| X-01 | **Mapa general** (heatmap). Era un requisito explícito del producto. | Con 5 baños y 20 usuarios, 2 a 4 celdas de ~40 encendidas: se ve roto. | DESIGN.md §16.1: un uso que el wiki no cubra y ≥ 50 cuentas elegibles activas en 90 días. Debe ser agregado con k ≥ 3 personas, multirresolución y en rangos, y pasar por el invariante de superficies. |
+| X-01 | **(i5) Reemplazado en parte por el mapa de cacas opt-in (P-38).** **Mapa general** (heatmap). Era un requisito explícito del producto. | Con 5 baños y 20 usuarios, 2 a 4 celdas de ~40 encendidas: se ve roto. | DESIGN.md §16.1: un uso que el wiki no cubra y ≥ 50 cuentas elegibles activas en 90 días. Debe ser agregado con k ≥ 3 personas, multirresolución y en rangos, y pasar por el invariante de superficies. |
 | X-02 | Ranking de macrozonas (ex P-22). | Vacío con pocos usuarios y con un historial de fuga (D-12). | Igual que X-01, solo en rangos y sin `faltan`. |
 | X-03 | **Ranking de ciudades y países** (idea del producto). Compara ciudades, **nunca personas**. | Con una ciudad piloto tiene una sola fila; además exige un aporte nuevo, porque el servidor no conoce la cantidad de registros de nadie (P-03). | DESIGN.md §16.2: ≥ 2 ciudades con ≥ 10 personas elegibles en el mismo mes. Opt-in, aporte mensual en rangos, índice con tope, países calculados solo con ciudades visibles, publicación mensual sin conteos exactos, `cuenta_id` borrado al publicar. Entra al invariante de superficies antes de implementarse. |
 

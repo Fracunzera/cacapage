@@ -60,6 +60,8 @@ terminal o shopping, y 454 comercios con `toilets=yes`) y 7.182 probables
 | 12 | Cifrado: un secreto de 32 bytes del que salen por HKDF la llave AES-GCM de las páginas y la HMAC de sus ids; las dos quedan en IndexedDB como llaves **no exportables**. El secreto se envuelve con PBKDF2-SHA256 (310 mil iteraciones) del código de 128 bits. | §6.2 y P-04: páginas mensuales con id opaco y relleno a 4 KB. La sincronización mezcla por registro (gana el último cambio; los borrados quedan marcados para que ganen en todos los celulares). |
 | 13 | **Asociar un mail a una cuenta que ya existe** (creada con passkey o contraseña), desde "Mi cuenta": `POST /api/v1/cuenta/mail` manda un link y el mail se asocia recién al abrirlo. Si la cuenta ya tenía uno, lo reemplaza; se puede quitar si queda otra forma de entrar (`DELETE`). | Pedido del producto: poder entrar con mail aunque te hayas registrado con passkey. Igual que el alta (P-12): se guarda solo el HMAC, y la respuesta es siempre 202, así que no revela si el mail ya es de otra cuenta (ese aviso le llega solo al dueño del mail). |
 | 14 | **Tope de la bóveda por cuenta:** 500 páginas y 10 MB en total; 256 KB por página. Se controla dentro de la transacción del `PUT`, con la fila de la cuenta bloqueada, y responde 413 con un mensaje claro. | Sin tope, cualquier cuenta podía usar la bóveda como disco. Con páginas mensuales de 4 KB, el tope son más de 40 años de historial. Los 256 KB por página son lo que entra en el límite de cuerpo de adapter-node (512 KB en base64). |
+| 15 | **Cacas públicas (opt-in por registro)** y **mapa de cacas** (`/cacas`), con seudónimo y día, nunca casa/laburo/lo de alguien, 2 h de demora. Tabla `publicaciones`; `PUT`/`DELETE /api/v1/publicaciones/{id}` y `GET /api/v1/publicaciones`. En un baño del catálogo se publica el baño; en el resto, el punto a ~11 m. La ficha de cada baño en `/mapa` muestra sus visitas públicas. | Decisión del producto: "que cada uno decida si es público; ver los lugares más raros donde hizo la gente". Cambia P-01 y el invariante de superficies para lo publicado: PRIVACY.md P-38. No es el mapa general agregado de §16.1, que sigue postergado. |
+| 16 | **Mi mapa** (`/app/mapa`): las cacas propias con ubicación, armado en el celular desde la bóveda, con el cambio público/privado en la ficha. | No expone nada: no sale del celular. |
 
 ### Iteración 4: alcance nacional
 
@@ -1442,6 +1444,10 @@ Ruta `/app/relevamiento`, que existe solo con `ENTORNO=prueba` (con
 ## 16. Postergado: mapa general y ranking de ciudades
 
 ### 16.1 Mapa general
+
+> **(i5)** Existe un mapa de cacas **individual y opt-in** (§0, iteración 5,
+> punto 15; PRIVACY.md P-38). Lo de abajo, el agregado anónimo, sigue
+> postergado.
 
 **Estado:** postergado, no cancelado. Era un requisito explícito del producto. v1
 sale sin él porque con 5 baños y 20 usuarios se vería roto (simulación en

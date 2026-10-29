@@ -12,6 +12,7 @@
 	import Historial from '$lib/boveda/ui/Historial.svelte';
 	import Celebracion from '$lib/boveda/ui/Celebracion.svelte';
 	import { descargar } from '$lib/boveda/ui/descargar';
+	import { cambiarPublico } from '$lib/boveda/publicar';
 
 	type Estado = 'cargando' | 'configurar' | 'lista';
 	let estado = $state<Estado>('cargando');
@@ -71,15 +72,41 @@
 		};
 	});
 
-	async function guardar(r: Registro) {
+	async function guardar(r: Registro, publico: boolean) {
 		const nuevas = await boveda!.guardar(r);
 		registrando = false;
+		if (publico) await publicar(r, true);
 		refrescar();
 		novedades = nuevas;
 		scrollTo({ top: 0 });
 	}
 
+	async function publicar(r: Registro, publico: boolean) {
+		error = null;
+		try {
+			await cambiarPublico(boveda!, r, publico);
+		} catch (e) {
+			error =
+				e instanceof ErrorApi && e.estado === 0
+					? 'Para cambiar si es pública hace falta conexión. Quedó como estaba.'
+					: e instanceof ErrorApi
+						? e.message
+						: 'No se pudo cambiar. Probá de nuevo.';
+		}
+		refrescar();
+	}
+
 	async function borrar(r: Registro) {
+		error = null;
+		if (r.publico) {
+			// Primero se saca del mapa público; sin conexión, no se borra.
+			try {
+				await cambiarPublico(boveda!, r, false);
+			} catch {
+				error = 'Esta caca es pública: para borrarla hace falta conexión.';
+				return;
+			}
+		}
 		await boveda!.borrar(r);
 		refrescar();
 	}
@@ -129,7 +156,7 @@
 			}}
 		/>
 	{:else if registrando}
-		<Registrar onguardar={guardar} oncancelar={() => (registrando = false)} />
+		<Registrar {seudonimo} onguardar={guardar} oncancelar={() => (registrando = false)} />
 	{:else}
 		<section class="u-tarjeta resumen">
 			<p class="hola">@{seudonimo}</p>
@@ -138,6 +165,10 @@
 				{#if total === 0}Tu primera visita tiene premio.{:else}Te {faltanParaLaProxima(total) === 1 ? 'falta 1' : `faltan ${faltanParaLaProxima(total)}`} para la próxima medalla.{/if}
 			</p>
 			<button type="button" class="u-boton registrar" onclick={() => (registrando = true)}>💩 Registrar</button>
+			<div class="mapas">
+				<a class="u-boton sec" href="/app/mapa">🗺️ Mi mapa</a>
+				<a class="u-boton sec" href="/cacas">🌎 Mapa de cacas</a>
+			</div>
 			{#if pendientes}
 				<p class="u-ayuda pendiente">⏳ Guardado en este celular; se sube cuando haya conexión.</p>
 			{/if}
@@ -162,7 +193,7 @@
 
 		<section class="historial">
 			<h2>Historial</h2>
-			<Historial {registros} onborrar={borrar} />
+			<Historial {registros} {seudonimo} onborrar={borrar} onpublico={publicar} />
 		</section>
 
 		<section class="pie">
@@ -205,6 +236,16 @@
 	.registrar {
 		min-height: 64px;
 		font-size: 22px;
+	}
+	.mapas {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px;
+	}
+	.mapas .u-boton {
+		min-height: 48px;
+		padding: 10px 8px;
+		font-size: 16px;
 	}
 	.pendiente {
 		margin-top: 10px;

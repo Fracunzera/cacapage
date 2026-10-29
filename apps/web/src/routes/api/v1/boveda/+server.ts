@@ -26,7 +26,7 @@ export const GET = async ({ cookies, url }) => {
 
 /**
  * Empezar de cero cuando se perdió el código de recuperación: se borran las
- * páginas y la llave envuelta. Lo cifrado ya no se puede leer, así que es
+ * páginas, la llave envuelta y las cacas públicas. Lo cifrado ya no se puede leer, así que es
  * irreversible. Exige haber entrado hace menos de 5 minutos.
  */
 export const DELETE = async ({ cookies }) => {
@@ -35,6 +35,8 @@ export const DELETE = async ({ cookies }) => {
 	await db().begin(async (tx) => {
 		await tx`delete from boveda_paginas where cuenta_id = ${sesion.id}`;
 		await tx`delete from boveda_llaves where cuenta_id = ${sesion.id}`;
+		// Sin el historial ya no se podrían despublicar: se van con él.
+		await tx`delete from publicaciones where cuenta_id = ${sesion.id}`;
 	});
 	return sinContenido();
 };

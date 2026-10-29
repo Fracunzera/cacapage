@@ -8,6 +8,7 @@
 	import { ARGENTINA, estiloBase } from '$lib/banios/estilo';
 	import { cumple, frescura, lineas, procedencia, titulo, VIDA_MESES } from '$lib/banios/presentar';
 	import { NOMBRE_CATEGORIA, type Banio, type Catalogo } from '$lib/banios/tipos';
+	import type { Publicacion } from '$lib/publicaciones';
 
 	type Filtro = 'gratis' | 'accesible' | 'cambiador';
 	const FILTROS: { id: Filtro; texto: string }[] = [
@@ -26,6 +27,8 @@
 	let aviso = $state<string | null>(null);
 	let yo = $state<{ lat: number; lon: number } | null>(null);
 	let buscando = $state(false);
+	/** Visitas que la gente eligió hacer públicas, por baño (P-38). */
+	let visitas = $state(new Map<string, Publicacion[]>());
 
 	const visibles = $derived(
 		(catalogo?.banios ?? []).filter((b) => filtros.every((f) => cumple(b, f)))
@@ -119,6 +122,14 @@
 
 	onMount(() => {
 		let vivo = true;
+		fetch('/api/v1/publicaciones')
+			.then((r) => (r.ok ? (r.json() as Promise<{ publicaciones: Publicacion[] }>) : { publicaciones: [] }))
+			.then(({ publicaciones }) => {
+				const m = new Map<string, Publicacion[]>();
+				for (const p of publicaciones) if (p.banio_id) m.set(p.banio_id, [...(m.get(p.banio_id) ?? []), p]);
+				visitas = m;
+			})
+			.catch(() => {});
 		(async () => {
 			const [{ default: maplibregl }, { Protocol }, respuesta, teselas] = await Promise.all([
 				import('maplibre-gl/dist/maplibre-gl-csp.js'),
@@ -303,6 +314,14 @@
 					<li class="vacio">Todavía no sabemos si es gratis, accesible o tiene cambiador.</li>
 				{/each}
 			</ul>
+			{#if visitas.get(b.id)?.length}
+				{@const v = visitas.get(b.id)!}
+				<p class="visitas">
+					💩 {v.length === 1 ? '1 visita pública' : `${v.length} visitas públicas`}:
+					{[...new Set(v.map((x) => '@' + x.seudonimo))].slice(0, 5).join(', ')}{new Set(v.map((x) => x.seudonimo)).size > 5 ? ' y más' : ''}
+					<a href="/cacas">ver</a>
+				</p>
+			{/if}
 			<p class="fuente">{procedencia(b)}</p>
 			<div class="acciones">
 				<a
@@ -478,6 +497,18 @@
 	small {
 		font-size: 13px;
 		text-decoration: none;
+	}
+	.visitas {
+		margin: 0 0 6px;
+		padding: 6px 10px;
+		border-radius: 10px;
+		background: var(--sol-claro);
+		font-size: 15px;
+		overflow-wrap: anywhere;
+	}
+	.visitas a {
+		color: var(--tinta);
+		font-weight: 700;
 	}
 	.fuente {
 		margin: 0;

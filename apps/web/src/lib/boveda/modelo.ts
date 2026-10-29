@@ -29,6 +29,8 @@ export interface Registro {
 	sin_papel?: boolean;
 	/** "¿Alguna anécdota?" (§8.1), hasta 500 caracteres. */
 	comentario?: string;
+	/** Publicado en el mapa público por decisión del dueño (P-38). */
+	publico?: true;
 	actualizado_en: string;
 	/** Marca de borrado, para que el borrado gane al mezclar dos dispositivos. */
 	borrado?: true;

@@ -69,7 +69,8 @@ async function celular() {
 		acceptDownloads: true
 	});
 	const p = await contexto.newPage();
-	p.on('console', (m) => m.type() === 'error' && errores.push(m.text()));
+	// Sin mapa base en esta prueba: el chequeo de /tiles da 404 a propósito.
+	p.on('console', (m) => m.type() === 'error' && !m.location().url.endsWith('/tiles/argentina.pmtiles') && errores.push(`${m.text()} (${m.location().url})`));
 	p.on('pageerror', (e) => errores.push(String(e)));
 	p.on('dialog', (d) => d.accept());
 	return p;
@@ -113,6 +114,8 @@ try {
 	await a.getByRole('radio', { name: 'Baño público' }).click();
 	await a.getByRole('button', { name: /Agregar ubicación/ }).click();
 	await a.getByText('YPF Centro').waitFor();
+	// De noche no hay preselección (P-29): se elige a mano.
+	await a.getByRole('radio', { name: /YPF Centro/ }).check();
 	await a.screenshot({ path: join(CAPTURAS, 'registro-form.png') });
 	await a.getByPlaceholder(/./).fill('Viento de 90 km/h para llegar');
 	await a.getByRole('button', { name: 'Guardar' }).click();
@@ -172,6 +175,82 @@ try {
 	await a.waitForFunction(() => document.querySelector('.numero strong')?.textContent === '5');
 	ok(true, 'lo registrado en el segundo celular aparece en el primero');
 
+	// ---------- Público / privado ----------
+	// En casa no se ofrece hacerla pública.
+	await b.getByRole('button', { name: '💩 Registrar' }).click();
+	await b.getByRole('radio', { name: 'En casa' }).click();
+	ok((await b.getByText('Sumarla al mapa público').count()) === 0, 'en casa no se ofrece hacerla pública');
+	await b.getByRole('button', { name: 'Cancelar' }).click();
+	// Al aire libre, con ubicación y pública: pide confirmación y dice qué se ve.
+	await b.getByRole('button', { name: '💩 Registrar' }).click();
+	await b.getByRole('radio', { name: 'Al aire libre' }).click();
+	ok(await b.getByLabel(/Sumarla al mapa público/).isDisabled(), 'sin ubicación no se puede hacer pública');
+	await b.getByRole('button', { name: /Agregar ubicación/ }).click();
+	await b.getByText('Ubicación guardada').waitFor();
+	await b.getByRole('radio', { name: 'Ninguno de estos' }).check();
+	await b.getByLabel(/Sumarla al mapa público/).check();
+	await b.getByRole('button', { name: 'Guardar' }).click();
+	await b.getByRole('alertdialog').waitFor();
+	const aviso = await b.getByRole('alertdialog').innerText();
+	ok(aviso.includes('@trono_e2e') && /no se ve la hora/i.test(aviso), 'la advertencia dice qué se publica (seudónimo, lugar, día; sin hora)');
+	await b.screenshot({ path: join(CAPTURAS, 'publico-aviso.png') });
+	await b.getByRole('button', { name: 'Sí, hacerla pública' }).click();
+	await b.waitForFunction(() => document.querySelector('.numero strong')?.textContent === '6', null, { timeout: 10000 }).catch(async () => {
+		await b.screenshot({ path: join(CAPTURAS, 'publico-falla.png') });
+		throw new Error('no llegó a 6: ' + (await b.locator('main').innerText()).slice(0, 600));
+	});
+	let [pub] = await sql`select tipo, banio_id, lat, lon, dia, visible_desde > now() + interval '1 hour' as demorada from publicaciones`;
+	ok(pub?.tipo === 'naturaleza' && pub.lat === -51.6202 && pub.lon === -69.22 && pub.demorada, 'se publica el punto redondeado, demorado unas horas');
+	ok((await sql`select 1 from publicaciones`).length === 1, 'solo la que se eligió hacer pública');
+	let api = await (await fetch(BASE + '/api/v1/publicaciones')).json();
+	ok(api.publicaciones.length === 0, 'antes de la demora no aparece en el mapa público');
+
+	// Una del historial (en la YPF) también pública: se publica el baño, no la posición.
+	await b.locator('.historial li', { hasText: 'YPF Centro' }).locator('button.fila').click();
+	await b.getByRole('button', { name: '🌎 Hacerla pública' }).click();
+	await b.getByRole('button', { name: 'Sí, hacerla pública' }).click();
+	await b.locator('.historial li', { hasText: 'YPF Centro' }).getByText('pública').waitFor();
+	const [enBanio] = await sql`select banio_id, lat from publicaciones where banio_id is not null`;
+	ok(enBanio?.banio_id === 'n1' && enBanio.lat === null, 'en un baño se publica el baño, sin la posición del usuario');
+
+	await sql`update publicaciones set visible_desde = now()`;
+	api = await (await fetch(BASE + '/api/v1/publicaciones')).json();
+	ok(api.publicaciones.length === 2 && api.publicaciones.every((p) => p.seudonimo === 'trono_e2e' && !('hora' in p)), 'el mapa público muestra las 2, con seudónimo y sin hora');
+	const ypf = api.publicaciones.find((p) => p.banio_id === 'n1');
+	ok(ypf?.banio_nombre === 'YPF Centro' && ypf.lat === -51.62, 'la del baño se ubica en el baño');
+	const casa = await b.request.put(BASE + '/api/v1/publicaciones/00000000-0000-4000-8000-000000000000', { data: { tipo: 'casa', dia: '2026-10-01', lat: -51.6, lon: -69.2 } });
+	ok(casa.status() === 400, 'el servidor rechaza publicar algo de casa');
+
+	const c = await celular();
+	await c.goto(BASE + '/cacas');
+	await c.getByText('2 cacas públicas').waitFor();
+	ok(true, 'el mapa de cacas carga sin cuenta');
+	await esperar(2500);
+	await c.screenshot({ path: join(CAPTURAS, 'publico-cacas.png') });
+	await b.goto(BASE + '/app/mapa');
+	const enMiMapa = await b
+		.waitForFunction(() => document.querySelector('.u-pie-mapa strong')?.textContent === '2', null, { timeout: 10000 })
+		.then(() => true, () => false);
+	ok(enMiMapa, 'Mi mapa muestra las cacas con ubicación');
+	await esperar(2500);
+	await b.screenshot({ path: join(CAPTURAS, 'publico-mi-mapa.png') });
+
+	// Hacerla privada la saca en el acto; borrar una pública también.
+	await b.goto(BASE + '/app');
+	await b.locator('.historial li', { hasText: 'YPF Centro' }).locator('button.fila').click();
+	await b.getByRole('button', { name: '🔒 Hacerla privada' }).click();
+	await b.getByRole('button', { name: '🌎 Hacerla pública' }).waitFor();
+	ok((await sql`select 1 from publicaciones where banio_id = 'n1'`).length === 0, 'hacerla privada la borra del servidor');
+	await b.locator('.historial li', { hasText: 'Al aire libre' }).first().locator('button.fila').click();
+	await b.getByRole('button', { name: 'Borrar' }).click();
+	await b.waitForFunction(() => document.querySelector('.numero strong')?.textContent === '5');
+	ok((await sql`select 1 from publicaciones`).length === 0, 'borrar una caca pública la saca del mapa');
+	// Dejar una pública para probar "empezar de cero".
+	await b.locator('.historial li', { hasText: 'YPF Centro' }).locator('button.fila').click();
+	await b.getByRole('button', { name: '🌎 Hacerla pública' }).click();
+	await b.getByRole('button', { name: 'Sí, hacerla pública' }).click();
+	await b.locator('.historial li', { hasText: 'YPF Centro' }).getByText('pública').waitFor();
+
 	// Salir borra la copia local; al volver, pide el código.
 	await a.goto(BASE + '/app/cuenta');
 	await a.getByRole('button', { name: 'Salir' }).click();
@@ -189,6 +268,7 @@ try {
 	await a.getByRole('heading', { name: 'Tu código de recuperación' }).waitFor();
 	const [{ n }] = await sql`select count(*)::int n from boveda_paginas`;
 	ok(n === 0, 'empezar de cero borra el historial del servidor');
+	ok((await sql`select 1 from publicaciones`).length === 0, 'y también sus cacas públicas');
 
 	ok(errores.length === 0, `sin errores de consola${errores.length ? ': ' + errores.join(' | ') : ''}`);
 } catch (e) {
