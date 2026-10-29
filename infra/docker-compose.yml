@@ -1,6 +1,9 @@
-# Producción (dondecague.com.ar) y prueba (caca.blucaro.site) en el mismo VPS,
-# detrás de un solo Caddy. Desde la raíz del repo:
+# Producción (dondecague.com.ar) y prueba (caca.blucaro.site) en el mismo VPS.
+# Desde la raíz del repo:
 #   docker compose --env-file .env -f infra/docker-compose.yml up -d --build
+# Las apps escuchan solo en la máquina (127.0.0.1): el HTTPS lo pone un proxy.
+#   - Si el VPS ya tiene nginx en 80/443: usar infra/nginx/ (docs/despliegue.md).
+#   - Si no hay nada en 80/443: agregar --profile caddy para levantar Caddy.
 # Guía completa: docs/despliegue.md
 name: dondecague
 
@@ -44,6 +47,8 @@ services:
       ADDRESS_HEADER: X-Forwarded-For
       XFF_DEPTH: "1"
       PORT: "3000"
+    ports:
+      - "127.0.0.1:${PUERTO_WEB:-3101}:3000"
 
   web-prueba:
     <<: *web
@@ -58,8 +63,12 @@ services:
       ADDRESS_HEADER: X-Forwarded-For
       XFF_DEPTH: "1"
       PORT: "3000"
+    ports:
+      - "127.0.0.1:${PUERTO_PRUEBA:-3102}:3000"
 
+  # Solo si no hay otro servidor web en 80/443: --profile caddy
   caddy:
+    profiles: ["caddy"]
     image: caddy:2.8.4
     ports:
       - "80:80"

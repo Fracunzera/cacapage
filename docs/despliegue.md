@@ -7,7 +7,11 @@ Un solo `docker compose` levanta todo:
 | `web` | `ORIGEN_PUBLICO` (`https://dondecague.com.ar`) | El sitio real (`ENTORNO=produccion`): cuentas con passkey, sin relevamiento. |
 | `web-prueba` | `ORIGEN_PRUEBA` (`https://caca.blucaro.site`) | Prueba (`ENTORNO=prueba`): relevamiento, sin passkeys, cuentas descartables, no indexado. |
 | `postgres` | — | Una base para cada sitio (`dondecague` y `dondecague_prueba`), separadas. |
-| `caddy` | — | HTTPS automático para los dos dominios. Sin log de accesos. |
+| `caddy` | — | Opcional (`--profile caddy`): HTTPS automático, solo si no hay otro servidor web en 80/443. |
+
+Las apps escuchan solo en la máquina: `127.0.0.1:3101` (real) y
+`127.0.0.1:3102` (prueba). El HTTPS lo pone un proxy adelante: **el nginx que
+ya tenga el VPS** (lo habitual) o el Caddy del compose.
 
 ## Lo que necesitás
 
@@ -50,6 +54,26 @@ curl -sI https://caca.blucaro.site/app/relevamiento | grep -i robots
 
 Después, desde el celular: crear tu propia cuenta en `dondecague.com.ar` con
 passkey, salir y volver a entrar.
+
+## Con el nginx del VPS
+
+Para cada dominio, desde la carpeta del repo (en Debian/Ubuntu, con
+`sites-available`/`sites-enabled` y certbot):
+
+```sh
+# Sitio real
+sed -e 's/__DOMINIO__/dondecague.com.ar/' -e 's/__PUERTO__/3101/' \
+    -e 's#__CABECERAS__#add_header Strict-Transport-Security "max-age=31536000" always;#' \
+    infra/nginx/sitio.conf.plantilla > /etc/nginx/sites-available/dondecague.conf
+ln -s /etc/nginx/sites-available/dondecague.conf /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+certbot --nginx -d dondecague.com.ar
+```
+
+Para el de prueba, lo mismo con `caca.blucaro.site`, puerto `3102` y
+`add_header X-Robots-Tag "noindex, nofollow" always;`.
+
+Sin log de acceso (`access_log off;`): está en la plantilla (PRIVACY.md P-19).
 
 ## El mail
 
