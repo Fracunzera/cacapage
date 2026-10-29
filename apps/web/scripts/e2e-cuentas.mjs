@@ -21,7 +21,7 @@ function verificar(condicion, texto) {
 }
 
 const sql = postgres(DATABASE_URL, { onnotice: () => {} });
-await sql.unsafe('drop schema public cascade; create schema public;');
+await sql.unsafe('drop schema if exists osm cascade; drop schema public cascade; create schema public;');
 
 async function levantar(entorno, extra = {}) {
 	const proceso = spawn('node', ['build'], {
@@ -34,6 +34,7 @@ async function levantar(entorno, extra = {}) {
 			DATABASE_URL,
 			PIMIENTA_MAIL: 'pimienta-de-prueba-solo-para-tests-0123456789',
 			MAIL_MODO: 'consola',
+			OSM_IMPORTAR: 'no',
 			...extra
 		},
 		stdio: ['ignore', 'pipe', 'pipe']

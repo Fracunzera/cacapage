@@ -635,6 +635,25 @@ contraseñas se reutilizan entre sitios; una filtración de otro sitio puede
 abrir cuentas acá (credential stuffing): lo frena el límite por cuenta, no lo
 evita.
 
+### P-36 · (i5) El mapa de baños no sabe quién lo mira ni dónde está
+
+**Decisión.** El catálogo de baños es un solo archivo para todo el país, igual
+para todos, sin cookies ni cuenta. "Cerca mío" pide la ubicación al navegador y
+calcula las distancias en el celular: la ubicación nunca se manda al servidor.
+"Cómo llegar" abre openstreetmap.org con el destino (el baño), no con el origen;
+recién ahí, y solo si el usuario toca el botón, sale algo hacia un tercero. El
+mapa base, las fuentes y los íconos se sirven desde nuestro dominio. Los
+nombres de usuario de OSM que trae Overpass se descartan al importar: no se
+guardan ni se publican.
+
+**Mitiga.** Que el servidor (o una filtración de sus datos) diga dónde estaba
+alguien cuando buscó un baño (A3, A6). Que pedir el catálogo revele la zona
+(P-01): como es uno solo, no revela nada.
+
+**Cuesta.** Los pedidos de teselas del mapa base sí dicen qué zona se mira, con
+la precisión del zoom. No se guardan (sin log de acceso, P-19), pero el
+servidor los ve pasar. Bajar 377 KB de entrada es más que bajar una provincia.
+
 ---
 
 ## Decisiones postergadas (i3)

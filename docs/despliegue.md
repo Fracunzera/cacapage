@@ -118,6 +118,45 @@ docker compose --env-file .env -f infra/docker-compose.yml up -d --build
 
 Las migraciones de la base se aplican solas al arrancar.
 
+## Mapa de baños
+
+Dos partes, y la primera es automática:
+
+1. **Los baños.** Cada sitio (el real y el de prueba) los trae solo de
+   OpenStreetMap: 10 segundos después de arrancar, y después una vez por semana.
+   Es solo lectura (ADR 0001): nada vuelve a OSM. Para ver cómo fue:
+
+   ```sh
+   docker compose --env-file .env -f infra/docker-compose.yml logs web | grep OSM
+   # OSM: 10325 baños importados desde maps.mail.ru
+   ```
+
+   Si los tres servidores de Overpass fallan, queda registrado y se reintenta
+   a las 6 horas. Mientras tanto se sigue mostrando la importación anterior.
+
+2. **El mapa base** (calles, ciudades): un archivo `teselas/argentina.pmtiles`
+   en la carpeta del repo. Sin ese archivo, el mapa muestra los baños sobre un
+   fondo liso. Se baja una vez (1,1 GB, tarda unos minutos) y conviene
+   renovarlo cada algunos meses:
+
+   ```sh
+   cd ~/cacapage
+   mkdir -p teselas ~/bin
+   curl -L https://github.com/protomaps/go-pmtiles/releases/download/v1.28.0/go-pmtiles_1.28.0_Linux_x86_64.tar.gz | tar xz -C ~/bin pmtiles
+   ~/bin/pmtiles extract https://build.protomaps.com/$(date -d yesterday +%Y%m%d).pmtiles teselas/argentina.pmtiles \
+       --bbox=-73.6,-55.1,-53.6,-21.7 --maxzoom=14
+   docker compose --env-file .env -f infra/docker-compose.yml up -d
+   ```
+
+   Si el VPS no es x86_64 (`uname -m` dice `aarch64`), cambiar `x86_64` por
+   `arm64` en el link. `--maxzoom=14` alcanza para ver cada cuadra; con 13 pesa
+   la mitad (558 MB) y con 15, el doble.
+
+   No hace falta tocar nginx: la app sirve el archivo por rangos.
+
+Para probar: `https://dondecague.com.ar/mapa`, "Cerca mío". La ubicación se usa
+solo en el celular (PRIVACY.md P-36).
+
 ## Relevamiento (en prueba)
 
 Igual que antes, en `https://caca.blucaro.site/app/relevamiento`: abrila una vez

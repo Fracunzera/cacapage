@@ -30,6 +30,25 @@ Estado: **borrador para crítica, iteración 3**. Nada de esto está implementad
 
 ## 0. Historial de cambios
 
+### Iteración 5: la capa de baños, construida
+
+Lo que se implementó y en qué se aparta de lo escrito más abajo:
+
+| # | Cambio | Por qué |
+|---|---|---|
+| 1 | **Importación por Overpass, no por Geofabrik + osmium** (§11.1). Una consulta de solo lectura para toda la Argentina, una vez por semana, con tres servidores de respaldo (`overpass-api.de`, `maps.mail.ru`, `overpass.private.coffee`). | Con el filtro de §11.3 son ~11 mil objetos (6 MB): una consulta por semana es un uso razonable de Overpass y evita instalar osmium en el VPS y bajar 486 MB por semana. Si fallan los tres, se registra, se reintenta a las 6 h y se sigue mostrando la importación anterior. |
+| 2 | **La importa la misma app web**, no un worker aparte con cron (§13): revisa al arrancar y cada hora, e importa si la última buena tiene más de 7 días. Un lock de Postgres evita dos importaciones a la vez. | No hay recorrida ni operación garantizada: lo que no depende de que alguien se acuerde de configurar un cron es más confiable. Código en `apps/web/src/lib/server/osm/`. |
+| 3 | **Filtro de v1, más chico que §11.3:** `amenity=toilets`, cualquier objeto con `toilets=yes` o `toilets:access`, y como *probables* `amenity=fuel`, `amenity=bus_station`, `shop=mall` y `aeroway=aerodrome` con código IATA. Quedan afuera restaurantes, cafés, supermercados, hospitales y universidades **sin** `toilets=yes`. | Con todos los restaurantes (12 mil) y supermercados (7 mil) como "probables", el mapa se llenaba de puntos que no dicen nada, y P-32 los mostraría a todos como "consultá". Si un comercio tiene `toilets=yes`, entra. |
+| 4 | **Un solo catálogo nacional** (`GET /api/v1/banios`, 377 KB comprimido, 10.325 puntos), no 24 archivos por provincia (iteración 4, puntos 2 y 3). | Entra entero en un pedido. Además pedir el catálogo no revela la provincia: P-01 vuelve a valer completo. Se cachea una hora con ETag. |
+| 5 | **Existencia vencida: se dibuja apagada**, no se esconde (§10.4). | Casi todo lo de OSM tiene la última modificación hace más de dos años (§10.3 lo da por vencido). Esconderlo dejaba el mapa casi vacío. La ficha dice "Dato de OpenStreetMap, de abril 2022" y los filtros (Gratis, Accesible, Cambiador) nunca usan un dato vencido. |
+| 6 | **Mapa base:** MapLibre (build CSP, sin `blob:` ni `eval`) con un PMTiles de la Argentina de Protomaps (z14, 1,1 GB) servido por la propia app con pedidos por rango; fuentes y sprites copiados al repo (`static/mapa/`). | Sin terceros (P-16). Sin el archivo, el mapa igual funciona con fondo liso. Instrucciones en `docs/despliegue.md`. |
+| 7 | **"Cerca mío"** calcula las distancias en el celular; "Cómo llegar" abre openstreetmap.org con el destino (nunca el origen). | PRIVACY.md P-36. |
+
+Primera importación nacional (29/10/2026): 10.325 puntos; 3.143 con baño
+confirmado (1.861 baños públicos sueltos, 670 fusionados con su estación,
+terminal o shopping, y 454 comercios con `toilets=yes`) y 7.182 probables
+(5.454 estaciones de servicio sin el dato). Detalle en SEEDING.md §8.
+
 ### Iteración 4: alcance nacional
 
 Decisión del producto: **el producto es para toda la Argentina, con un mapa
@@ -1019,6 +1038,9 @@ comentario de cabecera en cada archivo de `apps/worker/src/osm/`, y la única
 salida "hacia OSM" es un reporte CSV para humanos.
 
 ### 11.1 Fuente y recorte
+
+> **(i5)** Implementado con Overpass, no con Geofabrik: ver §0, iteración 5,
+> punto 1. Lo que sigue queda como alternativa si Overpass deja de servir.
 
 - **Producción: extracto de Geofabrik** (`south-america/argentina`),
   descargado semanalmente. Es un archivo, se puede verificar con su checksum y

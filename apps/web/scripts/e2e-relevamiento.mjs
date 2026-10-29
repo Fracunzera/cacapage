@@ -16,7 +16,8 @@ const BASE_ENTORNO = {
 	ORIGEN_PUBLICO: BASE,
 	DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://postgres@127.0.0.1:54329/dondecague_test',
 	PIMIENTA_MAIL: process.env.PIMIENTA_MAIL ?? 'pimienta-de-prueba-solo-para-tests-0123456789',
-	MAIL_MODO: 'consola'
+	MAIL_MODO: 'consola',
+	OSM_IMPORTAR: 'no'
 };
 
 let fallas = 0;

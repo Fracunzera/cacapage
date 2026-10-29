@@ -3,13 +3,15 @@ import { building } from '$app/environment';
 import { migrar } from '$lib/server/db';
 import { ES_PRUEBA } from '$lib/server/entorno';
 import { cfg } from '$lib/server/config';
+import { programarImportacion } from '$lib/server/osm/importar';
 
 // Al arrancar: validar la configuración (falla si falta algo) y migrar la base.
 export const init: ServerInit = async () => {
 	if (building) return;
-	cfg();
+	const config = cfg();
 	const aplicadas = await migrar();
 	if (aplicadas.length) console.log(`Migraciones aplicadas: ${aplicadas.join(', ')}`);
+	if (config.osm.importar) programarImportacion(config.osm.servidores, ES_PRUEBA ? 10 * 60_000 : 10_000);
 };
 
 /** Rutas que solo existen con ENTORNO=prueba. */
@@ -35,7 +37,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Disallow en robots.txt impediría que Google viera el noindex.
 	if (ES_PRUEBA) respuesta.headers.set('X-Robots-Tag', 'noindex, nofollow');
 	respuesta.headers.set('Referrer-Policy', 'no-referrer');
-	if (ruta.startsWith('/api/')) respuesta.headers.set('Cache-Control', 'no-store');
+	// El catálogo de baños es público y cacheable: lo define su propio endpoint.
+	if (ruta.startsWith('/api/') && !respuesta.headers.has('Cache-Control')) respuesta.headers.set('Cache-Control', 'no-store');
 	respuesta.headers.set('Permissions-Policy', 'geolocation=(self)');
 	return respuesta;
 };

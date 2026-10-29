@@ -9,3 +9,4 @@ data/build/*
 .svelte-kit/
 apps/web/build/
 test-results/
+teselas/

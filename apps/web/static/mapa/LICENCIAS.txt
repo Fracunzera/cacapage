@@ -1,0 +1,10 @@
+Recursos del mapa, copiados de github.com/protomaps/basemaps-assets para no
+cargar nada de terceros (PRIVACY.md P-16):
+
+- fuentes/: Noto Sans (Regular, Medium, Italic), en glifos PBF. SIL Open Font
+  License 1.1. Solo los rangos latinos (0-1023, 7680-7935, 8192-8447).
+- sprites/: íconos del estilo "light" de Protomaps Basemaps (v4), derivados de
+  tangrams/icons, licencia MIT (github.com/tangrams/icons).
+
+Mapa base (teselas/argentina.pmtiles, fuera del repo): Protomaps, con datos
+© colaboradores de OpenStreetMap (ODbL). La atribución se muestra en el mapa.

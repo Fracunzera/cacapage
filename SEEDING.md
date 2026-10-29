@@ -262,3 +262,25 @@ exacto.
 - **La recorrida a pie no escala al país.** El sembrado nacional sale de OSM, y
   eso tiene consecuencias de licencia (ADR 0002, Q-L6).
 
+
+## 8. Primera importación nacional (29/10/2026)
+
+La consulta del importador (`apps/web/src/lib/server/osm/importar.ts`) contra
+`maps.mail.ru` (base de OSM del 29/10/2026 17:52 UTC): 11.144 objetos (7.820
+nodos, 3.245 ways, 79 relaciones). Después de normalizar y fusionar:
+
+| | Confirmado | Probable |
+|---|---|---|
+| Baño público suelto | 1.861 | — |
+| Estación de servicio | 561 | 5.454 |
+| Terminal de ómnibus | 63 | 884 |
+| Shopping | 70 | 733 |
+| Aeropuerto | — | 111 |
+| Comercio con `toilets=yes` | 454 | — |
+| Otro lugar con `toilets=yes` | 134 | — |
+| **Total** | **3.143** | **7.182** |
+
+670 baños quedaron fusionados con el lugar que tenían a menos de 50 m. 1.566
+puntos tienen algún dato útil (acceso, si cobra, accesible o cambiador). Los 5
+de Río Gallegos son los mismos ids que en §1 y los 5 quedaron fusionados con su
+estación o terminal.

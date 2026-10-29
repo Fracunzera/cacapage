@@ -6,7 +6,8 @@ Importación de OpenStreetMap → base de baños. DESIGN.md §10.
 
 **Este módulo solo lee de OSM. Nunca escribe.**
 
-- Fuente de producción: extractos de Geofabrik. Overpass, solo exploración manual.
+- **(i5)** Implementado en `apps/web/src/lib/server/osm/` con Overpass (DESIGN.md
+  §0, iteración 5). Esta carpeta queda para los jobs que vengan después.
 - Prohibido: credenciales de la API de edición de OSM, clientes de escritura,
   OAuth de OSM, llamadas que no sean GET a `api.openstreetmap.org`.
 - Las correcciones de nuestros usuarios viven en nuestra base. Si alguna vez se

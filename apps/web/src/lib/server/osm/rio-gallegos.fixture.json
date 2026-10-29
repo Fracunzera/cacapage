@@ -1,0 +1,320 @@
+{
+"osm3s": {
+"timestamp_osm_base": "2026-10-24T19:36:59Z",
+"copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+},
+"elements": [
+{
+"type": "node",
+"id": 6765403662,
+"lat": -51.6170213,
+"lon": -69.2260112,
+"tags": {
+"amenity": "toilets"
+}
+},
+{
+"type": "node",
+"id": 6821671319,
+"lat": -51.6336951,
+"lon": -69.2118601,
+"tags": {
+"amenity": "toilets"
+}
+},
+{
+"type": "node",
+"id": 7333713861,
+"lat": -51.6193362,
+"lon": -69.2241609,
+"tags": {
+"amenity": "toilets"
+}
+},
+{
+"type": "node",
+"id": 12617116019,
+"lat": -51.6168524,
+"lon": -69.209227,
+"tags": {
+"access": "yes",
+"amenity": "toilets"
+}
+},
+{
+"type": "node",
+"id": 12617116028,
+"lat": -51.6374624,
+"lon": -69.2799568,
+"tags": {
+"access": "yes",
+"amenity": "toilets"
+}
+},
+{
+"type": "node",
+"id": 1613812480,
+"lat": -51.626381,
+"lon": -69.247882,
+"tags": {
+"addr:city": "Río Gallegos",
+"addr:street": "Ángel Banciella",
+"amenity": "fuel",
+"brand": "Axion",
+"name": "Axion",
+"operator": "DIMSUR S.R.L."
+}
+},
+{
+"type": "node",
+"id": 2307352009,
+"lat": -51.6246357,
+"lon": -69.2028924,
+"tags": {
+"amenity": "fuel",
+"brand": "YPF",
+"name": "YPF",
+"operator": "ACA RIO GALLEGOS"
+}
+},
+{
+"type": "node",
+"id": 2627772478,
+"lat": -51.6335258,
+"lon": -69.2123487,
+"tags": {
+"addr:city": "Río Gallegos",
+"addr:street": "Avenida Juan Manuel Gregores",
+"amenity": "fuel",
+"brand": "YPF",
+"name": "YPF",
+"operator": "GUMERCINDO PACHECO SRL"
+}
+},
+{
+"type": "node",
+"id": 3800205986,
+"lat": -51.6189274,
+"lon": -69.2325911,
+"tags": {
+"addr:city": "Río Gallegos",
+"addr:street": "Mariano Moreno",
+"amenity": "fuel",
+"brand": "Axion",
+"name": "Axion",
+"operator": "RAPISUR S.A."
+}
+},
+{
+"type": "node",
+"id": 3800205987,
+"lat": -51.62845,
+"lon": -69.20103,
+"tags": {
+"amenity": "fuel",
+"brand": "Petrobras",
+"operator": "EGESUR S.A."
+}
+},
+{
+"type": "node",
+"id": 3802966461,
+"lat": -51.6169525,
+"lon": -69.2257306,
+"tags": {
+"amenity": "fuel",
+"brand": "Axion",
+"name": "Axion",
+"operator": "LA ESTACION S.A."
+}
+},
+{
+"type": "node",
+"id": 3898274988,
+"lat": -51.6158494,
+"lon": -69.2280631,
+"tags": {
+"amenity": "fuel",
+"brand": "YPF",
+"name": "YPF",
+"operator": "ANGEL DE DIOS E HIJOS SA"
+}
+},
+{
+"type": "node",
+"id": 3898274989,
+"lat": -51.6192093,
+"lon": -69.2239323,
+"tags": {
+"addr:city": "Río Gallegos",
+"addr:street": "Zapiola",
+"amenity": "fuel",
+"brand": "YPF",
+"name": "YPF",
+"operator": "GUMERCINDO PACHECO SRL"
+}
+},
+{
+"type": "node",
+"id": 3898274991,
+"lat": -51.62774,
+"lon": -69.2221339,
+"tags": {
+"addr:city": "Río Gallegos",
+"addr:street": "Avenida General José de San Martín",
+"amenity": "fuel",
+"brand": "YPF",
+"name": "YPF",
+"operator": "DON FRANCISCO SA"
+}
+},
+{
+"type": "node",
+"id": 11186982971,
+"lat": -51.6170363,
+"lon": -69.20932,
+"tags": {
+"amenity": "fuel",
+"brand": "YPF",
+"name": "ACA"
+}
+},
+{
+"type": "node",
+"id": 12241814359,
+"lat": -51.644107,
+"lon": -69.3020625,
+"tags": {
+"addr:city": "Río Gallegos",
+"addr:street": "Circunvalación de Rio Gallegos",
+"amenity": "fuel",
+"brand": "Axion",
+"name": "Axion"
+}
+},
+{
+"type": "node",
+"id": 12617116031,
+"lat": -51.6372127,
+"lon": -69.2800212,
+"tags": {
+"amenity": "fuel",
+"brand": "YPF",
+"name": "YPF"
+}
+},
+{
+"type": "way",
+"id": 543447337,
+"center": {
+"lat": -51.6225044,
+"lon": -69.2603251
+},
+"tags": {
+"amenity": "fuel",
+"brand": "YPF",
+"name": "YPF",
+"opening_hours": "24/7",
+"operator": "SAN CRISTOBAL SA"
+}
+},
+{
+"type": "node",
+"id": 4795283922,
+"lat": -51.6502167,
+"lon": -69.2806334,
+"tags": {
+"amenity": "bus_station"
+}
+},
+{
+"type": "way",
+"id": 117028248,
+"center": {
+"lat": -51.6276967,
+"lon": -69.2476932
+},
+"tags": {
+"addr:city": "Río Gallegos",
+"addr:street": "Autovía 17 de Octubre",
+"amenity": "bus_station",
+"name": "Terminal de Omnibus de Río Gallegos"
+}
+},
+{
+"type": "way",
+"id": 674991801,
+"center": {
+"lat": -51.6658582,
+"lon": -69.2656578
+},
+"tags": {
+"aeroway": "aerodrome",
+"name": "Aeródromo Río Chico",
+"operator": "Aeroclub Río Gallegos"
+}
+},
+{
+"type": "way",
+"id": 766699756,
+"center": {
+"lat": -51.6214354,
+"lon": -69.2163845
+},
+"tags": {
+"name": "Patio Central",
+"shop": "mall"
+}
+},
+{
+"type": "way",
+"id": 766719156,
+"center": {
+"lat": -51.6205166,
+"lon": -69.2179887
+},
+"tags": {
+"shop": "mall"
+}
+},
+{
+"type": "way",
+"id": 766719159,
+"center": {
+"lat": -51.6203596,
+"lon": -69.2184182
+},
+"tags": {
+"name": "La Popular",
+"shop": "mall"
+}
+},
+{
+"type": "way",
+"id": 766719188,
+"center": {
+"lat": -51.6202133,
+"lon": -69.2189868
+},
+"tags": {
+"addr:city": "Río Gallegos",
+"name": "Marcos III",
+"shop": "mall"
+}
+},
+{
+"type": "relation",
+"id": 11070470,
+"center": {
+"lat": -51.607797,
+"lon": -69.3091409
+},
+"tags": {
+"aeroway": "aerodrome",
+"iata": "RGL",
+"name": "Aeropuerto Internacional Piloto Civil Norberto Fernández",
+"operator": "Aeropuertos Argentina 2000"
+}
+}
+]
+}

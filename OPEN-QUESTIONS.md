@@ -371,6 +371,10 @@ Pendiente: `overpass-api.de` y `overpass.kumi.systems` no respondieron desde el
 entorno de trabajo en ninguno de los intentos del 24/10/2026 (SEEDING.md §1.1).
 Si al reintentar el resultado no es 5 baños con los mismos ids, se avisa antes
 de seguir. Alternativa más rápida: correr la consulta desde otra máquina.
+*(i5)* La consulta nacional del 29/10/2026 (otra vez por `maps.mail.ru`, el
+oficial seguía sin responder desde acá) trae los mismos 5 ids en Río Gallegos.
+Queda la confirmación definitiva en el VPS: el log de la importación dice qué
+servidor respondió.
 
 **Q-D8 🟡 (i3) · La antigüedad de los datos de OSM.**
 La frescura de un dato de OSM se calcula con `check_date` o, si no hay, con la
@@ -407,6 +411,8 @@ Un PMTiles de la Argentina con zoom alto puede pesar varios GB y un viral
 nacional puede gastar mucho ancho de banda del VPS. *Lo resuelve:* generar el
 extracto, medirlo, y decidir el zoom máximo (por ejemplo, hasta 14 en todo el
 país y más solo en ciudades).
+*(i5)* Medido: z13 558 MB, **z14 1,1 GB** (elegido), z15 2,2 GB. El ancho de
+banda sigue sin medir: depende del uso.
 
 **Q-L6 (i4) · La licencia, con alcance nacional.**
 Ver DESIGN.md §0, iteración 4, punto 5: la arquitectura C del ADR 0002 deja de

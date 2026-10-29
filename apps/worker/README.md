@@ -17,7 +17,8 @@ Proceso Node aparte, disparado por cron del sistema. Jobs (DESIGN.md §12):
 > OSM. Si alguna vez se devuelve algo, lo hace una persona, a mano, con
 > revisión.** — [ADR 0001](../../docs/adr/0001-osm-importacion-una-via.md)
 
-El módulo vive en `src/osm/`. No hay credenciales de edición de OSM en ningún
+**(i5)** La importación ya no vive acá: la hace la app web, en
+`apps/web/src/lib/server/osm/` (DESIGN.md §0, iteración 5). No hay credenciales de edición de OSM en ningún
 lado del proyecto, y un chequeo de CI rechaza cualquier llamada de escritura a
 la API de OSM.
 

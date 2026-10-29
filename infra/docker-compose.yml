@@ -13,6 +13,9 @@ x-web: &web
     dockerfile: apps/web/Dockerfile
   image: dondecague-web
   restart: unless-stopped
+  volumes:
+    # Mapa base: teselas/argentina.pmtiles en la raíz del repo (docs/despliegue.md).
+    - ../teselas:/datos/teselas:ro
   depends_on:
     postgres:
       condition: service_healthy
@@ -43,6 +46,7 @@ services:
       DATABASE_URL: postgres://dondecague:${POSTGRES_PASSWORD}@postgres:5432/dondecague
       PIMIENTA_MAIL: ${PIMIENTA_MAIL:?Falta PIMIENTA_MAIL en .env}
       MAIL_MODO: ${MAIL_MODO:-desactivado}
+      OSM_IMPORTAR: ${OSM_IMPORTAR:-si}
       SMTP_URL: ${SMTP_URL:-}
       ADDRESS_HEADER: X-Forwarded-For
       XFF_DEPTH: "1"
@@ -59,6 +63,7 @@ services:
       DATABASE_URL: postgres://dondecague:${POSTGRES_PASSWORD}@postgres:5432/dondecague_prueba
       PIMIENTA_MAIL: ${PIMIENTA_MAIL_PRUEBA:?Falta PIMIENTA_MAIL_PRUEBA en .env}
       MAIL_MODO: ${MAIL_MODO_PRUEBA:-consola}
+      OSM_IMPORTAR: ${OSM_IMPORTAR_PRUEBA:-si}
       SMTP_URL: ${SMTP_URL:-}
       ADDRESS_HEADER: X-Forwarded-For
       XFF_DEPTH: "1"

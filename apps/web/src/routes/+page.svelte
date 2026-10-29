@@ -16,7 +16,8 @@
 		{
 			n: '03',
 			titulo: 'Encontrá baño',
-			texto: '¿Qué baño está abierto el domingo? ¿Cuál cobra? ¿Cuál tiene cambiador? El mapa lo armamos entre todos.'
+			texto: '¿Qué baño está abierto el domingo? ¿Cuál cobra? ¿Cuál tiene cambiador? El mapa lo armamos entre todos.',
+			enlace: '/mapa'
 		}
 	];
 	const MEDALLAS = ['Debut en el Trono', 'Bodas de Plata con el Inodoro', 'Pingüino Emperador', 'Trono de Oro'];
@@ -43,6 +44,7 @@
 
 		<a class="boton principal" href="/app/entrar">Crear mi cuenta</a>
 		<p class="aclaracion">¿Ya tenés? <a href="/app/entrar?modo=entrar">Entrá acá</a>.</p>
+		<a class="boton secundario" href="/mapa">🧻 Buscar un baño cerca</a>
 		{#if data.esPrueba}
 			<a class="boton secundario" href="/app/relevamiento">Relevar baños en la calle</a>
 		{/if}
@@ -75,7 +77,11 @@
 					<span class="numero">{p.n}</span>
 					<h3>{p.titulo}</h3>
 					<p>{p.texto}</p>
-					<span class="pronto">Próximamente</span>
+					{#if p.enlace}
+						<a class="pronto ya" href={p.enlace}>Ver el mapa →</a>
+					{:else}
+						<span class="pronto">Próximamente</span>
+					{/if}
 				</li>
 			{/each}
 		</ol>
@@ -319,6 +325,12 @@
 		color: var(--tinta-suave);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+	}
+	.pronto.ya {
+		color: var(--tinta);
+		text-decoration: underline;
+		text-decoration-color: var(--sol);
+		text-decoration-thickness: 3px;
 	}
 	.privacidad {
 		padding: 32px 16px 40px;
