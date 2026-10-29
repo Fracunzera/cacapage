@@ -393,3 +393,33 @@ pueblos de la Ruta 3 (Piedra Buena, Puerto San Julián) pueden no aparecer nunca
 que el ranking es de ciudades grandes. Además, el índice lo declara cada
 celular y se puede trampear; el tope del último rango lo acota pero no lo
 impide. Decidir si eso importa para un ranking que es un chiste.
+
+## Iteración 4: alcance nacional
+
+**Q-N16 🟠 (i4) · ¿Qué es exactamente "el mapa nacional"?**
+El diseño lo toma como el **mapa de baños** de todo el país (lo que se puede
+mostrar sin problemas de privacidad). Si la idea era además un mapa de dónde
+caga la gente a nivel país, eso es el mapa general postergado (DESIGN.md §16.1),
+con sus condiciones de umbral y privacidad.
+
+**Q-T11 🟠 (i4) · Tamaño y costo del mapa base nacional.**
+Un PMTiles de la Argentina con zoom alto puede pesar varios GB y un viral
+nacional puede gastar mucho ancho de banda del VPS. *Lo resuelve:* generar el
+extracto, medirlo, y decidir el zoom máximo (por ejemplo, hasta 14 en todo el
+país y más solo en ciudades).
+
+**Q-L6 (i4) · La licencia, con alcance nacional.**
+Ver DESIGN.md §0, iteración 4, punto 5: la arquitectura C del ADR 0002 deja de
+ser viable. Hay que reformular la consulta legal.
+
+**Q-O8 🟠 (i4) · Moderación y vandalismo a escala nacional.**
+Revisar el historial del wiki a mano era viable con ~60 baños (Q-W4). Con miles
+de baños en todo el país, no. Hacen falta reglas automáticas (rate limits, cola
+de revisión para cambios grandes, reversión masiva por cuenta) antes de abrir la
+edición a todo el país.
+
+**Q-D9 🟡 (i4) · Calidad de OSM en todo el país.**
+Duplicados (un baño mapeado como nodo y como way), estaciones cerradas, baños
+privados sin `access`. En Río Gallegos se curaba a mano; a escala nacional la
+curaduría tiene que ser automática (reglas) más los reportes de los usuarios.
+

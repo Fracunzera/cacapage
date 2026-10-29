@@ -222,3 +222,43 @@ out center;
 
 Las distancias baño → estación son haversine entre el nodo del baño y el nodo o
 centroide de la estación.
+
+## 7. Alcance nacional (medido el 29/10/2026)
+
+El producto pasó a ser nacional (DESIGN.md §0, iteración 4). Conteos para toda
+la Argentina, de taginfo de Geofabrik (`taginfo.geofabrik.de/south-america:argentina`),
+con datos de OSM hasta el 28/10/2026 21:15 UTC. Taginfo respondió desde el
+entorno de trabajo; Overpass no (§1.1).
+
+| Tag | Objetos en Argentina |
+|---|---:|
+| `amenity=toilets` | **2.636** (2.038 nodos, 598 ways) |
+| `toilets=yes` (sobre otro objeto) | 660 |
+| `amenity=fuel` | **6.048** |
+| `amenity=restaurant` | 12.480 |
+| `amenity=cafe` | 4.838 |
+| `amenity=fast_food` | 5.099 |
+| `shop=supermarket` | 7.254 |
+| `amenity=bus_station` | 956 |
+
+De los 2.636 `amenity=toilets`: el 49,7 % tiene `access`, el 20,7 % tiene
+`fee` (si cobra), el 17 % tiene `wheelchair` y solo el 4,7 % tiene `name`.
+`opening_hours` y `changing_table` no figuran entre las combinaciones que
+devuelve taginfo para ese tag, así que son una minoría chica; no tengo el número
+exacto.
+
+**Lectura:**
+
+- **El mapa nacional no se va a ver vacío.** Con 2.636 baños y 6.048
+  estaciones de servicio (las de la ruta son justo las que más sirven), hay
+  puntos en todo el país desde el primer día.
+- **Pero se va a ver lleno de puntos sin datos.** Cuatro de cada cinco baños no
+  dicen si cobran, y casi ninguno tiene horario. El mapa responde "acá hay un
+  baño"; "está abierto el domingo" sale de los usuarios y del decaimiento
+  (DESIGN.md §10).
+- **Río Gallegos sigue siendo distinta**: ahí OSM tiene 5 y la recorrida aporta
+  ~30 con datos completos. Sirve como vidriera de cómo se ve el producto con
+  datos buenos.
+- **La recorrida a pie no escala al país.** El sembrado nacional sale de OSM, y
+  eso tiene consecuencias de licencia (ADR 0002, Q-L6).
+

@@ -30,6 +30,27 @@ Estado: **borrador para crítica, iteración 3**. Nada de esto está implementad
 
 ## 0. Historial de cambios
 
+### Iteración 4: alcance nacional
+
+Decisión del producto: **el producto es para toda la Argentina, con un mapa
+nacional de baños desde el lanzamiento**, no un piloto de Río Gallegos. Motivos:
+una web para una ciudad de 110 mil habitantes es difícil de vender, y en un
+lugar donde todos se conocen el seudónimo protege poco (A2 tiene más contexto en
+un pueblo que en un país).
+
+Lo que cambia (detalle de lo pendiente en OPEN-QUESTIONS.md, sección
+"Iteración 4"):
+
+| # | Cambio | Consecuencia |
+|---|---|---|
+| 1 | El sembrado nacional sale de OSM: 2.636 baños y 6.048 estaciones de servicio (SEEDING.md §7). La recorrida a pie queda para Río Gallegos. | El mapa no se ve vacío, pero casi todos los puntos son "probables" o tienen pocos datos (1 de cada 5 dice si cobra). |
+| 2 | **El catálogo se parte por provincia** (24 archivos) en vez de uno por ciudad. El cliente baja la provincia que está mirando o donde está. | P-01 se mantiene: ninguna coordenada viaja. El costo declarado en P-01 ("pedir la región revela la región") ahora es "revela la provincia". |
+| 3 | **Mapa nacional:** a zoom de país se muestra un resumen por provincia (cantidad de baños); al acercarse, se carga el catálogo de esa provincia. | No hace falta bajar ~50 mil puntos de entrada. |
+| 4 | **Mapa base nacional:** PMTiles de la Argentina servido desde el VPS, sin terceros (P-16). | Un archivo de varios cientos de MB a algunos GB según el zoom máximo (a medir, Q-T11). Los pedidos de tiles dicen qué zona se mira; como no hay log de acceso en `/tiles`, no se guardan. |
+| 5 | **Licencia:** a escala nacional la arquitectura C del ADR 0002 (base 100 % propia) deja de ser viable: no se puede relevar el país a pie. Quedan A o B. | Lo más probable es que los aportes de usuarios salgan bajo ODbL. La pregunta para el abogado pasa de "¿derivada o colectiva?" a "¿cómo se cumple ODbL y qué se puede proteger?" (Q-L6). Lo relevado en Río Gallegos queda separable por `procedencia = gps_campo`. |
+| 6 | El ranking de ciudades (§16.2) se vuelve viable antes: su condición es "2 ciudades con ≥ 10 participantes". | Sigue postergado hasta cumplirla. |
+| 7 | El mapa general de registros (heatmap, §16.1) **sigue postergado**: "mapa nacional" en esta iteración es el mapa de baños, no un mapa de dónde caga la gente. | Ver Q-N16. |
+
 ### Iteración 3
 
 | # | Cambio | Origen |
@@ -72,7 +93,8 @@ en PRIVACY.md.
 **Objetivos**
 
 - O1. Registrar en menos de 10 segundos, con una mano, aunque no haya señal.
-- O2. Una capa de baños que se vea poblada el día uno y que Google indexe.
+- O2. Una capa de baños **nacional** que se vea poblada el día uno y que Google
+  indexe.
 - O3. Que el chiste alimente el dato útil sin que se sienta un formulario.
 - O4. Que ni otro usuario, ni un amigo, ni alguien con un dump pueda saber dónde
   vive un usuario o cuándo no está en casa.

@@ -24,12 +24,12 @@
 
 <svelte:head>
 	<title>cacapage · ¿Dónde cagaste hoy?</title>
-	<meta name="description" content="Registrá dónde cagaste, juntá medallas y encontrá baños abiertos. Desde Río Gallegos." />
+	<meta name="description" content="Registrá dónde cagaste, juntá medallas y encontrá baños abiertos en toda la Argentina." />
 </svelte:head>
 
 <header class="barra">
 	<Logo tamanio={36} />
-	<span class="pastilla">Río Gallegos · beta</span>
+	<span class="pastilla">Argentina · beta</span>
 </header>
 
 <main>
@@ -37,8 +37,8 @@
 		<p class="etiqueta">Hecho en la Patagonia</p>
 		<h1>¿Dónde<br />cagaste <span class="subrayado">hoy</span>?</h1>
 		<p class="bajada">
-			Registrá tus visitas al trono, juntá medallas absurdas y armemos entre todos el mapa de baños que Río
-			Gallegos se merece.
+			Registrá tus visitas al trono, juntá medallas absurdas y armemos entre todos el mapa de baños que la
+			Argentina se merece.
 		</p>
 
 		{#if data.esPrueba}
@@ -95,7 +95,7 @@
 
 <footer class="pie">
 	<Logo tamanio={28} />
-	<p>Hecho en Río Gallegos.</p>
+	<p>Hecho en Río Gallegos, para todo el país.</p>
 </footer>
 
 <style>

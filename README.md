@@ -18,11 +18,13 @@ passkeys, con cuentas que se borran al migrar.
 
 ## Para quién
 
-- **Piloto:** Río Gallegos, Santa Cruz (~110 mil habitantes). Elegida porque es
-  chica: se puede sembrar a mano, se nota rápido si funciona o no, y la Ruta 3
-  le da un eje de identidad (estaciones de servicio, tramos sin señal, viajes
-  largos).
-- **Después:** el resto de la Patagonia por la Ruta 3 y, si anda, Argentina.
+- **Alcance: Argentina**, con un mapa nacional de baños desde el lanzamiento.
+  Una web solo para una ciudad de 110 mil habitantes es difícil de vender, y en
+  un lugar donde todos se conocen el seudónimo protege poco.
+- **Semilla:** el mapa nacional arranca con lo que hay en OpenStreetMap (unos
+  2.600 baños y 6.000 estaciones de servicio en todo el país, SEEDING.md §7).
+  Río Gallegos es donde se hace la recorrida a pie, así que es la ciudad que
+  arranca con más datos, pero no el límite del producto.
 - **Usuario típico:** alguien que se ríe del chiste y lo comparte por WhatsApp.
   El usuario que queremos retener es el que, un domingo a la tarde, necesita
   saber qué baño está abierto. A veces es la misma persona.
@@ -65,8 +67,9 @@ Arriba del mapa: **Mis registros / Baños públicos**.
 
 La base de baños se siembra desde OpenStreetMap con una importación **de una
 sola vía**: nada de lo que hagan los usuarios se escribe en OSM automáticamente.
-OSM solo tiene 5 baños en Río Gallegos, así que el mapa del lanzamiento sale
-sobre todo de una recorrida a mano ([SEEDING.md](SEEDING.md)). Bajo qué licencia
+En todo el país OSM tiene unos 2.600 baños, pero con pocos datos (uno de cada
+cinco dice si cobra); en Río Gallegos tiene solo 5, así que ahí el mapa sale de
+una recorrida a mano ([SEEDING.md](SEEDING.md)). Bajo qué licencia
 se publica la base está en evaluación ([ADR 0002](docs/adr/0002-licencia-base-derivada-vs-colectiva.md)).
 
 El detalle está en [DESIGN.md](DESIGN.md) y las decisiones de privacidad, con
@@ -86,7 +89,7 @@ lo que cuesta cada una, en [PRIVACY.md](PRIVACY.md).
 | [DESIGN.md](DESIGN.md) | Arquitectura, stack, modelo de datos, pipeline de anonimización, umbrales, endpoints, jobs, operación. |
 | [PRIVACY.md](PRIVACY.md) | Cada decisión de privacidad como decisión: qué riesgo mitiga y qué cuesta. Incluye las descartadas. |
 | [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Lo que está sin resolver o es riesgoso. |
-| [SEEDING.md](SEEDING.md) | Qué hay en OSM para Río Gallegos (medido) y con qué arranca el mapa. |
+| [SEEDING.md](SEEDING.md) | Qué hay en OSM para Río Gallegos y para toda la Argentina (medido) y con qué arranca el mapa. |
 | [docs/adr/](docs/adr/) | Registros de decisiones de arquitectura. ADR 0001: importación de OSM de una sola vía. ADR 0002: licencia de la base (derivada vs. colectiva), pendiente de consulta legal. |
 | [docs/legal/](docs/legal/) | Borradores de términos, política de privacidad y textos de consentimiento (vacío por ahora). |
 
