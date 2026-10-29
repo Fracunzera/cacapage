@@ -440,3 +440,7 @@ sin revisión legal.
 `MAIL_MODO=desactivado` (solo passkeys). Cuando se elija, nombrarlo en
 `/privacidad`.
 
+**Q-L5 ✅ (i4) · Proveedor de mail: Brevo** (Sendinblue SAS, Francia, UE),
+nombrado en `/privacidad`. Pendiente operativo: autenticar el dominio y
+desactivar el seguimiento de aperturas y clics (docs/despliegue.md).
+

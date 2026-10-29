@@ -78,16 +78,30 @@ Sin log de acceso (`access_log off;`): está en la plantilla (PRIVACY.md P-19).
 ## El mail
 
 Con `MAIL_MODO=desactivado` (lo que trae `.env.example`), el sitio real funciona
-**solo con passkeys**. Para habilitar el link por mail hace falta un proveedor
-de envío (Brevo, Mailgun, Postmark, Amazon SES, etc.):
+con passkey y contraseña. Para habilitar el link por mail, el proveedor es
+**Brevo** (nombrado en `/privacidad`):
 
-1. Crear la cuenta en el proveedor y verificar el dominio (registros SPF y DKIM
-   que te indica el proveedor).
-2. En `.env`: `MAIL_MODO=smtp` y `SMTP_URL=smtps://usuario:clave@servidor:465`.
-3. Volver a levantar: `docker compose --env-file .env -f infra/docker-compose.yml up -d`.
+1. En Brevo, **autenticar el dominio** `dondecague.com.ar` (registros SPF, DKIM y
+   DMARC que te indica Brevo). Los mails salen de `no-responder@dondecague.com.ar`.
+2. **Desactivar el seguimiento de aperturas y de clics** para los mails
+   transaccionales. Con el seguimiento de clics, Brevo reescribe los links para
+   pasar por sus servidores, y el link de entrada lleva el token: Brevo vería
+   llaves de entrada a cuentas. El de aperturas agrega un píxel espía.
+3. En `.env`, con las credenciales SMTP de Brevo (el usuario tiene `@`: va como `%40`):
+   ```
+   MAIL_MODO=smtp
+   SMTP_URL=smtp://USUARIO%40smtp-brevo.com:CLAVE_SMTP@smtp-relay.brevo.com:587
+   ```
+4. Volver a levantar: `docker compose --env-file .env -f infra/docker-compose.yml up -d`.
+5. Probar: en `dondecague.com.ar/app/entrar`, "Ya tengo cuenta" → "Mail" con un
+   mail tuyo que no tenga cuenta: tiene que llegar el aviso de "no hay ninguna
+   cuenta con este mail".
 
-El proveedor ve las direcciones de mail a las que manda links: hay que
-nombrarlo en la política de privacidad (OPEN-QUESTIONS.md Q-L5).
+Si un envío falla, el usuario ve "No pudimos mandar el mail" y el log del
+servidor registra solo el código de error, nunca la dirección.
+
+El sitio de prueba sigue con `MAIL_MODO_PRUEBA=consola`: su dominio
+(`caca.blucaro.site`) no está autenticado en Brevo.
 
 En prueba, `MAIL_MODO_PRUEBA=consola` imprime los links en el log:
 

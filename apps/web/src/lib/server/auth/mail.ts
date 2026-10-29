@@ -1,3 +1,4 @@
+import { error } from '@sveltejs/kit';
 import nodemailer from 'nodemailer';
 import { cfg } from '../config';
 import { ES_PRUEBA } from '../entorno';
@@ -41,5 +42,13 @@ export async function enviarMail(destino: string, tipo: TipoMail, url: string): 
 		return;
 	}
 	transporte ??= nodemailer.createTransport(c.mail.url);
-	await transporte.sendMail({ from: c.mail.remitente, to: destino, subject: asuntoFinal, text: cuerpo(url) });
+	try {
+		await transporte.sendMail({ from: c.mail.remitente, to: destino, subject: asuntoFinal, text: cuerpo(url) });
+	} catch (e) {
+		// Los errores de SMTP suelen incluir la dirección de destino: al log va solo
+		// el código, nunca el mensaje completo (PRIVACY.md P-12, P-19).
+		const { code, responseCode } = e as { code?: string; responseCode?: number };
+		console.error(`[mail:${tipo}] fallo de envío: ${code ?? 'sin código'} ${responseCode ?? ''}`.trim());
+		error(502, 'No pudimos mandar el mail. Probá de nuevo en un rato.');
+	}
 }

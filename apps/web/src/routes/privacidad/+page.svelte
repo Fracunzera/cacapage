@@ -37,8 +37,9 @@
 	<h2>Con quién lo compartimos</h2>
 	<p>
 		Con nadie. No vendemos datos ni usamos publicidad ni analytics de terceros. Si entrás con mail, el link te lo manda
-		un proveedor de envío de mails, que ve la dirección solo para entregarlo. [Proveedor a definir antes del
-		lanzamiento.]
+		<strong>Brevo</strong> (Sendinblue SAS, Francia), un servicio de envío de mails que ve la dirección solo para
+		entregarlo. Francia está en la Unión Europea, que la Argentina reconoce con protección adecuada para transferir
+		datos personales.
 	</p>
 
 	<h2>Tus derechos</h2>
