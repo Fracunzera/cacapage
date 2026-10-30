@@ -840,9 +840,12 @@ no lo reemplaza. Es una versión más simple del feed de amigos del diseño
 (P-07, P-10, P-21), que no se había implementado.
 
 **Decisión.** Cada caca es privada, de amigos o pública. "Solo amigos" publica
-lo mismo que una pública (seudónimo, día, baño o punto a ~11 m, y la anécdota
-solo si se elige, P-42), pero lo ven únicamente las cuentas amigas, durante 30
-días (P-21), con la misma demora de 30 minutos. No gasta número del mapa
+lo mismo que una pública (seudónimo, día, baño o punto, y la anécdota solo si
+se elige, P-42), con dos diferencias: **el punto va exacto** (6 decimales; en
+las públicas, redondeado a ~11 m; decisión del producto) y lo ven únicamente
+las cuentas amigas, durante 30 días (P-21), con la misma demora de 30 minutos.
+Los amigos ven cuántas veces fue cada uno a un mismo lugar ("4.ª vez acá"),
+contando solo lo que les compartió; se calcula en el celular. No gasta número del mapa
 público. Casa, laburo y lo de alguien tampoco se comparten con amigos.
 
 La amistad es mutua y se hace **solo con un link de invitación**: quien lo abre
@@ -861,7 +864,9 @@ mapa de todo el mundo.
 desconocidos: por eso vence y se puede anular. El servidor sabe quién es amigo
 de quién (un grafo social), además de lo que cada uno compartió. Lo de amigos
 no tiene las protecciones del feed original (etiqueta de zona en vez de punto,
-P-07; viajes a la vuelta, P-10): el punto es el mismo que en una pública.
+P-07; viajes a la vuelta, P-10): el punto es exacto. Con el conteo por lugar,
+varias cacas compartidas en un mismo punto en días hábiles dicen a los amigos
+dónde está alguien habitualmente.
 
 ---
 

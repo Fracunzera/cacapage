@@ -50,7 +50,7 @@ const navegador = await chromium.launch();
 const errores = [];
 async function persona(seudonimo, conCuenta = true) {
 	const contexto = await navegador.newContext({
-		geolocation: { latitude: -51.62, longitude: -69.22 },
+		geolocation: { latitude: -51.620123, longitude: -69.220456 },
 		permissions: ['geolocation'],
 		viewport: { width: 390, height: 844 }
 	});
@@ -130,6 +130,8 @@ try {
 	ok(true, 'aviso: compartida con amigos');
 	const [fila] = await sql`select alcance, numero, comentario from publicaciones`;
 	ok(fila.alcance === 'amigos' && fila.numero === null && fila.comentario === 'Con vista al río', 'solo amigos: sin número del mapa público');
+	const [punto] = await sql`select lat, lon from publicaciones`;
+	ok(punto.lat === -51.620123 && punto.lon === -69.220456, 'a los amigos les llega el punto exacto');
 
 	await sql`update publicaciones set visible_desde = now()`;
 	ok((await publicas()).length === 0, 'no aparece en el mapa público');
@@ -141,17 +143,38 @@ try {
 	await beto.getByText('@ana_amigos').first().waitFor();
 	ok(await beto.getByText('👥 solo amigos').isVisible(), 'en Amigos de Beto aparece, marcada "solo amigos"');
 
-	// Ana la hace pública y después la vuelve a amigos: el número no se pierde.
+	// Ana vuelve al mismo lugar y también lo comparte: Beto ve "2.ª vez".
+	await ana.getByRole('button', { name: '💩 Registrar' }).click();
+	await ana.getByRole('radio', { name: 'Al aire libre' }).click();
+	await ana.getByRole('button', { name: /Usar mi ubicación/ }).click();
+	await ana.getByText('Ubicación guardada').waitFor();
+	await ana.getByRole('radio', { name: /Mis amigos/ }).click();
+	await ana.getByRole('button', { name: 'Guardar' }).click();
+	await ana.getByRole('button', { name: 'Sí, compartirla' }).click();
+	await ana.getByText('Compartida con tus amigos').waitFor();
+	ok(await ana.getByText('2.ª vez acá').isVisible(), 'en el historial de Ana: "2.ª vez acá"');
+	await sql`update publicaciones set visible_desde = now()`;
+	await beto.reload();
+	await beto.getByText('2.ª vez de @ana_amigos acá').waitFor();
+	ok(true, 'en Amigos de Beto: "2.ª vez de @ana_amigos acá"');
+	// La segunda vuelve a privada, para seguir con una sola.
 	await ana.locator('.historial li button.fila').first().click();
+	await ana.getByRole('button', { name: '🔒 Hacerla privada' }).click();
+	await ana.waitForFunction(() => [...document.querySelectorAll('.historial li small')].filter((e) => e.textContent.includes('👥 con amigos')).length === 1);
+
+	// Ana la hace pública y después la vuelve a amigos: el número no se pierde.
+	await ana.locator('.historial li', { hasText: '👥 con amigos' }).locator('button.fila').click();
 	await ana.getByRole('button', { name: '🌎 Hacerla pública' }).click();
 	await ana.getByRole('button', { name: 'Sí, hacerla pública' }).click();
 	await ana.getByRole('heading', { name: 'Tu caca es la N.º 1 del mapa público' }).waitFor();
 	await ana.getByRole('button', { name: '¡Grande!' }).click();
 	await sql`update publicaciones set visible_desde = now()`;
 	ok((await publicas()).length === 1, 'pasada a pública: aparece en el mapa de cacas');
+	const [redondo] = await sql`select lat, lon from publicaciones`;
+	ok(redondo.lat === -51.6201 && redondo.lon === -69.2205, 'al pasar a pública, el punto se redondea (~11 m)');
 	await ana.getByRole('button', { name: '👥 Solo para amigos' }).click();
 	await ana.getByRole('button', { name: 'Sí, compartirla' }).click();
-	await ana.locator('.historial li', { hasText: 'con amigos' }).waitFor();
+	await ana.locator('.historial li', { hasText: '👥 con amigos' }).waitFor();
 	const [vuelta] = await sql`select alcance, numero from publicaciones`;
 	ok(vuelta.alcance === 'amigos' && Number(vuelta.numero) === 1 && (await publicas()).length === 0, 'de vuelta a amigos: sale del público y conserva su número');
 

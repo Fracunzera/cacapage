@@ -14,6 +14,7 @@
 	import Compartir from '$lib/boveda/ui/Compartir.svelte';
 	import { faltaParaTodos, type Publicacion } from '$lib/publicaciones';
 	import Celebracion from '$lib/boveda/ui/Celebracion.svelte';
+	import { agrupar, type Lugar } from '$lib/lugares';
 
 	const TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
 
@@ -22,7 +23,9 @@
 	let boveda = $state.raw<Boveda | null>(null);
 	let seudonimo = $state('');
 	let registros = $state<Registro[]>([]);
-	let elegido = $state<Registro | null>(null);
+	/** El lugar tocado en el mapa (por su clave): sus visitas, de la más nueva a la más vieja. */
+	let elegido = $state<string | null>(null);
+	let conEtiquetas = false;
 	let cambiando = $state(false);
 	let error = $state<string | null>(null);
 	let festejo = $state<number | null>(null);
@@ -40,14 +43,22 @@
 	}
 
 	const conUbicacion = $derived(registros.filter((r) => r.lat !== undefined && r.lon !== undefined));
+	/** Un punto por lugar (mismo baño o a menos de 40 m), con cuántas veces fuiste. */
+	const lugares = $derived(agrupar([...conUbicacion].sort((a, b) => (a.ocurrido_en < b.ocurrido_en ? -1 : 1))));
+	const lugarElegido = $derived<Lugar<Registro> | undefined>(lugares.find((l) => l.clave === elegido));
+
+	/** El color del lugar: lo más compartido que haya ahí. */
+	const ORDEN = { privada: 0, amigos: 1, publico: 2 } as const;
+	const masCompartido = (l: Lugar<Registro>) =>
+		l.visitas.map(compartidaCon).reduce((a, b) => (ORDEN[b] > ORDEN[a] ? b : a), 'privada' as Con);
 
 	function datos() {
 		return {
 			type: 'FeatureCollection' as const,
-			features: conUbicacion.map((r) => ({
+			features: lugares.map((l) => ({
 				type: 'Feature' as const,
-				geometry: { type: 'Point' as const, coordinates: [r.lon!, r.lat!] },
-				properties: { id: r.id, con: compartidaCon(r) }
+				geometry: { type: 'Point' as const, coordinates: [l.lon, l.lat] },
+				properties: { clave: l.clave, con: masCompartido(l), veces: l.visitas.length }
 			}))
 		};
 	}
@@ -59,7 +70,6 @@
 
 	function refrescar() {
 		registros = boveda?.registros() ?? [];
-		if (elegido) elegido = registros.find((r) => r.id === elegido!.id) ?? null;
 	}
 
 	async function cambiar(r: Registro, con: Con, conComentario: boolean) {
@@ -90,24 +100,34 @@
 			if (!boveda.tieneLlaves) return goto('/app');
 			refrescar();
 			void cargarMias();
-			const { mapa: m } = await crearMapa(contenedor);
+			const { mapa: m, teselas } = await crearMapa(contenedor);
+			conEtiquetas = teselas.argentina || teselas.mundo;
 			m.addSource('mias', { type: 'geojson', data: datos() });
 			m.addLayer({
 				id: 'mias',
 				type: 'circle',
 				source: 'mias',
 				paint: {
-					// Privadas en marrón; públicas en amarillo.
 					// Privadas en marrón, de amigos en celeste, públicas en amarillo.
 					'circle-color': ['match', ['get', 'con'], 'publico', '#f6b40e', 'amigos', '#74acdf', '#8a5632'],
 					'circle-stroke-color': '#3b2314',
 					'circle-stroke-width': 2.5,
-					'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 6, 15, 11]
+					// Más grande donde fuiste más veces.
+					'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, ['+', 6, ['min', 6, ['get', 'veces']]], 15, ['+', 11, ['min', 8, ['get', 'veces']]]]
 				}
 			});
+			// El número de veces (las letras necesitan las fuentes del mapa base).
+			if (conEtiquetas)
+				m.addLayer({
+					id: 'mias-veces',
+					type: 'symbol',
+					source: 'mias',
+					filter: ['>', ['get', 'veces'], 1],
+					layout: { 'text-field': ['to-string', ['get', 'veces']], 'text-font': ['Noto Sans Medium'], 'text-size': 13 },
+					paint: { 'text-color': '#3b2314' }
+				});
 			m.on('click', 'mias', (e) => {
-				const id = e.features?.[0]?.properties?.id as string | undefined;
-				elegido = registros.find((r) => r.id === id) ?? null;
+				elegido = (e.features?.[0]?.properties?.clave as string | undefined) ?? null;
 			});
 			m.on('mouseenter', 'mias', () => (m.getCanvas().style.cursor = 'pointer'));
 			m.on('mouseleave', 'mias', () => (m.getCanvas().style.cursor = ''));
@@ -146,33 +166,42 @@
 		{#if error}<p class="aviso u-error" role="alert">{error}</p>{/if}
 	</div>
 
-	{#if elegido}
-		{@const r = elegido}
+	{#if lugarElegido}
+		{@const l = lugarElegido}
+		{@const primera = l.visitas[0]}
 		<section class="u-hoja" aria-labelledby="ficha-mia">
 			<button type="button" class="u-cerrar" aria-label="Cerrar" onclick={() => (elegido = null)}>✕</button>
-			<p class="tipo">{TIPO[r.tipo]?.icono} {TIPO[r.tipo]?.texto}</p>
-			<h2 id="ficha-mia">{r.banio_nombre ?? TIPO[r.tipo]?.texto}</h2>
-			<p class="cuando">{fecha(r.ocurrido_en)}{r.sin_papel ? ' · sin papel 😱' : ''}</p>
-			{#if r.comentario}<p class="comentario">“{r.comentario}”</p>{/if}
-			{#if compartidaCon(r) === 'privada'}<p class="estado">🔒 Privada: solo la ves vos.</p>{/if}
-			<Compartir registro={r} {seudonimo} ocupado={cambiando} oncambiar={cambiar} />
-			{#if r.publico || r.amigos}
-				{#if r.comentario_publico}
-					<p class="u-ayuda">
-						{comentarioOculto.has(r.id)
-							? '💬 Tu anécdota quedó oculta por reportes hasta que la revisemos.'
-							: '💬 Tu anécdota también se ve en el mapa.'}
-					</p>
-				{/if}
-				{#if faltaParaTodos(visibleDesde.get(r.id))}
-					<p class="u-ayuda">⏳ Por ahora solo la ves vos: {r.amigos ? 'tus amigos' : 'los demás'} la ven {faltaParaTodos(visibleDesde.get(r.id))}.</p>
-				{/if}
-			{/if}
+			<p class="tipo">{TIPO[primera.tipo]?.icono} {TIPO[primera.tipo]?.texto}</p>
+			<h2 id="ficha-mia">{primera.banio_nombre ?? TIPO[primera.tipo]?.texto}</h2>
+			{#if l.visitas.length > 1}<p class="veces">💩 Fuiste {l.visitas.length} veces acá.</p>{/if}
+			<ol class="visitas">
+				{#each [...l.visitas].reverse() as r, i (r.id)}
+					<li>
+						<p class="cuando">
+							{#if l.visitas.length > 1}<strong>{l.visitas.length - i}.ª vez</strong> ·{/if}
+							{fecha(r.ocurrido_en)}{r.sin_papel ? ' · sin papel 😱' : ''}
+						</p>
+						{#if r.comentario}<p class="comentario">“{r.comentario}”</p>{/if}
+						{#if compartidaCon(r) === 'privada'}<p class="estado">🔒 Privada: solo la ves vos.</p>{/if}
+						<Compartir registro={r} {seudonimo} ocupado={cambiando} oncambiar={cambiar} />
+						{#if (r.publico || r.amigos) && r.comentario_publico}
+							<p class="u-ayuda">
+								{comentarioOculto.has(r.id)
+									? '💬 Tu anécdota quedó oculta por reportes hasta que la revisemos.'
+									: '💬 Tu anécdota también se ve.'}
+							</p>
+						{/if}
+						{#if (r.publico || r.amigos) && faltaParaTodos(visibleDesde.get(r.id))}
+							<p class="u-ayuda">⏳ Por ahora solo la ves vos: {r.amigos ? 'tus amigos' : 'los demás'} la ven {faltaParaTodos(visibleDesde.get(r.id))}.</p>
+						{/if}
+					</li>
+				{/each}
+			</ol>
 		</section>
 	{/if}
 
 	<p class="u-pie-mapa">
-		<strong>{conUbicacion.length}</strong> con ubicación · 🟤 privada · 🔵 amigos · 🟡 pública · Este mapa lo ves solo vos.
+		<strong>{conUbicacion.length}</strong> con ubicación en <strong>{lugares.length}</strong> {lugares.length === 1 ? 'lugar' : 'lugares'} · 🟤 privada · 🔵 amigos · 🟡 pública · Lo ves solo vos.
 	</p>
 </div>
 
@@ -215,6 +244,19 @@
 	.comentario {
 		margin: 8px 0 0;
 		font-style: italic;
+	}
+	.veces {
+		margin: 0 0 6px;
+		font-weight: 700;
+	}
+	.visitas {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.visitas li {
+		padding: 8px 0;
+		border-top: 1px dashed var(--gris);
 	}
 	.estado {
 		margin: 10px 0 0;

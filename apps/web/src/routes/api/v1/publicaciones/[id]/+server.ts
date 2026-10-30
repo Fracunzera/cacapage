@@ -6,11 +6,12 @@ import { cuerpoJson, sinContenido } from '$lib/server/http';
 import { DEMORA_MINUTOS, problemaComentarioPublico, TIPOS_PUBLICABLES } from '$lib/publicaciones';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const red = (n: number) => Math.round(n * 1e4) / 1e4;
+// Público: redondeado a ~11 m (4 decimales). Amigos: el punto exacto (6 decimales).
+const redondear = (n: number, alcance: string) => (alcance === 'amigos' ? Math.round(n * 1e6) / 1e6 : Math.round(n * 1e4) / 1e4);
 
 /**
  * Hacer público un registro (PRIVACY.md P-38). Solo lo que el usuario eligió:
- * tipo, día, y el baño o un punto redondeado a ~11 m. Nunca casa, laburo ni lo
+ * tipo, día, y el baño o el punto (redondeado a ~11 m si es pública; exacto para amigos). Nunca casa, laburo ni lo
  * de alguien. Los demás la ven 30 minutos después; el dueño, enseguida.
  */
 export const PUT = async (event) => {
@@ -57,8 +58,8 @@ export const PUT = async (event) => {
 	} else {
 		if (typeof c.lat !== 'number' || typeof c.lon !== 'number' || Math.abs(c.lat) > 90 || Math.abs(c.lon) > 180)
 			error(400, 'Para hacerlo público hace falta la ubicación.');
-		lat = red(c.lat);
-		lon = red(c.lon);
+		lat = redondear(c.lat, alcance);
+		lon = redondear(c.lon, alcance);
 	}
 	// En una transacción y no con "on conflict": así el número del mapa público
 	// se pide solo cuando hace falta (pasa a pública y no tenía), sin gastar números.

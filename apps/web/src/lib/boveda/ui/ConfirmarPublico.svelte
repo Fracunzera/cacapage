@@ -40,6 +40,7 @@
 				<li>
 					📍
 					{#if registro.banio_id}El baño: <strong>{registro.banio_nombre}</strong>
+					{:else if alcance === 'amigos'}<strong>El lugar exacto donde estabas</strong> ({tipo?.texto.toLowerCase()})
 					{:else}<strong>El lugar donde estabas</strong> ({tipo?.texto.toLowerCase()}), con unos 10 m de precisión{/if}
 				</li>
 				<li>📅 El día: {dia}</li>

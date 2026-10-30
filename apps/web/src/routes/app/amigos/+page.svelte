@@ -10,6 +10,7 @@
 	import { crearMapa, encuadrar } from '$lib/banios/crearMapa';
 	import { TIPOS } from '$lib/boveda/modelo';
 	import { DIAS_AMIGOS, type Publicacion } from '$lib/publicaciones';
+	import { agrupar, vecesPorVisita } from '$lib/lugares';
 
 	const TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
 
@@ -21,6 +22,18 @@
 	let error = $state<string | null>(null);
 	let contenedor = $state<HTMLDivElement>();
 	let mapa: Mapa | null = null;
+
+	/** "4.ª vez acá" de cada amigo, contando solo lo que te compartió. */
+	const veces = $derived.by(() => {
+		const r = new Map<string, { vez: number; total: number }>();
+		for (const s of new Set(cacas.map((p) => p.seudonimo)))
+			for (const [id, v] of vecesPorVisita(
+				cacas.filter((p) => p.seudonimo === s),
+				(p) => p.dia
+			))
+				r.set(id, v);
+		return r;
+	});
 
 	const dia = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
 
@@ -34,13 +47,14 @@
 		(mapa?.getSource('amigos') as GeoJSONSource | undefined)?.setData(datos());
 	}
 
+	/** Un punto por lugar, con cuántas cacas (de todos tus amigos) hay ahí. */
 	function datos() {
 		return {
 			type: 'FeatureCollection' as const,
-			features: cacas.map((p) => ({
+			features: agrupar(cacas).map((l) => ({
 				type: 'Feature' as const,
-				geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] },
-				properties: { id: p.id }
+				geometry: { type: 'Point' as const, coordinates: [l.lon, l.lat] },
+				properties: { id: l.visitas[0].id, veces: l.visitas.length }
 			}))
 		};
 	}
@@ -61,7 +75,7 @@
 	$effect(() => {
 		if (!contenedor || mapa || !cacas.length) return;
 		const c = contenedor;
-		void crearMapa(c).then(({ mapa: m }) => {
+		void crearMapa(c).then(({ mapa: m, teselas }) => {
 			m.addSource('amigos', { type: 'geojson', data: datos() });
 			m.addLayer({
 				id: 'amigos',
@@ -71,9 +85,18 @@
 					'circle-color': '#74acdf',
 					'circle-stroke-color': '#3b2314',
 					'circle-stroke-width': 2.5,
-					'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 6, 15, 11]
+					'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, ['+', 6, ['min', 6, ['get', 'veces']]], 15, ['+', 11, ['min', 8, ['get', 'veces']]]]
 				}
 			});
+			if (teselas.argentina || teselas.mundo)
+				m.addLayer({
+					id: 'amigos-veces',
+					type: 'symbol',
+					source: 'amigos',
+					filter: ['>', ['get', 'veces'], 1],
+					layout: { 'text-field': ['to-string', ['get', 'veces']], 'text-font': ['Noto Sans Medium'], 'text-size': 13 },
+					paint: { 'text-color': '#3b2314' }
+				});
 			m.on('click', 'amigos', (e) => {
 				const id = e.features?.[0]?.properties?.id as string | undefined;
 				document.getElementById(`caca-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -167,6 +190,9 @@
 								{p.banio_nombre ?? TIPO[p.tipo]?.texto.toLowerCase()} · {dia(p.dia)}{p.sin_papel ? ' · sin papel 😱' : ''} ·
 								{p.alcance === 'amigos' ? '👥 solo amigos' : '🌎 pública'}
 							</span>
+							{#if (veces.get(p.id)?.total ?? 1) > 1}
+								<span class="vez">💩 {veces.get(p.id)?.vez}.ª vez de @{p.seudonimo} acá</span>
+							{/if}
 							{#if p.comentario}<q>{p.comentario}</q>{/if}
 						</li>
 					{/each}
@@ -247,6 +273,10 @@
 	.feed span {
 		color: var(--tinta-suave);
 		font-size: 14px;
+	}
+	.feed .vez {
+		color: var(--tinta);
+		font-weight: 600;
 	}
 	.feed q {
 		margin-top: 4px;

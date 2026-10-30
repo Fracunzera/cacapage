@@ -2,6 +2,7 @@
 	import { TIPOS, type Registro } from '../modelo';
 	import type { Compartir as Con } from '../publicar';
 	import Compartir from './Compartir.svelte';
+	import { vecesPorVisita } from '$lib/lugares';
 
 	let {
 		registros,
@@ -26,6 +27,8 @@
 	}
 
 	const TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
+	/** "3.ª vez acá": mismo baño, o a menos de 40 m. */
+	const veces = $derived(vecesPorVisita(registros, (r) => r.ocurrido_en));
 	const mes = (iso: string) => {
 		const t = new Date(iso).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
 		return t.charAt(0).toUpperCase() + t.slice(1);
@@ -56,7 +59,7 @@
 					<span class="que">
 						<strong>{r.banio_nombre ?? TIPO[r.tipo]?.texto}</strong>
 						<small
-							>{dia(r.ocurrido_en)}{r.sin_papel ? ' · sin papel' : ''}{r.comentario ? ' · 📝' : ''}{r.publico ? ` · 🌎 pública${r.numero_publico ? ` N.º ${r.numero_publico.toLocaleString('es-AR')}` : ''}` : ''}{r.amigos ? ' · 👥 con amigos' : ''}{(r.publico || r.amigos) && r.comentario_publico ? ' con anécdota' : ''}</small
+							>{dia(r.ocurrido_en)}{r.sin_papel ? ' · sin papel' : ''}{r.comentario ? ' · 📝' : ''}{(veces.get(r.id)?.total ?? 1) > 1 ? ` · ${veces.get(r.id)?.vez}.ª vez acá` : ''}{r.publico ? ` · 🌎 pública${r.numero_publico ? ` N.º ${r.numero_publico.toLocaleString('es-AR')}` : ''}` : ''}{r.amigos ? ' · 👥 con amigos' : ''}{(r.publico || r.amigos) && r.comentario_publico ? ' con anécdota' : ''}</small
 						>
 					</span>
 				</button>
