@@ -1,6 +1,6 @@
 <script lang="ts">
 	// La advertencia antes de compartir (PRIVACY.md P-38, P-43): qué se va a ver y quién, dicho claro.
-	import { DEMORA_MINUTOS, DIAS_AMIGOS, problemaComentarioPublico, type Alcance } from '$lib/publicaciones';
+	import { DEMORA_MINUTOS, problemaComentarioPublico, type Alcance } from '$lib/publicaciones';
 	import { TIPOS, type Registro } from '../modelo';
 
 	let {
@@ -32,7 +32,7 @@
 		<div id="detalle-publico">
 			<p>
 				{alcance === 'amigos'
-					? `Tus amigos (y nadie más) van a poder ver durante ${DIAS_AMIGOS} días:`
+					? 'Tus amigos (y nadie más) van a poder ver, mientras sean amigos:'
 					: 'Cualquiera va a poder ver en el mapa público de cacas:'}
 			</p>
 			<ul>

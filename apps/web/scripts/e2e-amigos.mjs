@@ -178,9 +178,9 @@ try {
 	const [vuelta] = await sql`select alcance, numero from publicaciones`;
 	ok(vuelta.alcance === 'amigos' && Number(vuelta.numero) === 1 && (await publicas()).length === 0, 'de vuelta a amigos: sale del público y conserva su número');
 
-	// Lo de amigos vence a los 30 días.
-	await sql`update publicaciones set dia = current_date - 40`;
-	ok((await json(beto, '/amigos/cacas')).publicaciones.length === 0, 'lo de amigos se ve 30 días');
+	// Lo de amigos no vence.
+	await sql`update publicaciones set dia = current_date - 400`;
+	ok((await json(beto, '/amigos/cacas')).publicaciones.length === 1, 'lo de amigos no vence (una de hace más de un año)');
 	await sql`update publicaciones set dia = current_date`;
 
 	// Sacar amigos.

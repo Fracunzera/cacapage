@@ -58,7 +58,7 @@ individuales:**
 | Tarjetas compartibles | Quien reciba el link | Lo mismo que la insignia; **(i3)** para medallas, el nombre implica la cantidad de registros (múltiplo de 5) | Acto explícito del usuario en el momento; sin fecha ni lugar (P-33). |
 | **(i3)** Anuncio de medalla a amigos | Amigos elegidos | Que hubo un registro ese día | Solo si el usuario lo pide para esa medalla; cola diferida (P-33). |
 | **(i5)** Puntaje de un baño | Público | Promedio y cantidad de votos; nunca quién votó ni cuándo | Un voto por cuenta; se guarda con `cuenta_id` solo para poder cambiarlo y se borra con la cuenta. Con 1 voto, el promedio es ese voto (atribución como P-17, sin autor). |
-| **(i5)** Cacas de amigos (`/app/amigos`) | Amigos (mutuos, por link de invitación) | Lo mismo que una pública, con seudónimo, durante 30 días | Opt-in por registro con advertencia; nunca casa/laburo/lo de alguien; 30 min de demora; sin búsqueda ni solicitudes (P-43). |
+| **(i5)** Cacas de amigos (`/app/amigos`) | Amigos (mutuos, por link de invitación) | Lo mismo que una pública pero con el punto exacto, con seudónimo, sin vencimiento | Opt-in por registro con advertencia; nunca casa/laburo/lo de alguien; 30 min de demora; sin búsqueda ni solicitudes (P-43). |
 | **(i5)** Mapa de cacas (`/cacas`) y visitas públicas en la ficha de un baño | Público, sin cuenta | **Registro individual con seudónimo:** el baño o el punto (±11 m), el tipo de lugar y el día; **la anécdota, solo si su dueño la muestra (P-42)** | **Excepción a la regla de abajo, por decisión del producto (P-38):** opt-in registro por registro con advertencia explícita, nunca casa/laburo/lo de alguien, sin hora, 30 min de demora para los demás (el dueño la ve enseguida), despublicar borra en el acto. |
 
 **Regla para cualquier superficie nueva** (vista social, perfil público, liga,
@@ -433,6 +433,8 @@ público. Sí se puede compartir como tarjeta puntual, decidida por el usuario e
 ese momento (es un acto explícito, igual que publicar).
 
 ### P-21 · El feed de amigos vence a los 30 días
+
+> **(i5)** Reemplazada por decisión del producto: lo compartido con amigos no vence (P-43).
 
 **Decisión.** Borrado automático. Cortar una amistad borra del feed del otro lo
 que le habías mostrado.
@@ -843,7 +845,8 @@ no lo reemplaza. Es una versión más simple del feed de amigos del diseño
 lo mismo que una pública (seudónimo, día, baño o punto, y la anécdota solo si
 se elige, P-42), con dos diferencias: **el punto va exacto** (6 decimales; en
 las públicas, redondeado a ~11 m; decisión del producto) y lo ven únicamente
-las cuentas amigas, durante 30 días (P-21), con la misma demora de 30 minutos.
+las cuentas amigas, **sin vencimiento** mientras sean amigos (decisión del
+producto; reemplaza los 30 días de P-21), con la misma demora de 30 minutos.
 Los amigos ven cuántas veces fue cada uno a un mismo lugar ("4.ª vez acá"),
 contando solo lo que les compartió; se calcula en el celular. No gasta número del mapa
 público. Casa, laburo y lo de alguien tampoco se comparten con amigos.
@@ -860,7 +863,10 @@ cuenta.
 **Mitiga.** Lo que la gente quiere compartir con conocidos no tiene que ir al
 mapa de todo el mundo.
 
-**Cuesta.** Un link reenviado (un grupo de WhatsApp grande) suma como amigos a
+**Cuesta.** Sin vencimiento y con el punto exacto, lo compartido con amigos
+es, para ellos, el historial completo de lugares de esa persona; con el
+conteo por lugar, también sus lugares habituales. Sacar a un amigo corta el
+acceso en el acto. Un link reenviado (un grupo de WhatsApp grande) suma como amigos a
 desconocidos: por eso vence y se puede anular. El servidor sabe quién es amigo
 de quién (un grafo social), además de lo que cada uno compartió. Lo de amigos
 no tiene las protecciones del feed original (etiqueta de zona en vez de punto,

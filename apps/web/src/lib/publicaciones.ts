@@ -4,8 +4,6 @@ import type { Tipo } from '$lib/boveda/modelo';
 /** Con quién se comparte una caca: todos (mapa de cacas) o solo amigos (P-43). */
 export type Alcance = 'publico' | 'amigos';
 
-/** Lo de amigos se ve 30 días (P-21); lo público, un año. */
-export const DIAS_AMIGOS = 30;
 
 /** Casa, laburo y lo de alguien no se pueden hacer públicos. */
 export const TIPOS_PUBLICABLES: Tipo[] = ['banio_publico', 'ruta', 'naturaleza', 'otro'];

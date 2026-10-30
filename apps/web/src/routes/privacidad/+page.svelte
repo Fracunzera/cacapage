@@ -44,7 +44,7 @@
 		</li>
 		<li>
 			<strong>Tus amigos en Dónde Cagué</strong>, si los tenés: quién es amigo de quién y desde qué día. Se hacen solo
-			con un link de invitación que mandás vos. Lo que compartís con "Mis amigos" lo ven solo ellos, durante 30 días, con
+			con un link de invitación que mandás vos. Lo que compartís con "Mis amigos" lo ven solo ellos, mientras sean amigos, con
 			los mismos datos que una caca pública, pero con el punto exacto (no redondeado).
 		</li>
 		<li>

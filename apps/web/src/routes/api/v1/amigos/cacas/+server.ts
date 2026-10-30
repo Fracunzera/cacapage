@@ -1,11 +1,11 @@
 import { json } from '@sveltejs/kit';
 import { exigirSesion } from '$lib/server/auth/sesiones';
 import { db } from '$lib/server/db';
-import { DIAS_AMIGOS, type Publicacion } from '$lib/publicaciones';
+import type { Publicacion } from '$lib/publicaciones';
 
 /**
- * Lo que compartieron mis amigos: lo de "solo amigos" de los últimos 30 días
- * (P-21) y lo público del último año. Con la misma demora que el mapa público.
+ * Todo lo que compartieron mis amigos, sin vencimiento (decisión del producto,
+ * P-43): lo de "solo amigos" y lo público. Con la misma demora que el mapa público.
  */
 export const GET = async ({ cookies }) => {
 	const sesion = await exigirSesion(cookies);
@@ -19,10 +19,9 @@ export const GET = async ({ cookies }) => {
 		left join osm.candidatos b on b.id = p.banio_id
 		where (a.cuenta_a = ${sesion.id} or a.cuenta_b = ${sesion.id})
 		  and p.visible_desde <= now()
-		  and p.dia > current_date - case when p.alcance = 'amigos' then ${DIAS_AMIGOS}::int else 365 end
 		  and (p.lat is not null or b.id is not null)
 		order by p.visible_desde desc
-		limit 2000`;
+		limit 5000`;
 	const publicaciones: Publicacion[] = filas.map((f) => ({
 		id: f.id,
 		numero: f.numero === null ? null : Number(f.numero),

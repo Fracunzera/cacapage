@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Amigos (PRIVACY.md P-43): invitar con un link, ver lo que compartieron
-	// (solo amigos, 30 días, y lo público) y sacar amigos.
+	// (lo de amigos y lo público, sin vencimiento) y sacar amigos.
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import type { Map as Mapa, GeoJSONSource } from 'maplibre-gl';
@@ -9,7 +9,7 @@
 	import { api, ErrorApi } from '$lib/cliente/api';
 	import { crearMapa, encuadrar } from '$lib/banios/crearMapa';
 	import { TIPOS } from '$lib/boveda/modelo';
-	import { DIAS_AMIGOS, type Publicacion } from '$lib/publicaciones';
+	import type { Publicacion } from '$lib/publicaciones';
 	import { agrupar, vecesPorVisita } from '$lib/lugares';
 
 	const TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
@@ -199,7 +199,7 @@
 				</ul>
 			{:else}
 				<p class="u-ayuda">
-					Todavía nada. Cuando tus amigos compartan una caca ("👥 Mis amigos" al registrar), aparece acá durante {DIAS_AMIGOS} días.
+					Todavía nada. Cuando tus amigos compartan una caca ("👥 Mis amigos" al registrar), aparece acá.
 				</p>
 			{/if}
 		</section>
