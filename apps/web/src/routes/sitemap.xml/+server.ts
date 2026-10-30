@@ -11,7 +11,7 @@ const dia = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : 
 export const GET: RequestHandler = async () => {
 	const sql = db();
 	const [osm] = await sql`select max(empezada_en) as fecha from osm.importaciones where estado = 'ok'`;
-	const [pub] = await sql`select max(visible_desde) as fecha from publicaciones where visible_desde <= now()`;
+	const [pub] = await sql`select max(visible_desde) as fecha from publicaciones where alcance = 'publico' and visible_desde <= now()`;
 	const paginas: [string, string][] = [
 		['/', __FECHA_BUILD__],
 		['/mapa', dia(osm?.fecha)],

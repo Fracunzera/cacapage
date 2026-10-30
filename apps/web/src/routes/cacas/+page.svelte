@@ -77,7 +77,8 @@
 			mias = new Set(propias.publicaciones.map((p) => p.id));
 			const yaEstan = new Set(publicas.publicaciones.map((p) => p.id));
 			todas = [
-				...propias.publicaciones.filter((p) => !yaEstan.has(p.id) && faltaParaTodos(p.visible_desde)),
+				// Solo las públicas: las de amigos no van a este mapa.
+				...propias.publicaciones.filter((p) => p.alcance === 'publico' && !yaEstan.has(p.id) && faltaParaTodos(p.visible_desde)),
 				...publicas.publicaciones
 			];
 			cargado = true;
@@ -180,7 +181,10 @@
 			<ul>
 				{#each elegidas as p (p.id)}
 					<li>
-						<strong>@{p.seudonimo} <span class="numero">· N.º {p.numero.toLocaleString('es-AR')}</span></strong>
+						<strong
+							>@{p.seudonimo}
+							{#if p.numero !== null}<span class="numero">· N.º {p.numero.toLocaleString('es-AR')}</span>{/if}</strong
+						>
 						<span>{TIPO[p.tipo]?.icono} {p.banio_id ? 'en el baño' : TIPO[p.tipo]?.texto.toLowerCase()} · {dia(p.dia)}{p.sin_papel ? ' · sin papel 😱' : ''}</span>
 						{#if p.comentario}
 							<q class="comentario">{p.comentario}</q>

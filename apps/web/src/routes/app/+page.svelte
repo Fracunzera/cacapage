@@ -12,7 +12,8 @@
 	import Historial from '$lib/boveda/ui/Historial.svelte';
 	import Celebracion, { type Festejo } from '$lib/boveda/ui/Celebracion.svelte';
 	import { descargar } from '$lib/boveda/ui/descargar';
-	import { cambiarPublico } from '$lib/boveda/publicar';
+	import { compartir, type Compartir } from '$lib/boveda/publicar';
+	import { DEMORA_MINUTOS } from '$lib/publicaciones';
 
 	type Estado = 'cargando' | 'configurar' | 'lista';
 	let estado = $state<Estado>('cargando');
@@ -24,6 +25,7 @@
 	let registrando = $state(false);
 	let novedades = $state<Festejo[]>([]);
 	let error = $state<string | null>(null);
+	let aviso = $state<string | null>(null);
 
 	function refrescar() {
 		if (!boveda) return;
@@ -55,6 +57,15 @@
 				error = e instanceof ErrorApi ? e.message : 'No se pudo cargar la cuenta.';
 				return;
 			}
+			// Volver de entrar con una invitación de amigos pendiente.
+			let invitacion: string | null = null;
+			try {
+				invitacion = sessionStorage.getItem('invitacion');
+				sessionStorage.removeItem('invitacion');
+			} catch {
+				// Sin almacenamiento.
+			}
+			if (invitacion) return goto(`/app/amigos/unirme#${invitacion}`);
 			boveda = await Boveda.abrir(seudonimo);
 			if (!boveda.tieneLlaves) {
 				estado = 'configurar';
@@ -72,25 +83,27 @@
 		};
 	});
 
-	async function guardar(r: Registro, publico: boolean, conComentario: boolean) {
+	async function guardar(r: Registro, con: Compartir, conComentario: boolean) {
 		const nuevas = await boveda!.guardar(r);
 		registrando = false;
 		// Primero los premios; el número del mapa público, al final.
 		novedades = nuevas;
-		if (publico) await publicar(r, true, conComentario);
+		if (con !== 'privada') await publicar(r, con, conComentario);
 		refrescar();
 		scrollTo({ top: 0 });
 	}
 
-	async function publicar(r: Registro, publico: boolean, conComentario = false) {
+	async function publicar(r: Registro, con: Compartir, conComentario = false) {
 		error = null;
+		aviso = null;
 		try {
-			const numero = await cambiarPublico(boveda!, r, publico, conComentario);
+			const numero = await compartir(boveda!, r, con, conComentario);
 			if (numero) novedades = [...novedades, { tipo: 'publica', numero }];
+			if (con === 'amigos') aviso = `👥 Compartida con tus amigos: la ven en unos ${DEMORA_MINUTOS} minutos.`;
 		} catch (e) {
 			error =
 				e instanceof ErrorApi && e.estado === 0
-					? 'Para cambiar si es pública hace falta conexión. Quedó como estaba.'
+					? 'Para cambiar con quién la compartís hace falta conexión. Quedó como estaba.'
 					: e instanceof ErrorApi
 						? e.message
 						: 'No se pudo cambiar. Probá de nuevo.';
@@ -100,12 +113,12 @@
 
 	async function borrar(r: Registro) {
 		error = null;
-		if (r.publico) {
-			// Primero se saca del mapa público; sin conexión, no se borra.
+		if (r.publico || r.amigos) {
+			// Primero se deja de compartir; sin conexión, no se borra.
 			try {
-				await cambiarPublico(boveda!, r, false);
+				await compartir(boveda!, r, 'privada');
 			} catch {
-				error = 'Esta caca es pública: para borrarla hace falta conexión.';
+				error = 'Esta caca está compartida: para borrarla hace falta conexión.';
 				return;
 			}
 		}
@@ -169,8 +182,10 @@
 			<button type="button" class="u-boton registrar" onclick={() => (registrando = true)}>💩 Registrar</button>
 			<div class="mapas">
 				<a class="u-boton sec" href="/app/mapa">🗺️ Mi mapa</a>
-				<a class="u-boton sec" href="/cacas">🌎 Mapa de cacas</a>
+				<a class="u-boton sec" href="/app/amigos">👥 Amigos</a>
+				<a class="u-boton sec" href="/cacas">🌎 Públicas</a>
 			</div>
+			{#if aviso}<p class="u-ok" role="status">{aviso}</p>{/if}
 			{#if pendientes}
 				<p class="u-ayuda pendiente">⏳ Guardado en este celular; se sube cuando haya conexión.</p>
 			{/if}
@@ -241,13 +256,13 @@
 	}
 	.mapas {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 10px;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 8px;
 	}
 	.mapas .u-boton {
 		min-height: 48px;
-		padding: 10px 8px;
-		font-size: 16px;
+		padding: 8px 4px;
+		font-size: 15px;
 	}
 	.pendiente {
 		margin-top: 10px;

@@ -171,16 +171,16 @@ try {
 	// En casa no se ofrece hacerla pública.
 	await b.getByRole('button', { name: '💩 Registrar' }).click();
 	await b.getByRole('radio', { name: 'En casa' }).click();
-	ok((await b.getByText('Sumarla al mapa público').count()) === 0, 'en casa no se ofrece hacerla pública');
+	ok((await b.getByRole('radio', { name: /Todo el mundo/ }).count()) === 0, 'en casa no se ofrece compartirla');
 	await b.getByRole('button', { name: 'Cancelar' }).click();
 	// Al aire libre, con ubicación y pública: pide confirmación y dice qué se ve.
 	await b.getByRole('button', { name: '💩 Registrar' }).click();
 	await b.getByRole('radio', { name: 'Al aire libre' }).click();
-	ok(await b.getByLabel(/Sumarla al mapa público/).isDisabled(), 'sin ubicación no se puede hacer pública');
+	ok(await b.getByRole('radio', { name: /Todo el mundo/ }).isDisabled(), 'sin ubicación no se puede hacer pública');
 	await b.getByRole('button', { name: /Usar mi ubicación/ }).click();
 	await b.getByText('Ubicación guardada').waitFor();
 	await b.getByRole('radio', { name: 'Ninguno de estos' }).check();
-	await b.getByLabel(/Sumarla al mapa público/).check();
+	await b.getByRole('radio', { name: /Todo el mundo/ }).click();
 	await b.getByRole('button', { name: 'Guardar' }).click();
 	await b.getByRole('alertdialog').waitFor();
 	const aviso = await b.getByRole('alertdialog').innerText();
@@ -226,7 +226,7 @@ try {
 	const ypf = api.publicaciones.find((p) => p.banio_id === 'n1');
 	ok(ypf?.banio_nombre === 'YPF Centro' && ypf.lat === -51.62, 'la del baño se ubica en el baño');
 	ok(api.publicaciones.map((p) => p.numero).sort().join() === '1,2', 'el mapa público trae el número de cada una');
-	const casa = await b.request.put(BASE + '/api/v1/publicaciones/00000000-0000-4000-8000-000000000000', { data: { tipo: 'casa', dia: '2026-10-01', lat: -51.6, lon: -69.2 } });
+	const casa = await b.request.put(BASE + '/api/v1/publicaciones/00000000-0000-4000-8000-000000000000', { data: { tipo: 'casa', dia: '2026-10-01', lat: -51.6, lon: -69.2, alcance: 'publico' } });
 	ok(casa.status() === 400, 'el servidor rechaza publicar algo de casa');
 
 	const c = await celular();
@@ -260,7 +260,7 @@ try {
 	await b.getByRole('heading', { name: 'Tu caca es la N.º 3 del mapa público' }).waitFor();
 	ok(true, 'despublicar y volver a publicar da un número nuevo; no se reutilizan');
 	await b.getByRole('button', { name: '¡Grande!' }).click();
-	await b.locator('.historial li', { hasText: 'YPF Centro' }).getByText('pública').waitFor();
+	await b.locator('.historial li', { hasText: 'YPF Centro' }).getByText(/pública N.º/).waitFor();
 
 	// Salir borra la copia local; al volver a entrar, el historial vuelve solo.
 	await a.goto(BASE + '/app/cuenta');
@@ -320,8 +320,8 @@ try {
 	// Perdí el código: empezar de cero (borra también sus cacas públicas).
 	const w = await celular();
 	await cuentaVieja(w, 'perdido_e2e');
-	await sql`insert into publicaciones (id, cuenta_id, tipo, lat, lon, dia, visible_desde)
-		select gen_random_uuid(), id, 'naturaleza', -51.6, -69.2, current_date, now() from cuentas where seudonimo = 'perdido_e2e'`;
+	await sql`insert into publicaciones (id, cuenta_id, tipo, lat, lon, dia, visible_desde, numero)
+		select gen_random_uuid(), id, 'naturaleza', -51.6, -69.2, current_date, now(), nextval('publicaciones_numero') from cuentas where seudonimo = 'perdido_e2e'`;
 	await w.goto(BASE + '/app');
 	await w.getByRole('button', { name: 'Perdí el código' }).click();
 	await w.getByRole('button', { name: 'Borrar y empezar de cero' }).click();

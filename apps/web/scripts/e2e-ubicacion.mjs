@@ -139,7 +139,7 @@ try {
 	ok((await p.getByText('¿En cuál?').count()) === 0, 'fuera de la Argentina no se sugieren baños');
 	// Una anécdota con un link no se puede mostrar.
 	await p.getByPlaceholder(/./).last().fill('Mirá www.algo.com');
-	await p.getByLabel(/Sumarla al mapa público/).check();
+	await p.getByRole('radio', { name: /Todo el mundo/ }).click();
 	await p.getByRole('button', { name: 'Guardar' }).click();
 	await p.getByRole('alertdialog').waitFor();
 	ok(await p.getByLabel(/Mostrar también mi anécdota/).isDisabled(), 'una anécdota con links no se puede mostrar');
@@ -147,7 +147,7 @@ try {
 	await p.getByRole('button', { name: 'Mejor no' }).click();
 	// Con una anécdota limpia, sí (marcándolo; viene sin marcar).
 	await p.getByPlaceholder(/./).last().fill('Parque del Retiro, divino');
-	await p.getByLabel(/Sumarla al mapa público/).check();
+	await p.getByRole('radio', { name: /Todo el mundo/ }).click();
 	await p.getByRole('button', { name: 'Guardar' }).click();
 	ok(!(await p.getByLabel(/Mostrar también mi anécdota/).isChecked()), 'mostrar la anécdota viene sin marcar');
 	await p.getByLabel(/Mostrar también mi anécdota/).check();

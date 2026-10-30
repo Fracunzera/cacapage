@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { TIPOS, type Registro } from '../modelo';
-	import { sePuedePublicar } from '../publicar';
-	import ConfirmarPublico from './ConfirmarPublico.svelte';
+	import type { Compartir as Con } from '../publicar';
+	import Compartir from './Compartir.svelte';
 
 	let {
 		registros,
@@ -12,16 +12,14 @@
 		registros: Registro[];
 		seudonimo: string;
 		onborrar: (r: Registro) => void;
-		onpublico: (r: Registro, publico: boolean, conComentario?: boolean) => Promise<void>;
+		onpublico: (r: Registro, con: Con, conComentario: boolean) => Promise<void>;
 	} = $props();
-	let confirmando = $state.raw<Registro | null>(null);
 	let cambiando = $state<string | null>(null);
 
-	async function cambiar(r: Registro, publico: boolean, conComentario = false) {
-		confirmando = null;
+	async function cambiar(r: Registro, con: Con, conComentario: boolean) {
 		cambiando = r.id;
 		try {
-			await onpublico(r, publico, conComentario);
+			await onpublico(r, con, conComentario);
 		} finally {
 			cambiando = null;
 		}
@@ -58,7 +56,7 @@
 					<span class="que">
 						<strong>{r.banio_nombre ?? TIPO[r.tipo]?.texto}</strong>
 						<small
-							>{dia(r.ocurrido_en)}{r.sin_papel ? ' · sin papel' : ''}{r.comentario ? ' · 📝' : ''}{r.publico ? ` · 🌎 pública${r.numero_publico ? ` N.º ${r.numero_publico.toLocaleString('es-AR')}` : ''}${r.comentario_publico ? ' con anécdota' : ''}` : ''}</small
+							>{dia(r.ocurrido_en)}{r.sin_papel ? ' · sin papel' : ''}{r.comentario ? ' · 📝' : ''}{r.publico ? ` · 🌎 pública${r.numero_publico ? ` N.º ${r.numero_publico.toLocaleString('es-AR')}` : ''}` : ''}{r.amigos ? ' · 👥 con amigos' : ''}{(r.publico || r.amigos) && r.comentario_publico ? ' con anécdota' : ''}</small
 						>
 					</span>
 				</button>
@@ -70,14 +68,7 @@
 								📍 {r.fuente_ubicacion === 'manual' ? 'Ubicación cargada a mano' : `Con ubicación (±${r.precision_m} m)`}
 							</p>
 						{/if}
-						{#if r.publico}
-							<p class="u-ayuda">
-								🌎 Está en el mapa público de cacas{r.numero_publico ? `: es la N.º ${r.numero_publico.toLocaleString('es-AR')}` : ''}.
-							</p>
-							<button type="button" class="u-enlace" disabled={cambiando === r.id} onclick={() => cambiar(r, false)}>🔒 Hacerla privada</button>
-						{:else if sePuedePublicar(r)}
-							<button type="button" class="u-enlace" disabled={cambiando === r.id} onclick={() => (confirmando = r)}>🌎 Hacerla pública</button>
-						{/if}
+						<Compartir registro={r} {seudonimo} ocupado={cambiando === r.id} oncambiar={cambiar} />
 						<button
 							type="button"
 							class="u-enlace borrar"
@@ -94,10 +85,6 @@
 	<p class="vacio">Todavía no registraste nada. El trono te espera.</p>
 {/each}
 
-{#if confirmando}
-	{@const r = confirmando}
-	<ConfirmarPublico registro={r} {seudonimo} onsi={(c) => cambiar(r, true, c)} onno={() => (confirmando = null)} />
-{/if}
 
 <style>
 	h3 {

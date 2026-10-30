@@ -43,6 +43,11 @@
 			miramos ni lo usamos para nada. Al borrar la cuenta se borra la llave y el historial deja de poder leerse.
 		</li>
 		<li>
+			<strong>Tus amigos en Dónde Cagué</strong>, si los tenés: quién es amigo de quién y desde qué día. Se hacen solo
+			con un link de invitación que mandás vos. Lo que compartís con "Mis amigos" lo ven solo ellos, durante 30 días, con
+			los mismos datos que una caca pública.
+		</li>
+		<li>
 			<strong>Lo que vos elegís hacer público.</strong> Si marcás una caca como pública, guardamos y mostramos a
 			cualquiera, en el mapa de cacas: tu seudónimo, el día (no la hora), el tipo de lugar, y el baño o el punto
 			donde estabas (redondeado a unos 10 metros), en cualquier país. Los demás la ven 30 minutos después (vos, enseguida). Tu anécdota no se publica, salvo que marques "Mostrar también mi anécdota": en ese caso se guarda y se muestra junto a tu seudónimo. Lo de casa, el laburo o lo de alguien

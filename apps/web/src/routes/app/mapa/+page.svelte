@@ -10,8 +10,8 @@
 	import { crearMapa, encuadrar } from '$lib/banios/crearMapa';
 	import { Boveda } from '$lib/boveda/boveda';
 	import { TIPOS, type Registro } from '$lib/boveda/modelo';
-	import { cambiarPublico, sePuedePublicar } from '$lib/boveda/publicar';
-	import ConfirmarPublico from '$lib/boveda/ui/ConfirmarPublico.svelte';
+	import { compartidaCon, compartir, type Compartir as Con } from '$lib/boveda/publicar';
+	import Compartir from '$lib/boveda/ui/Compartir.svelte';
 	import { faltaParaTodos, type Publicacion } from '$lib/publicaciones';
 	import Celebracion from '$lib/boveda/ui/Celebracion.svelte';
 
@@ -23,7 +23,6 @@
 	let seudonimo = $state('');
 	let registros = $state<Registro[]>([]);
 	let elegido = $state<Registro | null>(null);
-	let confirmando = $state(false);
 	let cambiando = $state(false);
 	let error = $state<string | null>(null);
 	let festejo = $state<number | null>(null);
@@ -48,7 +47,7 @@
 			features: conUbicacion.map((r) => ({
 				type: 'Feature' as const,
 				geometry: { type: 'Point' as const, coordinates: [r.lon!, r.lat!] },
-				properties: { id: r.id, publico: r.publico === true }
+				properties: { id: r.id, con: compartidaCon(r) }
 			}))
 		};
 	}
@@ -63,13 +62,12 @@
 		if (elegido) elegido = registros.find((r) => r.id === elegido!.id) ?? null;
 	}
 
-	async function cambiar(publico: boolean, conComentario = false) {
-		if (!boveda || !elegido) return;
-		confirmando = false;
+	async function cambiar(r: Registro, con: Con, conComentario: boolean) {
+		if (!boveda) return;
 		cambiando = true;
 		error = null;
 		try {
-			const numero = await cambiarPublico(boveda, elegido, publico, conComentario);
+			const numero = await compartir(boveda, r, con, conComentario);
 			if (numero) festejo = numero;
 			await cargarMias();
 		} catch (e) {
@@ -100,7 +98,8 @@
 				source: 'mias',
 				paint: {
 					// Privadas en marrón; públicas en amarillo.
-					'circle-color': ['case', ['get', 'publico'], '#f6b40e', '#8a5632'],
+					// Privadas en marrón, de amigos en celeste, públicas en amarillo.
+					'circle-color': ['match', ['get', 'con'], 'publico', '#f6b40e', 'amigos', '#74acdf', '#8a5632'],
 					'circle-stroke-color': '#3b2314',
 					'circle-stroke-width': 2.5,
 					'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 6, 15, 11]
@@ -155,10 +154,9 @@
 			<h2 id="ficha-mia">{r.banio_nombre ?? TIPO[r.tipo]?.texto}</h2>
 			<p class="cuando">{fecha(r.ocurrido_en)}{r.sin_papel ? ' · sin papel 😱' : ''}</p>
 			{#if r.comentario}<p class="comentario">“{r.comentario}”</p>{/if}
-			{#if r.publico}
-				<p class="estado publica">
-					🌎 Pública: está en el mapa de cacas{r.numero_publico ? ` (N.º ${r.numero_publico.toLocaleString('es-AR')})` : ''}.
-				</p>
+			{#if compartidaCon(r) === 'privada'}<p class="estado">🔒 Privada: solo la ves vos.</p>{/if}
+			<Compartir registro={r} {seudonimo} ocupado={cambiando} oncambiar={cambiar} />
+			{#if r.publico || r.amigos}
 				{#if r.comentario_publico}
 					<p class="u-ayuda">
 						{comentarioOculto.has(r.id)
@@ -167,22 +165,14 @@
 					</p>
 				{/if}
 				{#if faltaParaTodos(visibleDesde.get(r.id))}
-					<p class="u-ayuda">⏳ Por ahora solo la ves vos: los demás la ven {faltaParaTodos(visibleDesde.get(r.id))}.</p>
-				{/if}
-				<button type="button" class="u-boton sec" disabled={cambiando} onclick={() => cambiar(false)}>🔒 Hacerla privada</button>
-			{:else}
-				<p class="estado">🔒 Privada: solo la ves vos.</p>
-				{#if sePuedePublicar(r)}
-					<button type="button" class="u-boton sec" disabled={cambiando} onclick={() => (confirmando = true)}>🌎 Hacerla pública</button>
-				{:else}
-					<p class="u-ayuda">Lo de casa, el laburo o lo de alguien no se puede hacer público.</p>
+					<p class="u-ayuda">⏳ Por ahora solo la ves vos: {r.amigos ? 'tus amigos' : 'los demás'} la ven {faltaParaTodos(visibleDesde.get(r.id))}.</p>
 				{/if}
 			{/if}
 		</section>
 	{/if}
 
 	<p class="u-pie-mapa">
-		<strong>{conUbicacion.length}</strong> con ubicación · 🟤 privada · 🟡 pública · Este mapa lo ves solo vos.
+		<strong>{conUbicacion.length}</strong> con ubicación · 🟤 privada · 🔵 amigos · 🟡 pública · Este mapa lo ves solo vos.
 	</p>
 </div>
 
@@ -190,9 +180,6 @@
 	<Celebracion novedad={{ tipo: 'publica', numero: festejo }} oncerrar={() => (festejo = null)} />
 {/if}
 
-{#if confirmando && elegido}
-	<ConfirmarPublico registro={elegido} {seudonimo} onsi={(c) => cambiar(true, c)} onno={() => (confirmando = false)} />
-{/if}
 
 <style>
 	.otro {
@@ -232,13 +219,6 @@
 	.estado {
 		margin: 10px 0 0;
 		font-weight: 600;
-	}
-	.publica {
-		color: var(--mate);
-	}
-	.u-boton {
-		min-height: 48px;
-		font-size: 17px;
 	}
 	.u-pie-mapa strong {
 		color: var(--tinta);

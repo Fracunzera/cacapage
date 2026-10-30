@@ -1,15 +1,17 @@
 <script lang="ts">
-	// La advertencia antes de publicar (PRIVACY.md P-38): qué se va a ver, dicho claro.
-	import { DEMORA_MINUTOS, problemaComentarioPublico } from '$lib/publicaciones';
+	// La advertencia antes de compartir (PRIVACY.md P-38, P-43): qué se va a ver y quién, dicho claro.
+	import { DEMORA_MINUTOS, DIAS_AMIGOS, problemaComentarioPublico, type Alcance } from '$lib/publicaciones';
 	import { TIPOS, type Registro } from '../modelo';
 
 	let {
 		registro,
+		alcance = 'publico',
 		seudonimo,
 		onsi,
 		onno
 	}: {
 		registro: Pick<Registro, 'tipo' | 'banio_nombre' | 'ocurrido_en' | 'banio_id' | 'comentario'>;
+		alcance?: Alcance;
 		seudonimo: string;
 		/** conComentario: si también se muestra la anécdota (P-42). */
 		onsi: (conComentario: boolean) => void;
@@ -26,9 +28,13 @@
 
 <div class="fondo" role="presentation">
 	<div class="cartel" role="alertdialog" aria-modal="true" aria-labelledby="titulo-publico" aria-describedby="detalle-publico">
-		<h2 id="titulo-publico">¿Querés que esta caca sea pública?</h2>
+		<h2 id="titulo-publico">{alcance === 'amigos' ? '¿La compartís con tus amigos?' : '¿Querés que esta caca sea pública?'}</h2>
 		<div id="detalle-publico">
-			<p>Cualquiera va a poder ver en el mapa público de cacas:</p>
+			<p>
+				{alcance === 'amigos'
+					? `Tus amigos (y nadie más) van a poder ver durante ${DIAS_AMIGOS} días:`
+					: 'Cualquiera va a poder ver en el mapa público de cacas:'}
+			</p>
 			<ul>
 				<li>👤 Tu seudónimo, <strong>@{seudonimo}</strong></li>
 				<li>
@@ -49,11 +55,13 @@
 				</label>
 			{/if}
 			<p class="u-ayuda">
-				No se ve la hora{conComentario ? '' : ' ni tu anécdota'}. Vos la ves enseguida; los demás, en unos {DEMORA_MINUTOS} minutos, para que nadie sepa dónde estás en este momento. La
-				podés volver a poner privada cuando quieras.
+				No se ve la hora{conComentario ? '' : ' ni tu anécdota'}. Vos la ves enseguida; {alcance === 'amigos' ? 'ellos' : 'los demás'}, en unos
+				{DEMORA_MINUTOS} minutos, para que nadie sepa dónde estás en este momento. La podés volver a poner privada cuando quieras.
 			</p>
 		</div>
-		<button type="button" class="u-boton" bind:this={boton} onclick={() => onsi(conComentario)}>Sí, hacerla pública</button>
+		<button type="button" class="u-boton" bind:this={boton} onclick={() => onsi(conComentario)}
+			>{alcance === 'amigos' ? 'Sí, compartirla' : 'Sí, hacerla pública'}</button
+		>
 		<button type="button" class="u-enlace" onclick={onno}>Mejor no</button>
 	</div>
 </div>

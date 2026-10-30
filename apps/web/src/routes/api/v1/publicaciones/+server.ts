@@ -12,7 +12,7 @@ export const GET = async () => {
 		from publicaciones p
 		join cuentas c on c.id = p.cuenta_id and c.estado = 'activa'
 		left join osm.candidatos b on b.id = p.banio_id
-		where p.visible_desde <= now() and p.dia > current_date - 365
+		where p.alcance = 'publico' and p.visible_desde <= now() and p.dia > current_date - 365
 		  and (p.lat is not null or b.id is not null)
 		  and (p.banio_id is null or not exists (select 1 from banios_ocultos o where o.banio_id = p.banio_id))
 		order by p.dia desc

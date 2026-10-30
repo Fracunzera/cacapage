@@ -12,14 +12,15 @@ export const GET = async ({ cookies }) => {
 	// con_sesion: para saber si ofrecer "Reportar" en el mapa, sin pedir /cuenta.
 	if (!sesion) return json({ publicaciones: [], con_sesion: false });
 	const filas = await db()`
-		select p.id, p.numero, p.tipo, p.dia, p.banio_id, p.sin_papel, p.visible_desde, p.comentario, p.comentario_oculto,
+		select p.id, p.numero, p.alcance, p.tipo, p.dia, p.banio_id, p.sin_papel, p.visible_desde, p.comentario, p.comentario_oculto,
 		       coalesce(p.lat, b.lat) as lat, coalesce(p.lon, b.lon) as lon, coalesce(b.nombre, b.marca) as banio_nombre
 		from publicaciones p left join osm.candidatos b on b.id = p.banio_id
 		where p.cuenta_id = ${sesion.id} and (p.lat is not null or b.id is not null)
-		order by p.numero desc`;
+		order by p.visible_desde desc`;
 	const publicaciones: Publicacion[] = filas.map((f) => ({
 		id: f.id,
-		numero: Number(f.numero),
+		numero: f.numero === null ? null : Number(f.numero),
+		alcance: f.alcance,
 		seudonimo: sesion.seudonimo,
 		tipo: f.tipo,
 		dia: (f.dia as Date).toISOString().slice(0, 10),

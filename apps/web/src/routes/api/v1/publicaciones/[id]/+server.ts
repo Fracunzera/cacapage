@@ -26,7 +26,11 @@ export const PUT = async (event) => {
 		lon?: number;
 		sin_papel?: boolean;
 		comentario?: string;
+		alcance?: string;
 	}>(event);
+	// Sin valor por defecto: un alcance que falta es un error, no "pública".
+	const alcance = c.alcance;
+	if (alcance !== 'publico' && alcance !== 'amigos') error(400, 'Falta con quién compartirla.');
 	if (!TIPOS_PUBLICABLES.includes(c.tipo as never)) error(400, 'Lo de casa, el laburo o lo de alguien no se puede hacer público.');
 	if (typeof c.dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(c.dia) || isNaN(Date.parse(c.dia))) error(400, 'Día inválido.');
 	if (Date.parse(c.dia) > Date.now() + 36 * 3600_000) error(400, 'Ese día todavía no pasó.');
@@ -56,19 +60,35 @@ export const PUT = async (event) => {
 		lat = red(c.lat);
 		lon = red(c.lon);
 	}
-	const [fila] = await sql`
-		insert into publicaciones (id, cuenta_id, tipo, banio_id, lat, lon, dia, sin_papel, comentario, visible_desde)
-		values (${id}, ${sesion.id}, ${c.tipo}, ${banio}, ${lat}, ${lon}, ${c.dia}, ${c.sin_papel === true}, ${comentario},
-		        now() + make_interval(mins => ${DEMORA_MINUTOS}))
-		on conflict (id) do update set tipo = excluded.tipo, banio_id = excluded.banio_id, lat = excluded.lat,
-			lon = excluded.lon, dia = excluded.dia, sin_papel = excluded.sin_papel,
-			-- Un texto nuevo vuelve a empezar sin reportes; el mismo, conserva su estado.
-			comentario_oculto = publicaciones.comentario_oculto and publicaciones.comentario is not distinct from excluded.comentario,
-			comentario = excluded.comentario
-		where publicaciones.cuenta_id = ${sesion.id}
-		returning numero`;
+	// En una transacción y no con "on conflict": así el número del mapa público
+	// se pide solo cuando hace falta (pasa a pública y no tenía), sin gastar números.
+	const fila = await sql.begin(async (tx) => {
+		const [actual] = await tx`select cuenta_id from publicaciones where id = ${id} for update`;
+		if (actual && actual.cuenta_id !== sesion.id) return null;
+		if (!actual) {
+			const [nueva] = await tx`
+				insert into publicaciones (id, cuenta_id, tipo, banio_id, lat, lon, dia, sin_papel, comentario, alcance, numero, visible_desde)
+				values (${id}, ${sesion.id}, ${c.tipo}, ${banio}, ${lat}, ${lon}, ${c.dia}, ${c.sin_papel === true}, ${comentario}, ${alcance},
+				        case when ${alcance} = 'publico' then nextval('publicaciones_numero') end,
+				        now() + make_interval(mins => ${DEMORA_MINUTOS}))
+				returning numero`;
+			return nueva;
+		}
+		const [cambiada] = await tx`
+			update publicaciones set tipo = ${c.tipo}, banio_id = ${banio}, lat = ${lat}, lon = ${lon}, dia = ${c.dia},
+				sin_papel = ${c.sin_papel === true},
+				-- Un texto nuevo vuelve a empezar sin reportes; el mismo, conserva su estado.
+				comentario_oculto = comentario_oculto and comentario is not distinct from ${comentario},
+				comentario = ${comentario},
+				alcance = ${alcance},
+				-- Pasar a pública le da número si no tenía; el número no se pierde.
+				numero = coalesce(numero, case when ${alcance} = 'publico' then nextval('publicaciones_numero') end)
+			where id = ${id}
+			returning numero`;
+		return cambiada;
+	});
 	if (!fila) error(409, 'Ese registro no es tuyo.');
-	return json({ ok: true, numero: Number(fila.numero) });
+	return json({ ok: true, numero: alcance === 'publico' ? Number(fila.numero) : null });
 };
 
 /** Despublicar: se borra en el acto. */

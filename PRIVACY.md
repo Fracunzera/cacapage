@@ -58,6 +58,7 @@ individuales:**
 | Tarjetas compartibles | Quien reciba el link | Lo mismo que la insignia; **(i3)** para medallas, el nombre implica la cantidad de registros (múltiplo de 5) | Acto explícito del usuario en el momento; sin fecha ni lugar (P-33). |
 | **(i3)** Anuncio de medalla a amigos | Amigos elegidos | Que hubo un registro ese día | Solo si el usuario lo pide para esa medalla; cola diferida (P-33). |
 | **(i5)** Puntaje de un baño | Público | Promedio y cantidad de votos; nunca quién votó ni cuándo | Un voto por cuenta; se guarda con `cuenta_id` solo para poder cambiarlo y se borra con la cuenta. Con 1 voto, el promedio es ese voto (atribución como P-17, sin autor). |
+| **(i5)** Cacas de amigos (`/app/amigos`) | Amigos (mutuos, por link de invitación) | Lo mismo que una pública, con seudónimo, durante 30 días | Opt-in por registro con advertencia; nunca casa/laburo/lo de alguien; 30 min de demora; sin búsqueda ni solicitudes (P-43). |
 | **(i5)** Mapa de cacas (`/cacas`) y visitas públicas en la ficha de un baño | Público, sin cuenta | **Registro individual con seudónimo:** el baño o el punto (±11 m), el tipo de lugar y el día; **la anécdota, solo si su dueño la muestra (P-42)** | **Excepción a la regla de abajo, por decisión del producto (P-38):** opt-in registro por registro con advertencia explícita, nunca casa/laburo/lo de alguien, sin hora, 30 min de demora para los demás (el dueño la ve enseguida), despublicar borra en el acto. |
 
 **Regla para cualquier superficie nueva** (vista social, perfil público, liga,
@@ -831,6 +832,36 @@ saca algo útil a todos).
 filtro no entiende contexto ("vivo en Zapiola 50" pasa). Tres cuentas
 elegibles de acuerdo pueden ocultar un texto inocente hasta la revisión. El
 texto publicado queda en la base en claro, fuera de la bóveda.
+
+### P-43 · (i5) Compartir solo con amigos
+
+**Estado:** adoptada por decisión del producto. Se suma al mapa público (P-38),
+no lo reemplaza. Es una versión más simple del feed de amigos del diseño
+(P-07, P-10, P-21), que no se había implementado.
+
+**Decisión.** Cada caca es privada, de amigos o pública. "Solo amigos" publica
+lo mismo que una pública (seudónimo, día, baño o punto a ~11 m, y la anécdota
+solo si se elige, P-42), pero lo ven únicamente las cuentas amigas, durante 30
+días (P-21), con la misma demora de 30 minutos. No gasta número del mapa
+público. Casa, laburo y lo de alguien tampoco se comparten con amigos.
+
+La amistad es mutua y se hace **solo con un link de invitación**: quien lo abre
+con su cuenta queda como amigo de los dos lados. No hay búsqueda por seudónimo
+ni solicitudes: nadie puede pedirte amistad si no le pasaste el link. Un link
+vigente por cuenta, que dura 7 días y sirve para varias personas; crear uno
+nuevo anula el anterior. El token viaja en el fragmento (#) y la base guarda
+solo su hash. Cualquiera de los dos puede sacar al otro, sin aviso. El servidor
+guarda la lista de amistades (pares de cuentas y fecha), que se borra con la
+cuenta.
+
+**Mitiga.** Lo que la gente quiere compartir con conocidos no tiene que ir al
+mapa de todo el mundo.
+
+**Cuesta.** Un link reenviado (un grupo de WhatsApp grande) suma como amigos a
+desconocidos: por eso vence y se puede anular. El servidor sabe quién es amigo
+de quién (un grafo social), además de lo que cada uno compartió. Lo de amigos
+no tiene las protecciones del feed original (etiqueta de zona en vez de punto,
+P-07; viajes a la vuelta, P-10): el punto es el mismo que en una pública.
 
 ---
 

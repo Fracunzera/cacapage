@@ -9,7 +9,7 @@
 	import { candidatos } from '../candidatos';
 	import { api, ErrorApi } from '$lib/cliente/api';
 	import { enArgentina, interpretar, type Punto } from '$lib/ubicacion/interpretar';
-	import { sePuedePublicar } from '../publicar';
+	import { sePuedePublicar, type Compartir } from '../publicar';
 	import ConfirmarPublico from './ConfirmarPublico.svelte';
 
 	let {
@@ -19,7 +19,8 @@
 	}: {
 		seudonimo: string;
 		/** conComentario: al hacerla pública, mostrar también la anécdota. */
-		onguardar: (r: Registro, publico: boolean, conComentario: boolean) => Promise<void>;
+		/** con: con quién se comparte; conComentario: mostrar también la anécdota. */
+		onguardar: (r: Registro, con: Compartir, conComentario: boolean) => Promise<void>;
 		oncancelar: () => void;
 	} = $props();
 
@@ -48,7 +49,7 @@
 	let cerca = $state<{ banio: Banio; distancia: number }[]>([]);
 	let banioId = $state<string | null>(null);
 	let guardando = $state(false);
-	let publico = $state(false);
+	let compartirCon = $state<Compartir>('privada');
 	let confirmando = $state.raw<Registro | null>(null);
 	let error = $state<string | null>(null);
 
@@ -63,7 +64,7 @@
 		tipo !== null && sePuedePublicar({ tipo, banio_id: banioElegido?.id, lat: ubicacion?.lat })
 	);
 	$effect(() => {
-		if (!publicable) publico = false;
+		if (!publicable) compartirCon = 'privada';
 	});
 
 	/** Fija la ubicación y busca los baños del catálogo que hay cerca. */
@@ -164,16 +165,16 @@
 	function pedirGuardar() {
 		const r = armar();
 		if (!r) return;
-		if (publico) confirmando = r;
-		else void guardar(r, false, false);
+		if (compartirCon !== 'privada') confirmando = r;
+		else void guardar(r, 'privada', false);
 	}
 
-	async function guardar(r: Registro, comoPublico: boolean, conComentario: boolean) {
+	async function guardar(r: Registro, con: Compartir, conComentario: boolean) {
 		confirmando = null;
 		guardando = true;
 		error = null;
 		try {
-			await onguardar(r, comoPublico, conComentario);
+			await onguardar(r, con, conComentario);
 		} catch {
 			error = 'No se pudo guardar. Probá de nuevo.';
 			guardando = false;
@@ -284,13 +285,22 @@
 	</label>
 
 	{#if tipo && !enCasa}
-		<label class="u-check publico">
-			<input type="checkbox" bind:checked={publico} disabled={!publicable} />
-			<span>
-				🌎 Sumarla al mapa público de cacas
-				{#if !publicable}<small>Necesita la ubicación.</small>{/if}
-			</span>
-		</label>
+		<fieldset class="compartir">
+			<legend>¿Quién la ve?</legend>
+			<div class="opciones" role="radiogroup" aria-label="Quién la ve">
+				{#each [{ id: 'privada', texto: '🔒 Solo yo' }, { id: 'amigos', texto: '👥 Mis amigos' }, { id: 'publico', texto: '🌎 Todo el mundo' }] as const as o (o.id)}
+					<button
+						type="button"
+						role="radio"
+						aria-checked={compartirCon === o.id}
+						class="opcion"
+						disabled={o.id !== 'privada' && !publicable}
+						onclick={() => (compartirCon = o.id)}>{o.texto}</button
+					>
+				{/each}
+			</div>
+			{#if !publicable}<small>Para compartirla hace falta la ubicación.</small>{/if}
+		</fieldset>
 	{/if}
 
 	<button type="button" class="u-boton" disabled={!tipo || guardando || enElFuturo} onclick={pedirGuardar}>
@@ -304,11 +314,12 @@
 	{@const r = confirmando}
 	<ConfirmarPublico
 		registro={r}
+		alcance={compartirCon === 'amigos' ? 'amigos' : 'publico'}
 		{seudonimo}
-		onsi={(conComentario) => guardar(r, true, conComentario)}
+		onsi={(conComentario) => guardar(r, compartirCon, conComentario)}
 		onno={() => {
 			confirmando = null;
-			publico = false;
+			compartirCon = 'privada';
 		}}
 	/>
 {/if}
@@ -446,10 +457,36 @@
 	.papel {
 		margin-top: 12px;
 	}
-	.publico small {
+	.compartir small {
 		display: block;
+		margin-top: 4px;
 		color: var(--tinta-suave);
 		font-size: 13px;
+	}
+	.compartir .opciones {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 6px;
+	}
+	.opcion {
+		min-height: 44px;
+		padding: 6px 4px;
+		border: 2px solid var(--tinta);
+		border-radius: 12px;
+		background: var(--crema);
+		color: var(--tinta);
+		font-family: inherit;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.opcion[aria-checked='true'] {
+		background: var(--tinta);
+		color: var(--sol);
+	}
+	.opcion:disabled {
+		opacity: 0.45;
+		cursor: default;
 	}
 	.anecdota {
 		display: block;
