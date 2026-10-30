@@ -57,7 +57,7 @@
 				<button type="button" class="fila" aria-expanded={abierto === r.id} onclick={() => (abierto = abierto === r.id ? null : r.id)}>
 					<span class="icono" aria-hidden="true">{TIPO[r.tipo]?.icono}</span>
 					<span class="que">
-						<strong>{r.banio_nombre ?? TIPO[r.tipo]?.texto}</strong>
+						<strong>{r.lugar_nombre ?? r.banio_nombre ?? TIPO[r.tipo]?.texto}</strong>
 						<small
 							>{dia(r.ocurrido_en)}{r.sin_papel ? ' · sin papel' : ''}{r.comentario ? ' · 📝' : ''}{(veces.get(r.id)?.total ?? 1) > 1 ? ` · ${veces.get(r.id)?.vez}.ª vez acá` : ''}{r.publico ? ` · 🌎 pública${r.numero_publico ? ` N.º ${r.numero_publico.toLocaleString('es-AR')}` : ''}` : ''}{r.amigos ? ' · 👥 con amigos' : ''}{(r.publico || r.amigos) && r.comentario_publico ? ' con anécdota' : ''}</small
 						>

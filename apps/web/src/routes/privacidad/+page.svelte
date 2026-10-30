@@ -46,7 +46,8 @@
 			<strong>Tus amigos en Dónde Cagué</strong>, si los tenés: quién es amigo de quién y desde qué día. Se hacen solo
 			con un link de invitación que mandás vos. Lo que compartís con "Mis amigos" lo ven solo ellos, mientras sean amigos, con
 			los mismos datos que una caca pública, pero con el punto exacto (no redondeado). Con ellos también podés compartir
-			lo de casa, el laburo o lo de alguien: en ese caso ven dónde es.
+			lo de casa, el laburo o lo de alguien: en ese caso ven dónde es. Si le pusiste un nombre al lugar ("Casa de la
+			abuela"), tus amigos también lo ven; en el mapa público no se muestra nunca.
 		</li>
 		<li>
 			<strong>Lo que vos elegís hacer público.</strong> Si marcás una caca como pública, guardamos y mostramos a

@@ -11,7 +11,7 @@ export const GET = async ({ cookies }) => {
 	const sesion = await exigirSesion(cookies);
 	const filas = await db()`
 		select p.id, p.numero, p.alcance, c.seudonimo, p.tipo, p.dia, p.banio_id, p.sin_papel,
-		       case when p.comentario_oculto then null else p.comentario end as comentario,
+		       case when p.comentario_oculto then null else p.comentario end as comentario, p.lugar_nombre,
 		       coalesce(p.lat, b.lat) as lat, coalesce(p.lon, b.lon) as lon, coalesce(b.nombre, b.marca) as banio_nombre
 		from amistades a
 		join publicaciones p on p.cuenta_id = case when a.cuenta_a = ${sesion.id} then a.cuenta_b else a.cuenta_a end
@@ -34,7 +34,8 @@ export const GET = async ({ cookies }) => {
 		banio_id: f.banio_id,
 		banio_nombre: f.banio_nombre ?? (f.banio_id ? 'Baño' : null),
 		sin_papel: f.sin_papel,
-		...(f.comentario ? { comentario: f.comentario } : {})
+		...(f.comentario ? { comentario: f.comentario } : {}),
+		...(f.lugar_nombre ? { lugar_nombre: f.lugar_nombre } : {})
 	}));
 	return json({ publicaciones });
 };

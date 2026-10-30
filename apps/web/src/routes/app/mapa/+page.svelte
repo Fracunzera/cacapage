@@ -14,7 +14,8 @@
 	import Compartir from '$lib/boveda/ui/Compartir.svelte';
 	import { faltaParaTodos, type Publicacion } from '$lib/publicaciones';
 	import Celebracion from '$lib/boveda/ui/Celebracion.svelte';
-	import { agrupar, type Lugar } from '$lib/lugares';
+	import { agrupar, nombreDelLugar, type Lugar } from '$lib/lugares';
+	import { LUGAR_NOMBRE_MAX, problemaNombreLugar } from '$lib/publicaciones';
 
 	const TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
 
@@ -29,6 +30,8 @@
 	let cambiando = $state(false);
 	let error = $state<string | null>(null);
 	let festejo = $state<number | null>(null);
+	/** Editando el nombre del lugar elegido: el texto; null si no. */
+	let renombrando = $state<string | null>(null);
 	/** Desde cuándo ven los demás cada caca pública propia. */
 	let visibleDesde = $state(new Map<string, string>());
 	/** Cacas públicas propias cuya anécdota está oculta por reportes. */
@@ -58,7 +61,7 @@
 			features: lugares.map((l) => ({
 				type: 'Feature' as const,
 				geometry: { type: 'Point' as const, coordinates: [l.lon, l.lat] },
-				properties: { clave: l.clave, con: masCompartido(l), veces: l.visitas.length }
+				properties: { clave: l.clave, con: masCompartido(l), veces: l.visitas.length, nombre: nombreDelLugar(l.visitas) ?? '' }
 			}))
 		};
 	}
@@ -70,6 +73,33 @@
 
 	function refrescar() {
 		registros = boveda?.registros() ?? [];
+	}
+
+	/** Ponerle (o sacarle) el nombre a un lugar: en todas sus visitas, y a los amigos lo que ya ven. */
+	async function renombrar(l: Lugar<Registro>, texto: string) {
+		if (!boveda) return;
+		const nombre = texto.trim().slice(0, LUGAR_NOMBRE_MAX);
+		const problema = nombre ? problemaNombreLugar(nombre) : null;
+		if (problema && l.visitas.some((v) => v.amigos)) {
+			error = problema;
+			return;
+		}
+		cambiando = true;
+		error = null;
+		const ahora = new Date().toISOString();
+		const nuevas = l.visitas.map((v) => {
+			const { lugar_nombre: _, ...resto } = v;
+			return { ...resto, ...(nombre ? { lugar_nombre: nombre } : {}), actualizado_en: ahora };
+		});
+		for (const v of nuevas) await boveda.guardar(v);
+		try {
+			for (const v of nuevas.filter((v) => v.amigos)) await compartir(boveda, v, 'amigos', v.comentario_publico === true);
+		} catch {
+			error = 'El nombre quedó guardado, pero tus amigos ven el anterior: hace falta conexión. Probá de nuevo.';
+		}
+		renombrando = null;
+		cambiando = false;
+		refrescar();
 	}
 
 	async function cambiar(r: Registro, con: Con, conComentario: boolean) {
@@ -126,8 +156,26 @@
 					layout: { 'text-field': ['to-string', ['get', 'veces']], 'text-font': ['Noto Sans Medium'], 'text-size': 13 },
 					paint: { 'text-color': '#3b2314' }
 				});
+			if (conEtiquetas)
+				m.addLayer({
+					id: 'mias-nombre',
+					type: 'symbol',
+					source: 'mias',
+					minzoom: 12,
+					filter: ['!=', ['get', 'nombre'], ''],
+					layout: {
+						'text-field': ['get', 'nombre'],
+						'text-font': ['Noto Sans Medium'],
+						'text-size': 12,
+						'text-offset': [0, 1.6],
+						'text-anchor': 'top',
+						'text-max-width': 10
+					},
+					paint: { 'text-color': '#3b2314', 'text-halo-color': '#fff8ec', 'text-halo-width': 1.5 }
+				});
 			m.on('click', 'mias', (e) => {
 				elegido = (e.features?.[0]?.properties?.clave as string | undefined) ?? null;
+				renombrando = null;
 			});
 			m.on('mouseenter', 'mias', () => (m.getCanvas().style.cursor = 'pointer'));
 			m.on('mouseleave', 'mias', () => (m.getCanvas().style.cursor = ''));
@@ -169,10 +217,37 @@
 	{#if lugarElegido}
 		{@const l = lugarElegido}
 		{@const primera = l.visitas[0]}
+		{@const nombre = nombreDelLugar(l.visitas)}
 		<section class="u-hoja" aria-labelledby="ficha-mia">
 			<button type="button" class="u-cerrar" aria-label="Cerrar" onclick={() => (elegido = null)}>✕</button>
 			<p class="tipo">{TIPO[primera.tipo]?.icono} {TIPO[primera.tipo]?.texto}</p>
-			<h2 id="ficha-mia">{primera.banio_nombre ?? TIPO[primera.tipo]?.texto}</h2>
+			<h2 id="ficha-mia">{nombre ?? primera.banio_nombre ?? TIPO[primera.tipo]?.texto}</h2>
+			{#if renombrando === null}
+				<button type="button" class="u-enlace" disabled={cambiando} onclick={() => (renombrando = nombre ?? '')}>
+					✏️ {nombre ? 'Cambiar el nombre' : 'Ponerle nombre'}
+				</button>
+			{:else}
+				<form
+					class="renombrar"
+					onsubmit={(e) => {
+						e.preventDefault();
+						void renombrar(l, renombrando ?? '');
+					}}
+				>
+					<label class="u-campo">
+						<span>Nombre del lugar</span>
+						<input type="text" bind:value={renombrando} maxlength={LUGAR_NOMBRE_MAX} placeholder="Casa de la abuela, el YPF de la 3…" />
+					</label>
+					<p class="u-ayuda">
+						🔒 Para todas tus visitas acá. Lo ves vos{l.visitas.some((v) => v.amigos) ? ' y tus amigos, en lo que les compartiste' : ''}; no va al
+						mapa público. Vacío, lo saca.
+					</p>
+					<div class="botones-nombre">
+						<button type="submit" class="u-boton sec" disabled={cambiando}>Guardar nombre</button>
+						<button type="button" class="u-enlace" onclick={() => (renombrando = null)}>Cancelar</button>
+					</div>
+				</form>
+			{/if}
 			{#if l.visitas.length > 1}<p class="veces">💩 Fuiste {l.visitas.length} veces acá.</p>{/if}
 			<ol class="visitas">
 				{#each [...l.visitas].reverse() as r, i (r.id)}
@@ -244,6 +319,14 @@
 	.comentario {
 		margin: 8px 0 0;
 		font-style: italic;
+	}
+	.renombrar {
+		margin: 6px 0 10px;
+	}
+	.botones-nombre {
+		display: flex;
+		align-items: center;
+		gap: 16px;
 	}
 	.veces {
 		margin: 0 0 6px;

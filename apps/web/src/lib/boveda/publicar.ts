@@ -41,7 +41,8 @@ export async function compartir(boveda: Boveda, r: Registro, con: Compartir, con
 				...(r.banio_id ? { banio_id: r.banio_id } : { lat: r.lat, lon: r.lon }),
 				sin_papel: r.sin_papel === true,
 				alcance: con,
-				...(conComentario && r.comentario ? { comentario: r.comentario } : {})
+				...(conComentario && r.comentario ? { comentario: r.comentario } : {}),
+				...(con === 'amigos' && r.lugar_nombre ? { lugar_nombre: r.lugar_nombre } : {})
 			}
 		}));
 	} else {

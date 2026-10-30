@@ -12,13 +12,18 @@
 	import { sePuedePublicar, type Compartir } from '../publicar';
 	import ConfirmarPublico from './ConfirmarPublico.svelte';
 	import ElegirEnMapa from '$lib/ubicacion/ElegirEnMapa.svelte';
+	import { nombreCerca } from '$lib/lugares';
+	import { LUGAR_NOMBRE_MAX, problemaNombreLugar } from '$lib/publicaciones';
 
 	let {
 		seudonimo,
+		anteriores = [],
 		onguardar,
 		oncancelar
 	}: {
 		seudonimo: string;
+		/** El historial, para proponer el nombre de un lugar que ya nombraste. */
+		anteriores?: Registro[];
 		/** conComentario: al hacerla pública, mostrar también la anécdota. */
 		/** con: con quién se comparte; conComentario: mostrar también la anécdota. */
 		onguardar: (r: Registro, con: Compartir, conComentario: boolean) => Promise<void>;
@@ -39,6 +44,9 @@
 	let cuando = $state('');
 	let sinPapel = $state(false);
 	let comentario = $state('');
+	/** Nombre propio del lugar; se propone el que ya le pusiste ahí, hasta que lo toques. */
+	let nombreLugar = $state('');
+	let nombreTocado = $state(false);
 	let ubicacion = $state<{ lat: number; lon: number; precision: number; fuente: 'gps' | 'manual'; texto?: string } | null>(null);
 	// Ubicación a mano (sin GPS): dirección, coordenadas o link de un mapa.
 	let aMano = $state(false);
@@ -67,6 +75,11 @@
 	const banioElegido = $derived(enCasa ? undefined : cerca.find((c) => c.banio.id === banioId)?.banio);
 	const conAmigos = $derived(tipo !== null && sePuedePublicar({ tipo, banio_id: banioElegido?.id, lat: ubicacion?.lat }, 'amigos'));
 	const publicable = $derived(tipo !== null && sePuedePublicar({ tipo, banio_id: banioElegido?.id, lat: ubicacion?.lat }));
+	$effect(() => {
+		const sugerido = nombreCerca(anteriores, { lat: ubicacion?.lat, lon: ubicacion?.lon, banio_id: enCasa ? undefined : banioElegido?.id });
+		if (!nombreTocado) nombreLugar = sugerido ?? '';
+	});
+	const problemaNombre = $derived(nombreLugar.trim() ? problemaNombreLugar(nombreLugar) : null);
 	$effect(() => {
 		if (compartirCon === 'publico' && !publicable) compartirCon = conAmigos ? 'amigos' : 'privada';
 		if (compartirCon === 'amigos' && !conAmigos) compartirCon = 'privada';
@@ -178,7 +191,8 @@
 				: {}),
 			...(elegido && !enCasa ? { banio_id: elegido.id, banio_nombre: titulo(elegido) } : {}),
 			...(sinPapel ? { sin_papel: true } : {}),
-			...(comentario.trim() ? { comentario: comentario.trim().slice(0, COMENTARIO_MAX) } : {})
+			...(comentario.trim() ? { comentario: comentario.trim().slice(0, COMENTARIO_MAX) } : {}),
+			...(ubicacion && nombreLugar.trim() ? { lugar_nombre: nombreLugar.trim().slice(0, LUGAR_NOMBRE_MAX) } : {})
 		};
 	}
 
@@ -316,11 +330,30 @@
 
 	<label class="u-check papel"><input type="checkbox" bind:checked={sinPapel} /> No había papel 😱</label>
 
+	{#if ubicacion}
+		<label class="u-campo nombre-lugar">
+			<span>Nombre del lugar <small>(opcional)</small></span>
+			<input
+				type="text"
+				bind:value={nombreLugar}
+				oninput={() => (nombreTocado = true)}
+				maxlength={LUGAR_NOMBRE_MAX}
+				autocomplete="off"
+				placeholder="Casa de la abuela, el YPF de la 3…"
+			/>
+			<small>
+				🔒 Lo ves vos{compartirCon === 'amigos' ? ' y tus amigos' : ''}. No va al mapa público. Queda para las próximas veces acá.
+			</small>
+			{#if problemaNombre && compartirCon === 'amigos'}<small class="u-error">{problemaNombre}</small>{/if}
+		</label>
+	{/if}
+
 	<label class="anecdota">
 		<span>¿Alguna anécdota?</span>
 		<textarea bind:value={comentario} maxlength={COMENTARIO_MAX} rows="2" placeholder={ejemplo}></textarea>
 		<span class="pie-anecdota"><span>🔒 Solo lo ves vos</span><span>{comentario.length}/{COMENTARIO_MAX}</span></span>
 	</label>
+
 
 	{#if tipo}
 		<fieldset class="compartir">
@@ -342,7 +375,12 @@
 		</fieldset>
 	{/if}
 
-	<button type="button" class="u-boton" disabled={!tipo || guardando || enElFuturo} onclick={pedirGuardar}>
+	<button
+		type="button"
+		class="u-boton"
+		disabled={!tipo || guardando || enElFuturo || (compartirCon === 'amigos' && problemaNombre !== null)}
+		onclick={pedirGuardar}
+	>
 		{guardando ? 'Guardando…' : tipo ? 'Guardar' : 'Elegí dónde fue'}
 	</button>
 	<button type="button" class="u-enlace" onclick={oncancelar}>Cancelar</button>

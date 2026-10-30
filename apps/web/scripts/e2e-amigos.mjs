@@ -118,7 +118,7 @@ try {
 	ok(await ana.getByRole('radio', { name: /Mis amigos/ }).isDisabled(), 'sin ubicación no se puede compartir');
 	await ana.getByRole('button', { name: /Usar mi ubicación/ }).click();
 	await ana.getByText('Ubicación guardada').waitFor();
-	await ana.getByPlaceholder(/./).last().fill('Con vista al río');
+	await ana.locator('.anecdota textarea').fill('Con vista al río');
 	await ana.getByRole('radio', { name: /Mis amigos/ }).click();
 	await ana.getByRole('button', { name: 'Guardar' }).click();
 	await ana.getByRole('heading', { name: '¿La compartís con tus amigos?' }).waitFor();
@@ -199,8 +199,40 @@ try {
 	ok((await publicas()).length === 0, 'la de casa no está en el mapa público');
 	await ana.locator('.historial li', { hasText: 'En casa' }).locator('button.fila').click();
 	ok((await ana.getByRole('button', { name: '🌎 Hacerla pública' }).count()) === 0, 'la de casa no ofrece hacerla pública');
+
+	// Nombre del lugar: se pone en Mi mapa, para todas las visitas de ahí, y lo ven los amigos.
+	await ana.goto(BASE + '/app/mapa');
+	await ana.waitForFunction(() => document.querySelector('.u-pie-mapa strong')?.textContent !== '0');
+	await esperar(800);
+	const lienzoMapa = await ana.locator('.u-lienzo canvas').boundingBox();
+	await ana.mouse.click(lienzoMapa.x + lienzoMapa.width / 2, lienzoMapa.y + lienzoMapa.height / 2);
+	await ana.getByRole('button', { name: /Ponerle nombre/ }).click();
+	await ana.getByLabel('Nombre del lugar').fill('Casa de Ana');
+	await ana.getByRole('button', { name: 'Guardar nombre' }).click();
+	await ana.getByRole('heading', { name: 'Casa de Ana' }).waitFor();
+	ok(true, 'en Mi mapa: se le pone nombre al lugar');
+	const nombres = await sql`select alcance, lugar_nombre from publicaciones`;
+	ok(nombres.length === 2 && nombres.every((n) => n.lugar_nombre === 'Casa de Ana'), 'lo compartido con amigos de ese lugar se actualiza con el nombre');
+	const conNombre = (await json(beto, '/amigos/cacas')).publicaciones;
+	ok(conNombre.every((p) => p.lugar_nombre === 'Casa de Ana'), 'Beto ve el nombre');
+	await beto.goto(BASE + '/app/amigos');
+	await beto.getByText('“Casa de Ana”').first().waitFor();
+	ok(true, 'en Amigos de Beto aparece el nombre');
+	let nombrePublico = null;
+	await sql`update publicaciones set alcance = 'publico', numero = 998 where lugar_nombre is not null and tipo <> 'casa'`.catch((e) => (nombrePublico = e));
+	ok(nombrePublico?.constraint_name === 'publicaciones_lugar_nombre_amigos', 'la base no deja un nombre de lugar en el mapa público');
+	// Al registrar de nuevo ahí, se propone el nombre.
+	await ana.goto(BASE + '/app');
+	await ana.getByRole('button', { name: '💩 Registrar' }).click();
+	await ana.getByRole('radio', { name: 'En casa' }).click();
+	await ana.getByRole('button', { name: /Usar mi ubicación/ }).click();
+	await ana.getByText('Ubicación guardada').waitFor();
+	ok((await ana.getByLabel(/Nombre del lugar/).inputValue()) === 'Casa de Ana', 'al volver al mismo lugar, se propone el nombre');
+	await ana.getByRole('button', { name: 'Cancelar' }).last().click();
+	await ana.locator('.historial li', { hasText: 'Casa de Ana' }).first().waitFor();
+	await ana.locator('.historial li', { hasText: 'con amigos' }).filter({ hasText: 'Casa de Ana' }).first().locator('button.fila').click();
 	await ana.getByRole('button', { name: '🔒 Hacerla privada' }).click();
-	await ana.waitForFunction(() => ![...document.querySelectorAll('.historial li small')].some((e) => e.textContent.includes('En casa') && e.textContent.includes('con amigos')));
+	await ana.waitForFunction(() => [...document.querySelectorAll('.historial li small')].filter((e) => e.textContent.includes('con amigos')).length === 1);
 	await esperar(500);
 	ok((await json(beto, '/amigos/cacas')).publicaciones.length === 1, 'vuelta a privada: Beto ya no la ve');
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { problemaComentarioPublico } from './publicaciones';
+import { problemaComentarioPublico, problemaNombreLugar } from './publicaciones';
 
 describe('anécdota pública', () => {
 	it('acepta texto común', () => {
@@ -20,5 +20,15 @@ describe('anécdota pública', () => {
 	it('vacía o muy larga', () => {
 		expect(problemaComentarioPublico('   ')).not.toBeNull();
 		expect(problemaComentarioPublico('x'.repeat(501))).not.toBeNull();
+	});
+});
+
+describe('nombre del lugar', () => {
+	it('un nombre común pasa; links, mails o muy largo, no', () => {
+		expect(problemaNombreLugar('Casa de la abuela')).toBeNull();
+		expect(problemaNombreLugar('www.algo.com')).not.toBeNull();
+		expect(problemaNombreLugar('yo@algo.com')).not.toBeNull();
+		expect(problemaNombreLugar('x'.repeat(61))).not.toBeNull();
+		expect(problemaNombreLugar('  ')).not.toBeNull();
 	});
 });

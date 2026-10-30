@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { agrupar, vecesPorVisita } from './lugares';
+import { agrupar, nombreCerca, nombreDelLugar, vecesPorVisita } from './lugares';
 
 const v = (id: string, lat: number, lon: number, fecha: string, banio_id?: string) => ({ id, lat, lon, fecha, banio_id });
 
@@ -24,5 +24,23 @@ describe('lugares', () => {
 		expect(r.get('primera')).toEqual({ vez: 1, total: 3 });
 		expect(r.get('tercera')).toEqual({ vez: 3, total: 3 });
 		expect(r.get('sola')).toEqual({ vez: 1, total: 1 });
+	});
+});
+
+describe('nombre del lugar', () => {
+	const r = (lat: number, lugar_nombre: string | undefined, ocurrido_en: string, banio_id?: string) => ({ lat, lon: -69.22, lugar_nombre, ocurrido_en, banio_id });
+
+	it('el de la visita más reciente que tenga uno', () => {
+		expect(nombreDelLugar([r(-51.62, 'Viejo', '2026-01-01'), r(-51.62, 'Nuevo', '2026-02-01'), r(-51.62, undefined, '2026-03-01')])).toBe('Nuevo');
+		expect(nombreDelLugar([r(-51.62, undefined, '2026-01-01')])).toBeUndefined();
+	});
+
+	it('se propone en el mismo lugar (a menos de 40 m o el mismo baño), no más lejos', () => {
+		const antes = [r(-51.62, 'Casa de la abuela', '2026-01-01'), r(-51.7, 'YPF de la 3', '2026-01-01', 'n1')];
+		expect(nombreCerca(antes, { lat: -51.6202, lon: -69.22 })).toBe('Casa de la abuela');
+		expect(nombreCerca(antes, { lat: -51.625, lon: -69.22 })).toBeUndefined();
+		expect(nombreCerca(antes, { lat: -51.69, lon: -69.22, banio_id: 'n1' })).toBe('YPF de la 3');
+		expect(nombreCerca(antes, { lat: -51.6202, lon: -69.22, banio_id: 'n9' })).toBeUndefined();
+		expect(nombreCerca(antes, {})).toBeUndefined();
 	});
 });

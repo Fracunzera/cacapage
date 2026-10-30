@@ -28,6 +28,8 @@ export interface Registro {
 	/** Baño del catálogo, solo si el usuario lo eligió (P-05). */
 	banio_id?: string;
 	banio_nombre?: string;
+	/** El nombre propio que el dueño le puso al lugar ("Casa de la abuela"). Viaja a los amigos, nunca al público. */
+	lugar_nombre?: string;
 	sin_papel?: boolean;
 	/** "¿Alguna anécdota?" (§8.1), hasta 500 caracteres. */
 	comentario?: string;

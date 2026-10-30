@@ -854,6 +854,10 @@ público. **Casa, laburo y lo de alguien se pueden compartir con amigos**
 dice en claro que van a ver dónde vive o trabaja (y, en lo de alguien, que
 esa persona esté de acuerdo), y la base rechaza una de esas en el público
 aunque la app se equivoque (migración 0014).
+**Nombre del lugar** ("Casa de la abuela"): el dueño le puede poner un nombre
+propio a un lugar; vive en su historial cifrado y, en lo que comparte con
+amigos, viaja con la caca (la advertencia lo muestra). Nunca va al mapa
+público, porque puede nombrar a una persona; la base lo impide (migración 0015).
 
 La amistad es mutua y se hace **solo con un link de invitación**: quien lo abre
 con su cuenta queda como amigo de los dos lados. No hay búsqueda por seudónimo

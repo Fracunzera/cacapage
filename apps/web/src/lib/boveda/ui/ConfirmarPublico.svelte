@@ -10,7 +10,7 @@
 		onsi,
 		onno
 	}: {
-		registro: Pick<Registro, 'tipo' | 'banio_nombre' | 'ocurrido_en' | 'banio_id' | 'comentario'>;
+		registro: Pick<Registro, 'tipo' | 'banio_nombre' | 'ocurrido_en' | 'banio_id' | 'comentario' | 'lugar_nombre'>;
 		alcance?: Alcance;
 		seudonimo: string;
 		/** conComentario: si también se muestra la anécdota (P-42). */
@@ -44,7 +44,11 @@
 					{:else}<strong>El lugar donde estabas</strong> ({tipo?.texto.toLowerCase()}), con unos 10 m de precisión{/if}
 				</li>
 				<li>📅 El día: {dia}</li>
+				{#if registro.lugar_nombre && alcance === 'amigos'}<li>🏷️ El nombre que le pusiste al lugar: <strong>{registro.lugar_nombre}</strong></li>{/if}
 			</ul>
+			{#if registro.lugar_nombre && alcance === 'publico'}
+				<p class="u-ayuda">🏷️ El nombre que le pusiste al lugar no se muestra.</p>
+			{/if}
 			{#if registro.tipo === 'casa'}
 				<p class="u-ayuda">🏠 Es tu casa: tus amigos van a ver dónde vivís.</p>
 			{:else if registro.tipo === 'laburo'}

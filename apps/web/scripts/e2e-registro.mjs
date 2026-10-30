@@ -91,7 +91,7 @@ async function registrar(p, tipo, { ubicacion = false, anecdota = '' } = {}) {
 		await p.getByRole('button', { name: /Usar mi ubicación/ }).click();
 		await p.getByText('Ubicación guardada').waitFor();
 	}
-	if (anecdota) await p.getByPlaceholder(/./).fill(anecdota);
+	if (anecdota) await p.locator('.anecdota textarea').fill(anecdota);
 	await p.getByRole('button', { name: 'Guardar' }).click();
 }
 
@@ -115,7 +115,7 @@ try {
 	// De noche no hay preselección (P-29): se elige a mano.
 	await a.getByRole('radio', { name: /YPF Centro/ }).check();
 	await a.screenshot({ path: join(CAPTURAS, 'registro-form.png') });
-	await a.getByPlaceholder(/./).fill('Viento de 90 km/h para llegar');
+	await a.locator('.anecdota textarea').fill('Viento de 90 km/h para llegar');
 	await a.getByRole('button', { name: 'Guardar' }).click();
 	await a.getByRole('heading', { name: 'Bautismo de Porcelana' }).waitFor();
 	ok(true, 'primer registro: logro "Bautismo de Porcelana"');

@@ -45,6 +45,28 @@ export function agrupar<T extends ConLugar>(visitas: T[], radio = RADIO_MISMO_LU
 	return lugares;
 }
 
+/** El nombre que le pusiste a un lugar: el de la visita más reciente que tenga uno. */
+export function nombreDelLugar<T extends { lugar_nombre?: string; ocurrido_en: string }>(visitas: T[]): string | undefined {
+	return [...visitas].sort((a, b) => (a.ocurrido_en < b.ocurrido_en ? 1 : -1)).find((v) => v.lugar_nombre)?.lugar_nombre;
+}
+
+/** Si ya le pusiste nombre a un lugar en este punto (mismo baño o a menos de 40 m), cuál. */
+export function nombreCerca<T extends ConLugar & { lugar_nombre?: string; ocurrido_en: string }>(
+	visitas: T[],
+	punto: ConLugar
+): string | undefined {
+	if (punto.lat === undefined || punto.lon === undefined) return undefined;
+	const ahi = visitas.filter(
+		(v) =>
+			v.lugar_nombre &&
+			v.lat !== undefined &&
+			v.lon !== undefined &&
+			((punto.banio_id && v.banio_id === punto.banio_id) ||
+				(!punto.banio_id && !v.banio_id && distanciaM({ lat: v.lat, lon: v.lon }, { lat: punto.lat!, lon: punto.lon! }) < RADIO_MISMO_LUGAR_M))
+	);
+	return nombreDelLugar(ahi);
+}
+
 /**
  * Para cada visita, qué número de vez es en su lugar, en orden cronológico
  * ("3.ª vez acá"), y cuántas hay en total ahí.

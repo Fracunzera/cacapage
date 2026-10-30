@@ -187,7 +187,7 @@
 							<strong>@{p.seudonimo}</strong>
 							<span>
 								{TIPO[p.tipo]?.icono}
-								{p.banio_nombre ?? TIPO[p.tipo]?.texto.toLowerCase()} · {dia(p.dia)}{p.sin_papel ? ' · sin papel 😱' : ''} ·
+								{p.lugar_nombre ? `“${p.lugar_nombre}”` : (p.banio_nombre ?? TIPO[p.tipo]?.texto.toLowerCase())} · {dia(p.dia)}{p.sin_papel ? ' · sin papel 😱' : ''} ·
 								{p.alcance === 'amigos' ? '👥 solo amigos' : '🌎 pública'}
 							</span>
 							{#if (veces.get(p.id)?.total ?? 1) > 1}

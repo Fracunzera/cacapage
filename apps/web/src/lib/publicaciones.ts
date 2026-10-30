@@ -22,6 +22,17 @@ export const DEMORA_MINUTOS = 30;
 /** Con estos reportes de cuentas elegibles se oculta el texto, hasta revisarlo. */
 export const REPORTES_COMENTARIO = 3;
 export const COMENTARIO_PUBLICO_MAX = 500;
+/** El nombre propio de un lugar ("Casa de la abuela"): privado o con amigos, nunca público. */
+export const LUGAR_NOMBRE_MAX = 60;
+
+/** Por qué un nombre de lugar no se puede compartir con amigos, o null. */
+export function problemaNombreLugar(texto: string): string | null {
+	const t = texto.trim();
+	if (!t) return 'El nombre está vacío.';
+	if (t.length > LUGAR_NOMBRE_MAX) return `El nombre puede tener hasta ${LUGAR_NOMBRE_MAX} caracteres.`;
+	if (/https?:\/\/|www\.|[^\s@]+@[^\s@]+\.[a-z]{2,}/i.test(t)) return 'El nombre no puede tener links ni mails.';
+	return null;
+}
 
 /**
  * Por qué una anécdota no se puede publicar tal cual, o null. Sin links, mails
@@ -52,6 +63,8 @@ export interface Publicacion {
 	sin_papel: boolean;
 	/** La anécdota, si su dueño eligió mostrarla y no está oculta por reportes. */
 	comentario?: string;
+	/** El nombre que su dueño le puso al lugar. Solo en las de amigos. */
+	lugar_nombre?: string;
 	/** Solo en las propias: el texto está oculto por reportes, en revisión. */
 	comentario_oculto?: boolean;
 	/** Solo en las propias (/publicaciones/mias): desde cuándo la ven los demás. */

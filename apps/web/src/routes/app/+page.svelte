@@ -171,7 +171,7 @@
 			}}
 		/>
 	{:else if registrando}
-		<Registrar {seudonimo} onguardar={guardar} oncancelar={() => (registrando = false)} />
+		<Registrar {seudonimo} anteriores={registros} onguardar={guardar} oncancelar={() => (registrando = false)} />
 	{:else}
 		<section class="u-tarjeta resumen">
 			<p class="hola">@{seudonimo}</p>

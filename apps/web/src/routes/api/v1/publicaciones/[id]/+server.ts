@@ -3,7 +3,7 @@ import { exigirSesion } from '$lib/server/auth/sesiones';
 import { permitir } from '$lib/server/auth/limites';
 import { db } from '$lib/server/db';
 import { cuerpoJson, sinContenido } from '$lib/server/http';
-import { DEMORA_MINUTOS, problemaComentarioPublico, tipoCompartible } from '$lib/publicaciones';
+import { DEMORA_MINUTOS, problemaComentarioPublico, problemaNombreLugar, tipoCompartible } from '$lib/publicaciones';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 // Público: redondeado a ~11 m (4 decimales). Amigos: el punto exacto (6 decimales).
@@ -27,6 +27,7 @@ export const PUT = async (event) => {
 		lon?: number;
 		sin_papel?: boolean;
 		comentario?: string;
+		lugar_nombre?: string;
 		alcance?: string;
 	}>(event);
 	// Sin valor por defecto: un alcance que falta es un error, no "pública".
@@ -44,6 +45,15 @@ export const PUT = async (event) => {
 		const problema = problemaComentarioPublico(c.comentario);
 		if (problema) error(400, problema);
 		comentario = c.comentario.trim();
+	}
+
+	// El nombre del lugar, solo con amigos: en el mapa público no se guarda.
+	let lugarNombre: string | null = null;
+	if (alcance === 'amigos' && c.lugar_nombre !== undefined && c.lugar_nombre !== null) {
+		if (typeof c.lugar_nombre !== 'string') error(400, 'Nombre de lugar inválido.');
+		const problema = problemaNombreLugar(c.lugar_nombre);
+		if (problema) error(400, problema);
+		lugarNombre = c.lugar_nombre.trim();
 	}
 
 	const sql = db();
@@ -69,8 +79,8 @@ export const PUT = async (event) => {
 		if (actual && actual.cuenta_id !== sesion.id) return null;
 		if (!actual) {
 			const [nueva] = await tx`
-				insert into publicaciones (id, cuenta_id, tipo, banio_id, lat, lon, dia, sin_papel, comentario, alcance, numero, visible_desde)
-				values (${id}, ${sesion.id}, ${c.tipo}, ${banio}, ${lat}, ${lon}, ${c.dia}, ${c.sin_papel === true}, ${comentario}, ${alcance},
+				insert into publicaciones (id, cuenta_id, tipo, banio_id, lat, lon, dia, sin_papel, comentario, lugar_nombre, alcance, numero, visible_desde)
+				values (${id}, ${sesion.id}, ${c.tipo}, ${banio}, ${lat}, ${lon}, ${c.dia}, ${c.sin_papel === true}, ${comentario}, ${lugarNombre}, ${alcance},
 				        case when ${alcance} = 'publico' then nextval('publicaciones_numero') end,
 				        now() + make_interval(mins => ${DEMORA_MINUTOS}))
 				returning numero`;
@@ -82,6 +92,7 @@ export const PUT = async (event) => {
 				-- Un texto nuevo vuelve a empezar sin reportes; el mismo, conserva su estado.
 				comentario_oculto = comentario_oculto and comentario is not distinct from ${comentario},
 				comentario = ${comentario},
+				lugar_nombre = ${lugarNombre},
 				alcance = ${alcance},
 				-- Pasar a pública le da número si no tenía; el número no se pierde.
 				numero = coalesce(numero, case when ${alcance} = 'publico' then nextval('publicaciones_numero') end)
