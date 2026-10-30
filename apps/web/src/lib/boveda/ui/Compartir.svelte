@@ -28,14 +28,14 @@
 	<p class="u-ayuda">👥 Compartida con tus amigos.</p>
 {/if}
 
-{#if sePuedePublicar(registro)}
+{#if sePuedePublicar(registro, 'amigos')}
 	<div class="botones">
 		{#if actual !== 'amigos'}
 			<button type="button" class="u-enlace" disabled={ocupado} onclick={() => (confirmando = 'amigos')}
 				>{actual === 'publico' ? '👥 Solo para amigos' : '👥 Compartir con amigos'}</button
 			>
 		{/if}
-		{#if actual !== 'publico'}
+		{#if actual !== 'publico' && sePuedePublicar(registro)}
 			<button type="button" class="u-enlace" disabled={ocupado} onclick={() => (confirmando = 'publico')}>🌎 Hacerla pública</button>
 		{/if}
 		{#if actual !== 'privada'}
@@ -43,11 +43,7 @@
 		{/if}
 	</div>
 {:else if actual === 'privada'}
-	<p class="u-ayuda">
-		{registro.lat === undefined && !registro.banio_id
-			? 'Sin ubicación no se puede compartir.'
-			: 'Lo de casa, el laburo o lo de alguien no se comparte.'}
-	</p>
+	<p class="u-ayuda">Sin ubicación no se puede compartir.</p>
 {/if}
 
 {#if confirmando}

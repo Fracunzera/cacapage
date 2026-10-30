@@ -45,6 +45,13 @@
 				</li>
 				<li>📅 El día: {dia}</li>
 			</ul>
+			{#if registro.tipo === 'casa'}
+				<p class="u-ayuda">🏠 Es tu casa: tus amigos van a ver dónde vivís.</p>
+			{:else if registro.tipo === 'laburo'}
+				<p class="u-ayuda">💼 Es tu laburo: tus amigos van a ver dónde trabajás.</p>
+			{:else if registro.tipo === 'casa_ajena'}
+				<p class="u-ayuda">🛋️ Es la casa de alguien: tus amigos van a ver dónde vive esa persona. Compartila solo si a esa persona le parece bien.</p>
+			{/if}
 			{#if registro.comentario}
 				<label class="u-check anecdota">
 					<input type="checkbox" bind:checked={conComentario} disabled={problema !== null} />

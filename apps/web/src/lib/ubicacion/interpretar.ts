@@ -16,7 +16,7 @@ export type Interpretacion =
 	| { tipo: 'invalido'; motivo: string };
 
 /** Hosts de links cortos que el servidor sabe seguir. */
-export const HOSTS_CORTOS = ['maps.app.goo.gl', 'goo.gl'];
+export const HOSTS_CORTOS = ['maps.app.goo.gl', 'goo.gl', 'maps.apple'];
 
 const valido = (lat: number, lon: number) =>
 	Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0);
@@ -55,13 +55,33 @@ function gms(t: string): Punto | null {
 	return valido(x.v, y.v) ? { lat: x.v, lon: y.v } : null;
 }
 
+/** El centro de un geohash (lo usan los links de Waze). */
+function deGeohash(h: string): Punto | null {
+	const base = '0123456789bcdefghjkmnpqrstuvwxyz';
+	const lat = [-90, 90];
+	const lon = [-180, 180];
+	let par_ = true;
+	for (const c of h) {
+		const v = base.indexOf(c);
+		for (let b = 4; b >= 0; b--) {
+			const r = par_ ? lon : lat;
+			const mitad = (r[0] + r[1]) / 2;
+			if ((v >> b) & 1) r[0] = mitad;
+			else r[1] = mitad;
+			par_ = !par_;
+		}
+	}
+	const redondo = (n: number) => Math.round(n * 1e6) / 1e6;
+	return par(String(redondo((lat[0] + lat[1]) / 2)), String(redondo((lon[0] + lon[1]) / 2)));
+}
+
 /** Coordenadas dentro de un link de Google Maps, OpenStreetMap, Apple Maps o Waze. */
 function deEnlace(u: URL): Punto | null {
 	const todo = decodeURIComponent(u.href);
 	// Google: el pin del lugar (!3d…!4d…) es más preciso que el centro de la vista (@…).
 	let m = /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/.exec(todo);
 	if (m) return par(m[1], m[2]);
-	for (const clave of ['q', 'query', 'll', 'destination', 'daddr', 'center', 'sll']) {
+	for (const clave of ['q', 'query', 'll', 'coordinate', 'destination', 'daddr', 'center', 'sll']) {
 		const v = u.searchParams.get(clave);
 		const p = v && new RegExp(`^\\s*(${NUM})\\s*,\\s*(${NUM})`).exec(v);
 		if (p) return par(p[1], p[2]);
@@ -69,6 +89,9 @@ function deEnlace(u: URL): Punto | null {
 	const mlat = u.searchParams.get('mlat');
 	const mlon = u.searchParams.get('mlon');
 	if (mlat && mlon) return par(mlat, mlon);
+	// Waze: waze.com/ul/h<geohash>
+	m = /^\/ul\/h([0-9b-hjkmnp-z]{5,12})$/.exec(u.pathname);
+	if (/(^|\.)waze\.com$/.test(u.hostname) && m) return deGeohash(m[1]);
 	m = /#map=\d+(?:\.\d+)?\/(-?\d+\.\d+)\/(-?\d+\.\d+)/.exec(todo);
 	if (m) return par(m[1], m[2]);
 	m = /@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(todo);

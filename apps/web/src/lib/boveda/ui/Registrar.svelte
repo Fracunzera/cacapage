@@ -65,11 +65,11 @@
 	const momento = $derived(ahora || !cuando ? new Date() : new Date(cuando));
 	const enElFuturo = $derived(!ahora && momento.getTime() > Date.now() + 60_000);
 	const banioElegido = $derived(enCasa ? undefined : cerca.find((c) => c.banio.id === banioId)?.banio);
-	const publicable = $derived(
-		tipo !== null && sePuedePublicar({ tipo, banio_id: banioElegido?.id, lat: ubicacion?.lat })
-	);
+	const conAmigos = $derived(tipo !== null && sePuedePublicar({ tipo, banio_id: banioElegido?.id, lat: ubicacion?.lat }, 'amigos'));
+	const publicable = $derived(tipo !== null && sePuedePublicar({ tipo, banio_id: banioElegido?.id, lat: ubicacion?.lat }));
 	$effect(() => {
-		if (!publicable) compartirCon = 'privada';
+		if (compartirCon === 'publico' && !publicable) compartirCon = conAmigos ? 'amigos' : 'privada';
+		if (compartirCon === 'amigos' && !conAmigos) compartirCon = 'privada';
 	});
 
 	/** Fija la ubicación y busca los baños del catálogo que hay cerca. */
@@ -322,7 +322,7 @@
 		<span class="pie-anecdota"><span>🔒 Solo lo ves vos</span><span>{comentario.length}/{COMENTARIO_MAX}</span></span>
 	</label>
 
-	{#if tipo && !enCasa}
+	{#if tipo}
 		<fieldset class="compartir">
 			<legend>¿Quién la ve?</legend>
 			<div class="opciones" role="radiogroup" aria-label="Quién la ve">
@@ -332,12 +332,13 @@
 						role="radio"
 						aria-checked={compartirCon === o.id}
 						class="opcion"
-						disabled={o.id !== 'privada' && !publicable}
+						disabled={(o.id === 'amigos' && !conAmigos) || (o.id === 'publico' && !publicable)}
 						onclick={() => (compartirCon = o.id)}>{o.texto}</button
 					>
 				{/each}
 			</div>
-			{#if !publicable}<small>Para compartirla hace falta la ubicación.</small>{/if}
+			{#if !conAmigos}<small>Para compartirla hace falta la ubicación.</small>
+			{:else if enCasa}<small>Lo de casa, el laburo o lo de alguien no va al mapa público; con tus amigos, sí.</small>{/if}
 		</fieldset>
 	{/if}
 

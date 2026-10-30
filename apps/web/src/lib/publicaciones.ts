@@ -7,6 +7,11 @@ export type Alcance = 'publico' | 'amigos';
 
 /** Casa, laburo y lo de alguien no se pueden hacer públicos. */
 export const TIPOS_PUBLICABLES: Tipo[] = ['banio_publico', 'ruta', 'naturaleza', 'otro'];
+/** Esos tres, solo con amigos (que ven el punto exacto). */
+export const TIPOS_SOLO_AMIGOS: Tipo[] = ['casa', 'laburo', 'casa_ajena'];
+
+export const tipoCompartible = (tipo: string, alcance: Alcance) =>
+	TIPOS_PUBLICABLES.includes(tipo as Tipo) || (alcance === 'amigos' && TIPOS_SOLO_AMIGOS.includes(tipo as Tipo));
 
 /**
  * Un registro público aparece para los demás 30 minutos después: nadie sabe

@@ -3,7 +3,7 @@ import { exigirSesion } from '$lib/server/auth/sesiones';
 import { permitir } from '$lib/server/auth/limites';
 import { db } from '$lib/server/db';
 import { cuerpoJson, sinContenido } from '$lib/server/http';
-import { DEMORA_MINUTOS, problemaComentarioPublico, TIPOS_PUBLICABLES } from '$lib/publicaciones';
+import { DEMORA_MINUTOS, problemaComentarioPublico, tipoCompartible } from '$lib/publicaciones';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 // Público: redondeado a ~11 m (4 decimales). Amigos: el punto exacto (6 decimales).
@@ -11,8 +11,8 @@ const redondear = (n: number, alcance: string) => (alcance === 'amigos' ? Math.r
 
 /**
  * Hacer público un registro (PRIVACY.md P-38). Solo lo que el usuario eligió:
- * tipo, día, y el baño o el punto (redondeado a ~11 m si es pública; exacto para amigos). Nunca casa, laburo ni lo
- * de alguien. Los demás la ven 30 minutos después; el dueño, enseguida.
+ * tipo, día, y el baño o el punto (redondeado a ~11 m si es pública; exacto para amigos). Casa, laburo y lo
+ * de alguien, solo con amigos. Los demás la ven 30 minutos después; el dueño, enseguida.
  */
 export const PUT = async (event) => {
 	const sesion = await exigirSesion(event.cookies);
@@ -32,7 +32,8 @@ export const PUT = async (event) => {
 	// Sin valor por defecto: un alcance que falta es un error, no "pública".
 	const alcance = c.alcance;
 	if (alcance !== 'publico' && alcance !== 'amigos') error(400, 'Falta con quién compartirla.');
-	if (!TIPOS_PUBLICABLES.includes(c.tipo as never)) error(400, 'Lo de casa, el laburo o lo de alguien no se puede hacer público.');
+	if (!tipoCompartible(c.tipo, alcance))
+		error(400, 'Lo de casa, el laburo o lo de alguien no se puede hacer público; sí compartir con amigos.');
 	if (typeof c.dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(c.dia) || isNaN(Date.parse(c.dia))) error(400, 'Día inválido.');
 	if (Date.parse(c.dia) > Date.now() + 36 * 3600_000) error(400, 'Ese día todavía no pasó.');
 

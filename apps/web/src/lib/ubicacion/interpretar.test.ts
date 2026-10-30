@@ -42,11 +42,15 @@ describe('links', () => {
 		['https://www.openstreetmap.org/#map=17/-51.62/-69.22', [-51.62, -69.22]],
 		['https://maps.apple.com/?ll=-51.62,-69.22&q=Pin', [-51.62, -69.22]],
 		['https://waze.com/ul?ll=-51.62%2C-69.22&navigate=yes', [-51.62, -69.22]],
-		['Mirá dónde estoy: https://www.google.com/maps?q=-51.62,-69.22 ¡vení!', [-51.62, -69.22]]
+		['Mirá dónde estoy: https://www.google.com/maps?q=-51.62,-69.22 ¡vení!', [-51.62, -69.22]],
+		['https://www.google.es/maps/place/Puerta+del+Sol/@40.4169,-3.7035,17z', [40.4169, -3.7035]],
+		['https://maps.apple.com/place?address=Calle+Mayor&coordinate=40.4155,-3.7074', [40.4155, -3.7074]],
+		['https://waze.com/ul/h69y7pkxff4', [-34.6037, -58.3816]]
 	])('%s', (t, esperado) => expect(punto(t)).toEqual(esperado));
 
 	it('los links cortos de Google los sigue el servidor', () => {
 		expect(interpretar('https://maps.app.goo.gl/AbC123xyz')).toEqual({ tipo: 'corto', url: 'https://maps.app.goo.gl/AbC123xyz' });
+		expect(interpretar('https://maps.apple/p/AbC123').tipo).toBe('corto');
 	});
 
 	it('un link con la dirección pero sin coordenadas: se busca la dirección', () => {

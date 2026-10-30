@@ -183,6 +183,27 @@ try {
 	ok((await json(beto, '/amigos/cacas')).publicaciones.length === 1, 'lo de amigos no vence (una de hace más de un año)');
 	await sql`update publicaciones set dia = current_date`;
 
+	// Lo de casa: con amigos sí (avisando que van a ver dónde vive), al público no.
+	await ana.getByRole('button', { name: '💩 Registrar' }).click();
+	await ana.getByRole('radio', { name: 'En casa' }).click();
+	await ana.getByRole('button', { name: /Usar mi ubicación/ }).click();
+	await ana.getByText('Ubicación guardada').waitFor();
+	await ana.getByRole('radio', { name: /Mis amigos/ }).click();
+	await ana.getByRole('button', { name: 'Guardar' }).click();
+	ok(await ana.getByText('Es tu casa: tus amigos van a ver dónde vivís').isVisible(), 'en casa: avisa que los amigos ven dónde vive');
+	await ana.getByRole('button', { name: 'Sí, compartirla' }).click();
+	await ana.getByText('Compartida con tus amigos').waitFor();
+	await sql`update publicaciones set visible_desde = now()`;
+	const conCasa = (await json(beto, '/amigos/cacas')).publicaciones;
+	ok(conCasa.length === 2 && conCasa.some((p) => p.tipo === 'casa'), 'Beto ve la de casa de Ana');
+	ok((await publicas()).length === 0, 'la de casa no está en el mapa público');
+	await ana.locator('.historial li', { hasText: 'En casa' }).locator('button.fila').click();
+	ok((await ana.getByRole('button', { name: '🌎 Hacerla pública' }).count()) === 0, 'la de casa no ofrece hacerla pública');
+	await ana.getByRole('button', { name: '🔒 Hacerla privada' }).click();
+	await ana.waitForFunction(() => ![...document.querySelectorAll('.historial li small')].some((e) => e.textContent.includes('En casa') && e.textContent.includes('con amigos')));
+	await esperar(500);
+	ok((await json(beto, '/amigos/cacas')).publicaciones.length === 1, 'vuelta a privada: Beto ya no la ve');
+
 	// Sacar amigos.
 	await beto.goto(BASE + '/app/amigos');
 	await beto.getByRole('button', { name: 'Sacar' }).click();

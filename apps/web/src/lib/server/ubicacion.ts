@@ -4,9 +4,10 @@
 // ni se escribe en logs: es una ubicación.
 
 /** A dónde puede llevar la redirección de un link corto. Nada más: no es un proxy. */
-const HOSTS_PERMITIDOS = /^(maps\.app\.goo\.gl|goo\.gl|(www\.|maps\.)?google\.com(\.ar)?)$/;
+const HOSTS_PERMITIDOS =
+	/^(maps\.app\.goo\.gl|goo\.gl|(www\.|maps\.)?google\.(com|[a-z]{2}|com?\.[a-z]{2})|maps\.apple|maps\.apple\.com)$/;
 /** Los únicos que se piden: los acortadores. El link largo ya trae lo que hace falta. */
-const HOSTS_CORTOS = /^(maps\.app\.goo\.gl|goo\.gl)$/;
+const HOSTS_CORTOS = /^(maps\.app\.goo\.gl|goo\.gl|maps\.apple)$/;
 
 export class EnlaceNoSoportado extends Error {}
 
@@ -54,6 +55,29 @@ interface Lugar {
 	address?: Record<string, string>;
 }
 
+/**
+ * Abreviaturas de calles: Nominatim no siempre las entiende ("Bv. Oroño 1000"
+ * da la calle; "Bulevar Oroño 1000", la altura). "Dr." solo antes de un nombre,
+ * para no romper el "Dr" (Drive) de las direcciones en inglés.
+ */
+const ABREVIATURAS: [RegExp, string][] = [
+	[/\b(av|avda|avd)\.?(?=\s)/giu, 'Avenida'],
+	[/\b(bv|bvd|blvd|bvard|boul)\.?(?=\s)/giu, 'Bulevar'],
+	[/\b(pje|psje)\.?(?=\s)/giu, 'Pasaje'],
+	[/\bgral\.?(?=\s)/giu, 'General'],
+	[/\bpte\.?(?=\s)/giu, 'Presidente'],
+	[/\bgdor\.?(?=\s)/giu, 'Gobernador'],
+	[/\bcnel\.?(?=\s)/giu, 'Coronel'],
+	[/\btte\.?(?=\s)/giu, 'Teniente'],
+	[/\bcmte\.?(?=\s)/giu, 'Comandante'],
+	[/\bsgto\.?(?=\s)/giu, 'Sargento'],
+	[/\bing\.(?=\s)/giu, 'Ingeniero'],
+	[/\bdr\.(?=\s+\p{L})/giu, 'Doctor'],
+	[/\bsta\.(?=\s)/giu, 'Santa'],
+	[/\bsto\.(?=\s)/giu, 'Santo']
+];
+export const expandir = (q: string) => ABREVIATURAS.reduce((t, [re, por]) => t.replace(re, por), q);
+
 /** "Santa Fe 848, Río Gallegos" → calle "848 Santa Fe" y ciudad "Río Gallegos". */
 export function separar(q: string): { calle: string; ciudad: string } | null {
 	const [primera, ...resto] = q.split(',').map((t) => t.trim());
@@ -91,9 +115,15 @@ export async function buscarDireccion(q: string, url: string, origen: string, f:
 	};
 	// "Calle número, ciudad": primero por partes. Si no, en texto libre se confunde
 	// (con "Santa Fe 848, Río Gallegos" encuentra la calle Río Gallegos de Roldán).
-	const partes = separar(q);
+	const texto = expandir(q);
+	const partes = separar(texto);
 	let datos = partes ? await pedir({ street: partes.calle, city: partes.ciudad }) : [];
-	if (!datos.length) datos = await pedir({ q });
+	// Sin la altura por partes (o sin nada), también en texto libre; lo exacto, primero.
+	const conAltura = (d: Lugar) => Boolean(d.address?.house_number);
+	if (!datos.some(conAltura) && (!datos.length || /\d/.test(texto))) {
+		const libres = await pedir({ q: texto });
+		datos = [...libres.filter(conAltura), ...datos, ...libres.filter((d) => !conAltura(d))];
+	}
 	// La misma calle viene en varios tramos: uno por calle y barrio alcanza.
 	const vistos = new Set<string>();
 	return datos

@@ -2,15 +2,18 @@
 // Requiere conexión: el cambio se hace primero en el servidor y después se
 // anota en el historial.
 import { api } from '$lib/cliente/api';
-import { TIPOS_PUBLICABLES, type Alcance } from '$lib/publicaciones';
+import { tipoCompartible, type Alcance } from '$lib/publicaciones';
 import type { Boveda } from './boveda';
 import type { Registro } from './modelo';
 
 export type Compartir = 'privada' | Alcance;
 
-/** Casa, laburo y lo de alguien nunca; el resto, si se sabe dónde fue. */
-export function sePuedePublicar(r: Pick<Registro, 'tipo' | 'banio_id' | 'lat'>): boolean {
-	return TIPOS_PUBLICABLES.includes(r.tipo) && (r.banio_id !== undefined || r.lat !== undefined);
+/**
+ * Si se sabe dónde fue: con amigos, cualquier cosa; en el mapa público, nunca
+ * casa, laburo ni lo de alguien.
+ */
+export function sePuedePublicar(r: Pick<Registro, 'tipo' | 'banio_id' | 'lat'>, con: Alcance = 'publico'): boolean {
+	return tipoCompartible(r.tipo, con) && (r.banio_id !== undefined || r.lat !== undefined);
 }
 
 export const compartidaCon = (r: Pick<Registro, 'publico' | 'amigos'>): Compartir =>
@@ -29,7 +32,7 @@ export function diaLocal(iso: string): string {
 export async function compartir(boveda: Boveda, r: Registro, con: Compartir, conComentario = false): Promise<number | null> {
 	let numero: number | null = null;
 	if (con !== 'privada') {
-		if (!sePuedePublicar(r)) throw new Error('Este registro no se puede compartir');
+		if (!sePuedePublicar(r, con)) throw new Error('Este registro no se puede compartir');
 		({ numero } = await api<{ numero: number | null }>(`/publicaciones/${r.id}`, {
 			metodo: 'PUT',
 			cuerpo: {

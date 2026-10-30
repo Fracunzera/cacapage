@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buscarDireccion, EnlaceNoSoportado, seguirCorto, separar } from './ubicacion';
+import { buscarDireccion, EnlaceNoSoportado, expandir, seguirCorto, separar } from './ubicacion';
 
 const redir = (destino: string) => new Response(null, { status: 302, headers: { location: destino } });
 
@@ -12,6 +12,13 @@ describe('seguirCorto', () => {
 		expect(await seguirCorto('https://maps.app.goo.gl/abc', f)).toBe('https://www.google.com/maps/place/x/@-51.62,-69.22,17z');
 		expect(f).toHaveBeenCalledTimes(2);
 		expect(f.mock.calls[0][1].redirect).toBe('manual');
+	});
+
+	it('Google de otros países y los links cortos de Apple', async () => {
+		const f = vi.fn().mockResolvedValueOnce(redir('https://www.google.es/maps/place/x/@40.4,-3.7,17z'));
+		expect(await seguirCorto('https://maps.app.goo.gl/abc', f)).toBe('https://www.google.es/maps/place/x/@40.4,-3.7,17z');
+		const g = vi.fn().mockResolvedValueOnce(redir('https://maps.apple.com/place?coordinate=40.4,-3.7'));
+		expect(await seguirCorto('https://maps.apple/p/abc', g)).toBe('https://maps.apple.com/place?coordinate=40.4,-3.7');
 	});
 
 	it('un link corto que no redirige: no se pudo abrir', async () => {
@@ -31,6 +38,18 @@ describe('seguirCorto', () => {
 		const f = vi.fn().mockImplementation(async () => redir('https://maps.app.goo.gl/otra'));
 		await expect(seguirCorto('https://maps.app.goo.gl/abc', f)).rejects.toThrow(EnlaceNoSoportado);
 		expect(f).toHaveBeenCalledTimes(6);
+	});
+});
+
+describe('expandir', () => {
+	it('abreviaturas de calles', () => {
+		expect(expandir('Bv. Oroño 1000, Rosario')).toBe('Bulevar Oroño 1000, Rosario');
+		expect(expandir('Av Libertador 5000')).toBe('Avenida Libertador 5000');
+		expect(expandir('Gral. Paz 10, Pje. Ruiz')).toBe('General Paz 10, Pasaje Ruiz');
+		expect(expandir('Dr. Riccheri 300')).toBe('Doctor Riccheri 300');
+		// "Dr" de Drive, en inglés, queda.
+		expect(expandir('1 Ocean Dr, Miami')).toBe('1 Ocean Dr, Miami');
+		expect(expandir('Avenida de Mayo 1')).toBe('Avenida de Mayo 1');
 	});
 });
 

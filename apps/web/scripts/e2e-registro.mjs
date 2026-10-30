@@ -168,10 +168,18 @@ try {
 	ok(true, 'lo registrado en el segundo celular aparece en el primero');
 
 	// ---------- Público / privado ----------
-	// En casa no se ofrece hacerla pública.
+	// En casa: al mapa público nunca; con amigos sí (con ubicación).
 	await b.getByRole('button', { name: '💩 Registrar' }).click();
 	await b.getByRole('radio', { name: 'En casa' }).click();
-	ok((await b.getByRole('radio', { name: /Todo el mundo/ }).count()) === 0, 'en casa no se ofrece compartirla');
+	ok(await b.getByRole('radio', { name: /Todo el mundo/ }).isDisabled(), 'en casa no se puede hacer pública');
+	ok(await b.getByRole('radio', { name: /Mis amigos/ }).isDisabled(), 'ni con amigos sin ubicación');
+	await b.getByRole('button', { name: /Usar mi ubicación/ }).click();
+	await b.getByText('Ubicación guardada').waitFor();
+	ok(
+		!(await b.getByRole('radio', { name: /Mis amigos/ }).isDisabled()) && (await b.getByRole('radio', { name: /Todo el mundo/ }).isDisabled()),
+		'en casa con ubicación: con amigos sí, público no'
+	);
+	await b.getByText('con tus amigos, sí').waitFor();
 	await b.getByRole('button', { name: 'Cancelar' }).click();
 	// Al aire libre, con ubicación y pública: pide confirmación y dice qué se ve.
 	await b.getByRole('button', { name: '💩 Registrar' }).click();
@@ -228,6 +236,17 @@ try {
 	ok(api.publicaciones.map((p) => p.numero).sort().join() === '1,2', 'el mapa público trae el número de cada una');
 	const casa = await b.request.put(BASE + '/api/v1/publicaciones/00000000-0000-4000-8000-000000000000', { data: { tipo: 'casa', dia: '2026-10-01', lat: -51.6, lon: -69.2, alcance: 'publico' } });
 	ok(casa.status() === 400, 'el servidor rechaza publicar algo de casa');
+	const casaAmigos = await b.request.put(BASE + '/api/v1/publicaciones/00000000-0000-4000-8000-000000000001', { data: { tipo: 'casa', dia: '2026-10-01', lat: -51.6, lon: -69.2, alcance: 'amigos' } });
+	ok(casaAmigos.ok(), 'lo de casa sí se puede compartir con amigos');
+	await sql`update publicaciones set visible_desde = now() where id = '00000000-0000-4000-8000-000000000001'`;
+	const deNuevo = await (await fetch(BASE + '/api/v1/publicaciones')).json();
+	ok(!deNuevo.publicaciones.some((p) => p.tipo === 'casa'), 'y no aparece en el mapa público');
+	const aPublico = await b.request.put(BASE + '/api/v1/publicaciones/00000000-0000-4000-8000-000000000001', { data: { tipo: 'casa', dia: '2026-10-01', lat: -51.6, lon: -69.2, alcance: 'publico' } });
+	ok(aPublico.status() === 400, 'ni se puede pasar de amigos a pública');
+	let base = null;
+	await sql`update publicaciones set alcance = 'publico', numero = 999 where id = '00000000-0000-4000-8000-000000000001'`.catch((e) => (base = e));
+	ok(base?.constraint_name === 'publicaciones_tipo_check', 'la base tampoco deja una de casa en el mapa público');
+	await b.request.delete(BASE + '/api/v1/publicaciones/00000000-0000-4000-8000-000000000001');
 
 	const c = await celular();
 	await c.goto(BASE + '/cacas');
