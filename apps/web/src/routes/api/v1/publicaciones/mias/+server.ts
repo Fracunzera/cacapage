@@ -9,9 +9,10 @@ import type { Publicacion } from '$lib/publicaciones';
  */
 export const GET = async ({ cookies }) => {
 	const sesion = await leerSesion(cookies);
-	if (!sesion) return json({ publicaciones: [] });
+	// con_sesion: para saber si ofrecer "Reportar" en el mapa, sin pedir /cuenta.
+	if (!sesion) return json({ publicaciones: [], con_sesion: false });
 	const filas = await db()`
-		select p.id, p.numero, p.tipo, p.dia, p.banio_id, p.sin_papel, p.visible_desde,
+		select p.id, p.numero, p.tipo, p.dia, p.banio_id, p.sin_papel, p.visible_desde, p.comentario, p.comentario_oculto,
 		       coalesce(p.lat, b.lat) as lat, coalesce(p.lon, b.lon) as lon, coalesce(b.nombre, b.marca) as banio_nombre
 		from publicaciones p left join osm.candidatos b on b.id = p.banio_id
 		where p.cuenta_id = ${sesion.id} and (p.lat is not null or b.id is not null)
@@ -27,7 +28,8 @@ export const GET = async ({ cookies }) => {
 		banio_id: f.banio_id,
 		banio_nombre: f.banio_nombre ?? (f.banio_id ? 'Baño' : null),
 		sin_papel: f.sin_papel,
-		visible_desde: (f.visible_desde as Date).toISOString()
+		visible_desde: (f.visible_desde as Date).toISOString(),
+		...(f.comentario ? { comentario: f.comentario, comentario_oculto: f.comentario_oculto } : {})
 	}));
-	return json({ publicaciones });
+	return json({ publicaciones, con_sesion: true });
 };

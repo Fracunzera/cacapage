@@ -33,6 +33,8 @@ export interface Registro {
 	comentario?: string;
 	/** Publicado en el mapa público por decisión del dueño (P-38). */
 	publico?: true;
+	/** Si la anécdota también se muestra en el mapa público (P-42). */
+	comentario_publico?: true;
 	/** Su número en el mapa público (mientras sea pública). */
 	numero_publico?: number;
 	actualizado_en: string;

@@ -16,7 +16,12 @@
 		seudonimo,
 		onguardar,
 		oncancelar
-	}: { seudonimo: string; onguardar: (r: Registro, publico: boolean) => Promise<void>; oncancelar: () => void } = $props();
+	}: {
+		seudonimo: string;
+		/** conComentario: al hacerla pública, mostrar también la anécdota. */
+		onguardar: (r: Registro, publico: boolean, conComentario: boolean) => Promise<void>;
+		oncancelar: () => void;
+	} = $props();
 
 	const EJEMPLOS = [
 		'Se cortó la luz en lo mejor…',
@@ -160,15 +165,15 @@
 		const r = armar();
 		if (!r) return;
 		if (publico) confirmando = r;
-		else void guardar(r, false);
+		else void guardar(r, false, false);
 	}
 
-	async function guardar(r: Registro, comoPublico: boolean) {
+	async function guardar(r: Registro, comoPublico: boolean, conComentario: boolean) {
 		confirmando = null;
 		guardando = true;
 		error = null;
 		try {
-			await onguardar(r, comoPublico);
+			await onguardar(r, comoPublico, conComentario);
 		} catch {
 			error = 'No se pudo guardar. Probá de nuevo.';
 			guardando = false;
@@ -300,7 +305,7 @@
 	<ConfirmarPublico
 		registro={r}
 		{seudonimo}
-		onsi={() => guardar(r, true)}
+		onsi={(conComentario) => guardar(r, true, conComentario)}
 		onno={() => {
 			confirmando = null;
 			publico = false;

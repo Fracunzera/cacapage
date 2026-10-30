@@ -12,16 +12,16 @@
 		registros: Registro[];
 		seudonimo: string;
 		onborrar: (r: Registro) => void;
-		onpublico: (r: Registro, publico: boolean) => Promise<void>;
+		onpublico: (r: Registro, publico: boolean, conComentario?: boolean) => Promise<void>;
 	} = $props();
 	let confirmando = $state.raw<Registro | null>(null);
 	let cambiando = $state<string | null>(null);
 
-	async function cambiar(r: Registro, publico: boolean) {
+	async function cambiar(r: Registro, publico: boolean, conComentario = false) {
 		confirmando = null;
 		cambiando = r.id;
 		try {
-			await onpublico(r, publico);
+			await onpublico(r, publico, conComentario);
 		} finally {
 			cambiando = null;
 		}
@@ -58,7 +58,7 @@
 					<span class="que">
 						<strong>{r.banio_nombre ?? TIPO[r.tipo]?.texto}</strong>
 						<small
-							>{dia(r.ocurrido_en)}{r.sin_papel ? ' · sin papel' : ''}{r.comentario ? ' · 📝' : ''}{r.publico ? ` · 🌎 pública${r.numero_publico ? ` N.º ${r.numero_publico.toLocaleString('es-AR')}` : ''}` : ''}</small
+							>{dia(r.ocurrido_en)}{r.sin_papel ? ' · sin papel' : ''}{r.comentario ? ' · 📝' : ''}{r.publico ? ` · 🌎 pública${r.numero_publico ? ` N.º ${r.numero_publico.toLocaleString('es-AR')}` : ''}${r.comentario_publico ? ' con anécdota' : ''}` : ''}</small
 						>
 					</span>
 				</button>
@@ -96,7 +96,7 @@
 
 {#if confirmando}
 	{@const r = confirmando}
-	<ConfirmarPublico registro={r} {seudonimo} onsi={() => cambiar(r, true)} onno={() => (confirmando = null)} />
+	<ConfirmarPublico registro={r} {seudonimo} onsi={(c) => cambiar(r, true, c)} onno={() => (confirmando = null)} />
 {/if}
 
 <style>

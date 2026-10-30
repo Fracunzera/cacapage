@@ -1,6 +1,6 @@
 <script lang="ts">
 	// La advertencia antes de publicar (PRIVACY.md P-38): qué se va a ver, dicho claro.
-	import { DEMORA_MINUTOS } from '$lib/publicaciones';
+	import { DEMORA_MINUTOS, problemaComentarioPublico } from '$lib/publicaciones';
 	import { TIPOS, type Registro } from '../modelo';
 
 	let {
@@ -8,8 +8,16 @@
 		seudonimo,
 		onsi,
 		onno
-	}: { registro: Pick<Registro, 'tipo' | 'banio_nombre' | 'ocurrido_en' | 'banio_id'>; seudonimo: string; onsi: () => void; onno: () => void } =
-		$props();
+	}: {
+		registro: Pick<Registro, 'tipo' | 'banio_nombre' | 'ocurrido_en' | 'banio_id' | 'comentario'>;
+		seudonimo: string;
+		/** conComentario: si también se muestra la anécdota (P-42). */
+		onsi: (conComentario: boolean) => void;
+		onno: () => void;
+	} = $props();
+	// La anécdota es privada salvo que se marque esto (viene sin marcar).
+	let conComentario = $state(false);
+	const problema = $derived(registro.comentario ? problemaComentarioPublico(registro.comentario) : null);
 	const tipo = $derived(TIPOS.find((t) => t.id === registro.tipo));
 	const dia = $derived(new Date(registro.ocurrido_en).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }));
 	let boton: HTMLButtonElement;
@@ -30,12 +38,22 @@
 				</li>
 				<li>📅 El día: {dia}</li>
 			</ul>
+			{#if registro.comentario}
+				<label class="u-check anecdota">
+					<input type="checkbox" bind:checked={conComentario} disabled={problema !== null} />
+					<span>
+						💬 Mostrar también mi anécdota
+						<q>{registro.comentario}</q>
+						{#if problema}<small class="problema">{problema} La podés editar desde el historial.</small>{/if}
+					</span>
+				</label>
+			{/if}
 			<p class="u-ayuda">
-				No se ve la hora ni tu anécdota. Vos la ves enseguida; los demás, en unos {DEMORA_MINUTOS} minutos, para que nadie sepa dónde estás en este momento. La
+				No se ve la hora{conComentario ? '' : ' ni tu anécdota'}. Vos la ves enseguida; los demás, en unos {DEMORA_MINUTOS} minutos, para que nadie sepa dónde estás en este momento. La
 				podés volver a poner privada cuando quieras.
 			</p>
 		</div>
-		<button type="button" class="u-boton" bind:this={boton} onclick={onsi}>Sí, hacerla pública</button>
+		<button type="button" class="u-boton" bind:this={boton} onclick={() => onsi(conComentario)}>Sí, hacerla pública</button>
 		<button type="button" class="u-enlace" onclick={onno}>Mejor no</button>
 	</div>
 </div>
@@ -73,6 +91,20 @@
 		margin: 0 0 10px;
 		padding: 0;
 		list-style: none;
+	}
+	.anecdota {
+		margin: 4px 0 10px;
+	}
+	.anecdota q {
+		display: block;
+		margin-top: 4px;
+		color: var(--tinta-suave);
+		font-style: italic;
+		overflow-wrap: anywhere;
+	}
+	.problema {
+		display: block;
+		color: var(--rojo);
 	}
 	li {
 		margin-bottom: 6px;

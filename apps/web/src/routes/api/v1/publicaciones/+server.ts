@@ -6,6 +6,7 @@ import type { Publicacion } from '$lib/publicaciones';
 export const GET = async () => {
 	const filas = await db()`
 		select p.id, p.numero, c.seudonimo, p.tipo, p.dia, p.banio_id, p.sin_papel,
+		       case when p.comentario_oculto then null else p.comentario end as comentario,
 		       coalesce(p.lat, b.lat) as lat, coalesce(p.lon, b.lon) as lon,
 		       coalesce(b.nombre, b.marca) as banio_nombre, b.categoria
 		from publicaciones p
@@ -26,7 +27,8 @@ export const GET = async () => {
 		lon: f.lon,
 		banio_id: f.banio_id,
 		banio_nombre: f.banio_nombre ?? (f.banio_id ? 'Baño' : null),
-		sin_papel: f.sin_papel
+		sin_papel: f.sin_papel,
+		...(f.comentario ? { comentario: f.comentario } : {})
 	}));
 	return json({ publicaciones }, { headers: { 'Cache-Control': 'public, max-age=300' } });
 };

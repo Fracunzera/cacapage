@@ -265,6 +265,30 @@ navegador puede tener el catálogo guardado hasta una hora). En el sitio de
 prueba es lo mismo con la base `dondecague_prueba`. Si el baño está mal en OSM,
 corregirlo en OSM es a mano y lo hace una persona (ADR 0001).
 
+## Comentarios públicos
+
+Con 3 reportes de cuentas elegibles, la anécdota de una caca pública se oculta
+(el punto sigue). Revisarla y decidir es a mano (alias `psql-dc` de la sección
+anterior):
+
+```sh
+# Comentarios ocultos o reportados, con cuántos reportes
+psql-dc -c "select p.id, c.seudonimo, p.comentario, p.comentario_oculto,
+  (select count(*) from comentario_reportes r where r.publicacion_id = p.id) as reportes
+  from publicaciones p join cuentas c on c.id = p.cuenta_id
+  where p.comentario is not null and exists (select 1 from comentario_reportes r where r.publicacion_id = p.id)
+  order by p.comentario_oculto desc, reportes desc"
+
+# Está bien: volver a mostrarlo y descartar los reportes
+psql-dc -c "begin;
+  update publicaciones set comentario_oculto = false where id = 'UUID';
+  delete from comentario_reportes where publicacion_id = 'UUID';
+commit;"
+
+# Está mal: borrar el texto (el punto queda)
+psql-dc -c "update publicaciones set comentario = null, comentario_oculto = false where id = 'UUID'"
+```
+
 ## Relevamiento (en prueba)
 
 Igual que antes, en `https://caca.blucaro.site/app/relevamiento`: abrila una vez

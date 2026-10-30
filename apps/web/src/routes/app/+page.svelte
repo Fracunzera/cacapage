@@ -72,20 +72,20 @@
 		};
 	});
 
-	async function guardar(r: Registro, publico: boolean) {
+	async function guardar(r: Registro, publico: boolean, conComentario: boolean) {
 		const nuevas = await boveda!.guardar(r);
 		registrando = false;
 		// Primero los premios; el número del mapa público, al final.
 		novedades = nuevas;
-		if (publico) await publicar(r, true);
+		if (publico) await publicar(r, true, conComentario);
 		refrescar();
 		scrollTo({ top: 0 });
 	}
 
-	async function publicar(r: Registro, publico: boolean) {
+	async function publicar(r: Registro, publico: boolean, conComentario = false) {
 		error = null;
 		try {
-			const numero = await cambiarPublico(boveda!, r, publico);
+			const numero = await cambiarPublico(boveda!, r, publico, conComentario);
 			if (numero) novedades = [...novedades, { tipo: 'publica', numero }];
 		} catch (e) {
 			error =

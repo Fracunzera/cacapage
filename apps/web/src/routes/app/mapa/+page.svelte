@@ -29,12 +29,15 @@
 	let festejo = $state<number | null>(null);
 	/** Desde cuándo ven los demás cada caca pública propia. */
 	let visibleDesde = $state(new Map<string, string>());
+	/** Cacas públicas propias cuya anécdota está oculta por reportes. */
+	let comentarioOculto = $state(new Set<string>());
 
 	async function cargarMias() {
 		const r = await fetch('/api/v1/publicaciones/mias').catch(() => null);
 		if (!r?.ok) return;
 		const { publicaciones } = (await r.json()) as { publicaciones: Publicacion[] };
 		visibleDesde = new Map(publicaciones.map((p) => [p.id, p.visible_desde ?? '']));
+		comentarioOculto = new Set(publicaciones.filter((p) => p.comentario_oculto).map((p) => p.id));
 	}
 
 	const conUbicacion = $derived(registros.filter((r) => r.lat !== undefined && r.lon !== undefined));
@@ -60,13 +63,13 @@
 		if (elegido) elegido = registros.find((r) => r.id === elegido!.id) ?? null;
 	}
 
-	async function cambiar(publico: boolean) {
+	async function cambiar(publico: boolean, conComentario = false) {
 		if (!boveda || !elegido) return;
 		confirmando = false;
 		cambiando = true;
 		error = null;
 		try {
-			const numero = await cambiarPublico(boveda, elegido, publico);
+			const numero = await cambiarPublico(boveda, elegido, publico, conComentario);
 			if (numero) festejo = numero;
 			await cargarMias();
 		} catch (e) {
@@ -156,6 +159,13 @@
 				<p class="estado publica">
 					🌎 Pública: está en el mapa de cacas{r.numero_publico ? ` (N.º ${r.numero_publico.toLocaleString('es-AR')})` : ''}.
 				</p>
+				{#if r.comentario_publico}
+					<p class="u-ayuda">
+						{comentarioOculto.has(r.id)
+							? '💬 Tu anécdota quedó oculta por reportes hasta que la revisemos.'
+							: '💬 Tu anécdota también se ve en el mapa.'}
+					</p>
+				{/if}
 				{#if faltaParaTodos(visibleDesde.get(r.id))}
 					<p class="u-ayuda">⏳ Por ahora solo la ves vos: los demás la ven {faltaParaTodos(visibleDesde.get(r.id))}.</p>
 				{/if}
@@ -181,7 +191,7 @@
 {/if}
 
 {#if confirmando && elegido}
-	<ConfirmarPublico registro={elegido} {seudonimo} onsi={() => cambiar(true)} onno={() => (confirmando = false)} />
+	<ConfirmarPublico registro={elegido} {seudonimo} onsi={(c) => cambiar(true, c)} onno={() => (confirmando = false)} />
 {/if}
 
 <style>

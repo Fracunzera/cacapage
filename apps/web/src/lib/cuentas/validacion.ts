@@ -20,7 +20,7 @@ const RESERVADOS = new Set([
 ]);
 
 export const VERSION_TERMINOS = 'terminos-borrador-2026-10';
-export const VERSION_PRIVACIDAD = 'privacidad-borrador-2026-10-30f';
+export const VERSION_PRIVACIDAD = 'privacidad-borrador-2026-10-30g';
 
 export function normalizarSeudonimo(s: string): string {
 	return s.trim().toLowerCase();

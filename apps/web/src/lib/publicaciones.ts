@@ -10,6 +10,24 @@ export const TIPOS_PUBLICABLES: Tipo[] = ['banio_publico', 'ruta', 'naturaleza',
  */
 export const DEMORA_MINUTOS = 30;
 
+/** Con estos reportes de cuentas elegibles se oculta el texto, hasta revisarlo. */
+export const REPORTES_COMENTARIO = 3;
+export const COMENTARIO_PUBLICO_MAX = 500;
+
+/**
+ * Por qué una anécdota no se puede publicar tal cual, o null. Sin links, mails
+ * ni teléfonos: corta el spam y que alguien publique datos de otra persona.
+ */
+export function problemaComentarioPublico(texto: string): string | null {
+	const t = texto.trim();
+	if (!t) return 'La anécdota está vacía.';
+	if (t.length > COMENTARIO_PUBLICO_MAX) return `Puede tener hasta ${COMENTARIO_PUBLICO_MAX} caracteres.`;
+	if (/[^\s@]+@[^\s@]+\.[a-z]{2,}/i.test(t)) return 'Para publicarla, sacale los mails.';
+	if (/https?:\/\/|www\.|\b[a-z0-9-]+\.(com|ar|net|org|io|me|ly|app|link)\b/i.test(t)) return 'Para publicarla, sacale los links.';
+	if ((t.match(/\d/g) ?? []).length >= 7 && /\d[\d\s().-]{6,}\d/.test(t)) return 'Para publicarla, sacale los números de teléfono.';
+	return null;
+}
+
 export interface Publicacion {
 	id: string;
 	/** "La N.º 100 del mapa público": correlativo, no cambia. */
@@ -22,6 +40,10 @@ export interface Publicacion {
 	banio_id: string | null;
 	banio_nombre: string | null;
 	sin_papel: boolean;
+	/** La anécdota, si su dueño eligió mostrarla y no está oculta por reportes. */
+	comentario?: string;
+	/** Solo en las propias: el texto está oculto por reportes, en revisión. */
+	comentario_oculto?: boolean;
 	/** Solo en las propias (/publicaciones/mias): desde cuándo la ven los demás. */
 	visible_desde?: string;
 }

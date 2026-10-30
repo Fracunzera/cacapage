@@ -137,13 +137,54 @@ try {
 	await p.getByRole('button', { name: 'Buscar' }).click();
 	await p.getByText('Fuera de la Argentina').waitFor();
 	ok((await p.getByText('¿En cuál?').count()) === 0, 'fuera de la Argentina no se sugieren baños');
+	// Una anécdota con un link no se puede mostrar.
+	await p.getByPlaceholder(/./).last().fill('Mirá www.algo.com');
 	await p.getByLabel(/Sumarla al mapa público/).check();
 	await p.getByRole('button', { name: 'Guardar' }).click();
+	await p.getByRole('alertdialog').waitFor();
+	ok(await p.getByLabel(/Mostrar también mi anécdota/).isDisabled(), 'una anécdota con links no se puede mostrar');
+	ok(await p.getByText('sacale los links').isVisible(), 'y dice por qué');
+	await p.getByRole('button', { name: 'Mejor no' }).click();
+	// Con una anécdota limpia, sí (marcándolo; viene sin marcar).
+	await p.getByPlaceholder(/./).last().fill('Parque del Retiro, divino');
+	await p.getByLabel(/Sumarla al mapa público/).check();
+	await p.getByRole('button', { name: 'Guardar' }).click();
+	ok(!(await p.getByLabel(/Mostrar también mi anécdota/).isChecked()), 'mostrar la anécdota viene sin marcar');
+	await p.getByLabel(/Mostrar también mi anécdota/).check();
 	await p.getByRole('button', { name: 'Sí, hacerla pública' }).click();
 	await p.getByRole('heading', { name: /Tu caca es la N.º 1 del mapa público/ }).waitFor();
 	await p.getByRole('button', { name: '¡Grande!' }).click();
-	const [madrid] = await sql`select lat, lon from publicaciones`;
+	const [madrid] = await sql`select id, lat, lon, comentario from publicaciones`;
 	ok(madrid?.lat === 40.4168 && madrid?.lon === -3.7038, 'se publica desde cualquier país (Madrid)');
+	ok(madrid?.comentario === 'Parque del Retiro, divino', 'con la anécdota, porque se eligió mostrarla');
+
+	// En el mapa público aparece, y con 3 reportes de cuentas elegibles se oculta el texto.
+	await sql`update publicaciones set visible_desde = now()`;
+	const publico = async () => (await (await fetch(BASE + '/api/v1/publicaciones')).json()).publicaciones;
+	ok((await publico())[0]?.comentario === 'Parque del Retiro, divino', 'el mapa de cacas muestra la anécdota');
+	const propio = await p.request.post(BASE + `/api/v1/publicaciones/${madrid.id}/reporte`);
+	ok(propio.status() === 400, 'no se puede reportar el comentario propio');
+	const reportes = [];
+	for (const s of ['rep_uno', 'rep_dos', 'rep_tres']) {
+		const alta = await fetch(BASE + '/api/v1/auth/clave/alta', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ seudonimo: s, clave: 'una frase bastante larga', mayor_de_edad: true, acepta_terminos: true })
+		});
+		const cookie = alta.headers.get('set-cookie').split(';')[0];
+		if (s !== 'rep_tres') await sql`update cuentas set creada_en = current_date - 30, dias_activos = 2 where seudonimo = ${s}`;
+		reportes.push(async () => (await (await fetch(BASE + `/api/v1/publicaciones/${madrid.id}/reporte`, { method: 'POST', headers: { cookie } })).json()).oculto);
+	}
+	ok((await reportes[0]()) === false && (await reportes[2]()) === false, 'dos reportes (uno de una cuenta nueva, que no cuenta): sigue visible');
+	await sql`update cuentas set creada_en = current_date - 30, dias_activos = 2 where seudonimo = 'rep_tres'`;
+	ok((await reportes[2]()) === false, 'la misma cuenta no suma dos veces (ahora elegible: 2 de 3)');
+	ok((await reportes[1]()) === true, 'el tercer reporte elegible oculta el texto');
+	const [{ n }] = await sql`select count(*)::int n from comentario_reportes`;
+	ok(n === 3, 'tres reportes guardados, uno por cuenta');
+	const [ocultado] = await sql`select comentario_oculto from publicaciones`;
+	ok(ocultado.comentario_oculto === true, 'con 3 reportes elegibles se oculta el texto');
+	const despues = await publico();
+	ok(despues.length === 1 && !despues[0].comentario, 'el punto sigue en el mapa, sin el texto');
 	ok(errores.length === 0, `sin errores de consola${errores.length ? ': ' + errores.join(' | ') : ''}`);
 } catch (e) {
 	fallas++;

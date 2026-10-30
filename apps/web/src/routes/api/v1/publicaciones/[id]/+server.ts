@@ -3,7 +3,7 @@ import { exigirSesion } from '$lib/server/auth/sesiones';
 import { permitir } from '$lib/server/auth/limites';
 import { db } from '$lib/server/db';
 import { cuerpoJson, sinContenido } from '$lib/server/http';
-import { DEMORA_MINUTOS, TIPOS_PUBLICABLES } from '$lib/publicaciones';
+import { DEMORA_MINUTOS, problemaComentarioPublico, TIPOS_PUBLICABLES } from '$lib/publicaciones';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const red = (n: number) => Math.round(n * 1e4) / 1e4;
@@ -18,10 +18,27 @@ export const PUT = async (event) => {
 	const id = event.params.id;
 	if (!UUID.test(id)) error(400, 'Registro inválido.');
 	if (!permitir(`publicar:${sesion.id}`, 60, 24 * 3600_000)) error(429, 'Publicaste muchas cosas hoy. Probá mañana.');
-	const c = await cuerpoJson<{ tipo: string; dia: string; banio_id?: string; lat?: number; lon?: number; sin_papel?: boolean }>(event);
+	const c = await cuerpoJson<{
+		tipo: string;
+		dia: string;
+		banio_id?: string;
+		lat?: number;
+		lon?: number;
+		sin_papel?: boolean;
+		comentario?: string;
+	}>(event);
 	if (!TIPOS_PUBLICABLES.includes(c.tipo as never)) error(400, 'Lo de casa, el laburo o lo de alguien no se puede hacer público.');
 	if (typeof c.dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(c.dia) || isNaN(Date.parse(c.dia))) error(400, 'Día inválido.');
 	if (Date.parse(c.dia) > Date.now() + 36 * 3600_000) error(400, 'Ese día todavía no pasó.');
+
+	// La anécdota, solo si el dueño eligió mostrarla (P-42).
+	let comentario: string | null = null;
+	if (c.comentario !== undefined && c.comentario !== null) {
+		if (typeof c.comentario !== 'string') error(400, 'Anécdota inválida.');
+		const problema = problemaComentarioPublico(c.comentario);
+		if (problema) error(400, problema);
+		comentario = c.comentario.trim();
+	}
 
 	const sql = db();
 	let banio: string | null = null;
@@ -40,11 +57,14 @@ export const PUT = async (event) => {
 		lon = red(c.lon);
 	}
 	const [fila] = await sql`
-		insert into publicaciones (id, cuenta_id, tipo, banio_id, lat, lon, dia, sin_papel, visible_desde)
-		values (${id}, ${sesion.id}, ${c.tipo}, ${banio}, ${lat}, ${lon}, ${c.dia}, ${c.sin_papel === true},
+		insert into publicaciones (id, cuenta_id, tipo, banio_id, lat, lon, dia, sin_papel, comentario, visible_desde)
+		values (${id}, ${sesion.id}, ${c.tipo}, ${banio}, ${lat}, ${lon}, ${c.dia}, ${c.sin_papel === true}, ${comentario},
 		        now() + make_interval(mins => ${DEMORA_MINUTOS}))
 		on conflict (id) do update set tipo = excluded.tipo, banio_id = excluded.banio_id, lat = excluded.lat,
-			lon = excluded.lon, dia = excluded.dia, sin_papel = excluded.sin_papel
+			lon = excluded.lon, dia = excluded.dia, sin_papel = excluded.sin_papel,
+			-- Un texto nuevo vuelve a empezar sin reportes; el mismo, conserva su estado.
+			comentario_oculto = publicaciones.comentario_oculto and publicaciones.comentario is not distinct from excluded.comentario,
+			comentario = excluded.comentario
 		where publicaciones.cuenta_id = ${sesion.id}
 		returning numero`;
 	if (!fila) error(409, 'Ese registro no es tuyo.');

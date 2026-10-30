@@ -29,6 +29,15 @@
 	let filtro = $state<Filtro>('todas');
 	let elegidas = $state<Publicacion[]>([]);
 	let error = $state<string | null>(null);
+	let conSesion = $state(false);
+	let mias = $state(new Set<string>());
+	let reportados = $state(new Set<string>());
+
+	async function reportar(p: Publicacion) {
+		if (!confirm('¿Reportar este comentario? Con 3 reportes se oculta hasta que lo revisemos.')) return;
+		const r = await fetch(`/api/v1/publicaciones/${p.id}/reporte`, { method: 'POST' }).catch(() => null);
+		if (r?.ok) reportados = new Set([...reportados, p.id]);
+	}
 
 	const visibles = $derived(filtro === 'todas' ? todas : todas.filter((p) => p.tipo === filtro));
 	const personas = $derived(new Set(visibles.map((p) => p.seudonimo)).size);
@@ -53,18 +62,24 @@
 
 	onMount(() => {
 		(async () => {
-			const lista = (url: string) =>
+			type Lista = { publicaciones: Publicacion[]; con_sesion?: boolean };
+			const lista = (url: string): Promise<Lista> =>
 				fetch(url)
-					.then((r) => (r.ok ? (r.json() as Promise<{ publicaciones: Publicacion[] }>) : { publicaciones: [] }))
-					.then((d) => d.publicaciones, () => [] as Publicacion[]);
+					.then((r) => (r.ok ? (r.json() as Promise<Lista>) : { publicaciones: [] }))
+					.catch(() => ({ publicaciones: [] }));
 			// Las propias que los demás todavía no ven (primeros 30 minutos): solo para su dueño.
-			const [publicas, mias, { mapa: m }] = await Promise.all([
+			const [publicas, propias, { mapa: m }] = await Promise.all([
 				lista('/api/v1/publicaciones'),
 				lista('/api/v1/publicaciones/mias'),
 				crearMapa(contenedor)
 			]);
-			const yaEstan = new Set(publicas.map((p) => p.id));
-			todas = [...mias.filter((p) => !yaEstan.has(p.id) && faltaParaTodos(p.visible_desde)), ...publicas];
+			conSesion = propias.con_sesion === true;
+			mias = new Set(propias.publicaciones.map((p) => p.id));
+			const yaEstan = new Set(publicas.publicaciones.map((p) => p.id));
+			todas = [
+				...propias.publicaciones.filter((p) => !yaEstan.has(p.id) && faltaParaTodos(p.visible_desde)),
+				...publicas.publicaciones
+			];
 			cargado = true;
 			m.addSource('cacas', { type: 'geojson', data: datos(visibles), cluster: true, clusterMaxZoom: 15, clusterRadius: 40 });
 			m.addLayer({
@@ -167,6 +182,16 @@
 					<li>
 						<strong>@{p.seudonimo} <span class="numero">· N.º {p.numero.toLocaleString('es-AR')}</span></strong>
 						<span>{TIPO[p.tipo]?.icono} {p.banio_id ? 'en el baño' : TIPO[p.tipo]?.texto.toLowerCase()} · {dia(p.dia)}{p.sin_papel ? ' · sin papel 😱' : ''}</span>
+						{#if p.comentario}
+							<q class="comentario">{p.comentario}</q>
+							{#if conSesion && !mias.has(p.id)}
+								{#if reportados.has(p.id)}
+									<span class="reportado">Gracias, lo vamos a mirar.</span>
+								{:else}
+									<button type="button" class="u-enlace reportar" onclick={() => reportar(p)}>🚩 Reportar comentario</button>
+								{/if}
+							{/if}
+						{/if}
 						{#if faltaParaTodos(p.visible_desde)}
 							<span class="pendiente">⏳ Por ahora solo la ves vos: los demás la ven {faltaParaTodos(p.visible_desde)}.</span>
 						{/if}
@@ -222,6 +247,20 @@
 		flex-direction: column;
 		margin-bottom: 10px;
 		overflow-wrap: anywhere;
+	}
+	.comentario {
+		margin: 4px 0 0;
+		color: var(--tinta);
+		font-style: italic;
+		overflow-wrap: anywhere;
+	}
+	.reportar {
+		align-self: flex-start;
+		padding: 2px 0;
+		font-size: 13px;
+	}
+	.reportado {
+		font-size: 13px;
 	}
 	.pendiente {
 		margin-top: 2px;

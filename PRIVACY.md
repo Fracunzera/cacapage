@@ -58,7 +58,7 @@ individuales:**
 | Tarjetas compartibles | Quien reciba el link | Lo mismo que la insignia; **(i3)** para medallas, el nombre implica la cantidad de registros (múltiplo de 5) | Acto explícito del usuario en el momento; sin fecha ni lugar (P-33). |
 | **(i3)** Anuncio de medalla a amigos | Amigos elegidos | Que hubo un registro ese día | Solo si el usuario lo pide para esa medalla; cola diferida (P-33). |
 | **(i5)** Puntaje de un baño | Público | Promedio y cantidad de votos; nunca quién votó ni cuándo | Un voto por cuenta; se guarda con `cuenta_id` solo para poder cambiarlo y se borra con la cuenta. Con 1 voto, el promedio es ese voto (atribución como P-17, sin autor). |
-| **(i5)** Mapa de cacas (`/cacas`) y visitas públicas en la ficha de un baño | Público, sin cuenta | **Registro individual con seudónimo:** el baño o el punto (±11 m), el tipo de lugar y el día | **Excepción a la regla de abajo, por decisión del producto (P-38):** opt-in registro por registro con advertencia explícita, nunca casa/laburo/lo de alguien, sin hora, 30 min de demora para los demás (el dueño la ve enseguida), despublicar borra en el acto. |
+| **(i5)** Mapa de cacas (`/cacas`) y visitas públicas en la ficha de un baño | Público, sin cuenta | **Registro individual con seudónimo:** el baño o el punto (±11 m), el tipo de lugar y el día; **la anécdota, solo si su dueño la muestra (P-42)** | **Excepción a la regla de abajo, por decisión del producto (P-38):** opt-in registro por registro con advertencia explícita, nunca casa/laburo/lo de alguien, sin hora, 30 min de demora para los demás (el dueño la ve enseguida), despublicar borra en el acto. |
 
 **Regla para cualquier superficie nueva** (vista social, perfil público, liga,
 ranking, mapa general, estadísticas para comercios adheridos):
@@ -314,6 +314,8 @@ el modo amigos, que recibía el día exacto con 1-6 h de demora. Ahora cada
 superficie tiene su protección explícita.
 
 ### P-15 · Sin texto libre público ni imágenes en v1
+
+> **(i5)** Excepción opt-in: la anécdota en el mapa de cacas (P-42).
 
 **Decisión.** Lo público son atributos estructurados (8 casilleros). Los
 comentarios son privados. No hay subida de imágenes.
@@ -607,6 +609,8 @@ pierde un empujón social. El servidor no puede verificar ninguna medalla.
 
 ### P-34 · (i3) Comentario privado al registrar
 
+> **(i5)** Sigue siendo privado salvo que su dueño lo muestre al publicar (P-42).
+
 **Decisión.** Una caja opcional "¿Alguna anécdota?" en la pantalla de registro
 (DESIGN.md §8.1), de hasta 500 caracteres. El texto vive solo en la bóveda
 cifrada. Nunca va al puente, al feed de amigos, a las tarjetas compartibles ni a
@@ -800,6 +804,33 @@ habla con Google ni con OpenStreetMap (P-16).
 ubicación en memoria mientras la resuelve, y Google o Nominatim reciben el
 pedido (desde la IP del servidor, no la del usuario). Nominatim pide como
 mucho un pedido por segundo: con mucho uso habrá que montar uno propio.
+
+### P-42 · (i5) La anécdota en el mapa de cacas, si su dueño quiere
+
+**Estado:** adoptada por decisión del producto ("es en parte la gracia"). Es una
+excepción a P-15 (sin texto libre público) y a P-34 (el comentario es privado),
+solo para lo que cada uno elige.
+
+**Decisión.** Al hacer pública una caca que tiene anécdota, la advertencia
+ofrece "Mostrar también mi anécdota", sin marcar, con la vista previa del texto.
+Si se marca, el texto se guarda en claro junto a la publicación y se muestra en
+el mapa de cacas con el seudónimo. No puede tener links, mails ni teléfonos
+(lo rechazan el celular y el servidor). Cualquiera con cuenta puede reportarlo
+(una vez, no el propio); con **3 reportes de cuentas elegibles** (7 días o más
+y algún día con registros) se oculta el texto, no el punto, hasta revisarlo a
+mano (docs/despliegue.md, "Comentarios públicos"). Despublicar, borrar el
+registro o la cuenta lo borran en el acto.
+
+**Mitiga.** Spam y que alguien publique datos de contacto de otra persona
+(el filtro). Insultos, acoso o datos de terceros escritos de otra forma (los
+reportes, que actúan rápido porque dejar el texto a la vista es lo que hace
+daño; a diferencia de los baños, P-17 de la iteración 5, donde ocultar le
+saca algo útil a todos).
+
+**Cuesta.** Hace falta moderar: alguien tiene que mirar lo reportado. El
+filtro no entiende contexto ("vivo en Zapiola 50" pasa). Tres cuentas
+elegibles de acuerdo pueden ocultar un texto inocente hasta la revisión. El
+texto publicado queda en la base en claro, fuera de la bóveda.
 
 ---
 
