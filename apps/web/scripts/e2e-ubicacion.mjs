@@ -17,11 +17,21 @@ await sql.unsafe('drop schema if exists osm cascade; drop schema public cascade;
 const pedidos = [];
 const nominatim = createServer((req, res) => {
 	const u = new URL(req.url, 'http://x');
-	pedidos.push({ q: u.searchParams.get('q'), pais: u.searchParams.get('countrycodes'), ua: req.headers['user-agent'] });
-	const hay = /zapiola/i.test(u.searchParams.get('q') ?? '');
-	res.writeHead(200, { 'content-type': 'application/json' }).end(
-		JSON.stringify(hay ? [{ display_name: 'Zapiola 50, Río Gallegos, Santa Cruz, Z9400, Argentina', lat: '-51.6202', lon: '-69.2201' }] : [])
-	);
+	const q = u.searchParams.get('q') ?? `${u.searchParams.get('street')} | ${u.searchParams.get('city')}`;
+	pedidos.push({ q, pais: u.searchParams.get('countrycodes'), ua: req.headers['user-agent'] });
+	const calle = (road, house_number, lat) => ({
+		display_name: `${road}, Río Gallegos, Argentina`,
+		lat,
+		lon: '-69.2201',
+		address: { road, house_number, city: 'Río Gallegos', state: 'Santa Cruz', country: 'Argentina' }
+	});
+	// Como el de verdad: Zapiola tiene alturas; Santa Fe, solo los tramos de la calle.
+	const datos = /zapiola/i.test(q)
+		? [calle('Zapiola', '50', '-51.6202')]
+		: /santa fe/i.test(q)
+			? [calle('Santa Fe', undefined, '-51.6280'), calle('Santa Fe', undefined, '-51.6241')]
+			: [];
+	res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(datos));
 }).listen(4187);
 
 const BASE = 'http://localhost:4186';
@@ -117,9 +127,52 @@ try {
 	await p.getByText('No encontramos esa dirección').waitFor();
 	await campo().fill('Zapiola 50, Río Gallegos');
 	await p.getByRole('button', { name: 'Buscar' }).click();
-	await p.getByRole('button', { name: /Zapiola 50, Río Gallegos/ }).click();
+	await p.getByRole('button', { name: /Zapiola 50 · Río Gallegos, Santa Cruz/ }).click();
+	ok(pedidos.at(-1).q === '50 Zapiola | Río Gallegos', 'calle y ciudad se buscan por separado');
+	// Se confirma en el mapa, que arranca acercado en la dirección.
+	await p.getByText('Fijate que el pin quede justo').waitFor();
+	await p.getByRole('button', { name: 'Usar este punto' }).click();
 	await p.getByText('Ubicación cargada en Zapiola 50').waitFor();
+	await p.getByText('YPF Centro').waitFor();
 	ok(pedidos.at(-1).pais === null && /DondeCague/.test(pedidos.at(-1).ua), 'dirección: se busca en Nominatim, en todo el mundo, identificándonos');
+
+	// Una calle sin alturas en el mapa: se marca el punto moviendo el mapa.
+	await p.getByRole('button', { name: 'Cambiar' }).click();
+	await campo().fill('Santa Fe 848, Río Gallegos');
+	await p.getByRole('button', { name: 'Buscar' }).click();
+	await p.getByRole('button', { name: /^Santa Fe · Río Gallegos/ }).first().waitFor();
+	ok((await p.getByRole('button', { name: /^Santa Fe · Río Gallegos/ }).count()) === 1, 'los tramos de la misma calle salen una sola vez');
+	await p.getByRole('button', { name: /^Santa Fe · Río Gallegos/ }).click();
+	await p.getByText('Esa calle no tiene las alturas en el mapa').waitFor();
+	await p.screenshot({ path: (process.env.E2E_CAPTURAS ?? '/tmp') + '/ubicacion-en-mapa.png' });
+	const lienzo = p.locator('.elegir .lienzo');
+	const caja = await lienzo.boundingBox();
+	await p.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+	await p.mouse.down();
+	await p.mouse.move(caja.x + caja.width / 2 - 80, caja.y + caja.height / 2 - 40, { steps: 8 });
+	await p.mouse.up();
+	await esperar(300);
+	await p.getByRole('button', { name: 'Usar este punto' }).click();
+	await p.getByText('Ubicación cargada en Santa Fe').waitFor();
+	ok(true, 'calle sin alturas: se ajusta en el mapa');
+
+	// Un link de Google que trae la dirección y no las coordenadas: se busca la dirección.
+	await p.getByRole('button', { name: 'Cambiar' }).click();
+	await campo().fill('https://maps.google.com/?q=Zapiola+50,+R%C3%ADo+Gallegos&ftid=0x1:0x2');
+	await p.getByRole('button', { name: 'Buscar' }).click();
+	await p.getByRole('button', { name: /Zapiola 50 · Río Gallegos/ }).waitFor();
+	ok(pedidos.at(-1).q === '50 Zapiola | Río Gallegos', 'link con la dirección: se busca esa dirección');
+
+	// Marcarla directo en el mapa.
+	await p.getByRole('button', { name: /Marcarla en el mapa/ }).click();
+	await p.getByText('Acercate más').waitFor();
+	ok(await p.getByRole('button', { name: 'Usar este punto' }).isDisabled(), 'con el país entero a la vista no se puede marcar');
+	await p.locator('.elegir').getByRole('button', { name: 'Cancelar' }).click();
+	await campo().fill('Zapiola 50, Río Gallegos');
+	await p.getByRole('button', { name: 'Buscar' }).click();
+	await p.getByRole('button', { name: /Zapiola 50 · Río Gallegos/ }).click();
+	await p.getByRole('button', { name: 'Usar este punto' }).click();
+	await p.getByText('Ubicación cargada en Zapiola 50').waitFor();
 	ok(!log.includes('Zapiola') && !log.includes('Que No Existe'), 'lo buscado no queda en el log del servidor');
 	await p.screenshot({ path: (process.env.E2E_CAPTURAS ?? '/tmp') + '/ubicacion-a-mano.png' });
 

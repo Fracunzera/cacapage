@@ -11,6 +11,7 @@
 	import { enArgentina, interpretar, type Punto } from '$lib/ubicacion/interpretar';
 	import { sePuedePublicar, type Compartir } from '../publicar';
 	import ConfirmarPublico from './ConfirmarPublico.svelte';
+	import ElegirEnMapa from '$lib/ubicacion/ElegirEnMapa.svelte';
 
 	let {
 		seudonimo,
@@ -42,7 +43,11 @@
 	// Ubicación a mano (sin GPS): dirección, coordenadas o link de un mapa.
 	let aMano = $state(false);
 	let textoUbicacion = $state('');
-	let direcciones = $state<{ nombre: string; lat: number; lon: number }[]>([]);
+	let direcciones = $state<{ nombre: string; lat: number; lon: number; exacta: boolean }[]>([]);
+	/** Sin la ciudad, el buscador trae la misma calle de cualquier lado. */
+	let sinCiudad = $state(false);
+	/** Marcando el punto en el mapa: dónde arranca y qué texto queda. */
+	let eligiendo = $state<{ inicio?: Punto & { zoom: number }; ayuda: string; texto: string } | null>(null);
 	let fueraDelPais = $state(false);
 	let buscando = $state(false);
 	let avisoUbicacion = $state<string | null>(null);
@@ -72,6 +77,7 @@
 		ubicacion = { lat: p.lat, lon: p.lon, precision, fuente, texto };
 		fueraDelPais = !enArgentina(p);
 		direcciones = [];
+		eligiendo = null;
 		// Los baños del catálogo son solo de la Argentina: afuera no se sugieren.
 		if (fueraDelPais) {
 			cerca = [];
@@ -91,26 +97,40 @@
 	async function cargarAMano() {
 		avisoUbicacion = null;
 		direcciones = [];
+		eligiendo = null;
 		let i = interpretar(textoUbicacion);
 		buscando = true;
 		try {
 			if (i.tipo === 'corto') {
 				const { url } = await api<{ url: string }>('/ubicacion/corto', { cuerpo: { url: i.url } });
 				i = interpretar(url);
-				if (i.tipo !== 'punto') i = { tipo: 'invalido', motivo: 'En ese link no encontramos coordenadas. Probá con las coordenadas.' };
+				if (i.tipo === 'corto') i = { tipo: 'invalido', motivo: 'Ese link no se pudo abrir. Probá con las coordenadas.' };
 			}
 			if (i.tipo === 'punto') await fijar(i.punto, 20, 'manual', i.origen === 'enlace' ? 'desde un link' : 'por coordenadas');
 			else if (i.tipo === 'invalido') avisoUbicacion = i.motivo;
 			else {
 				const { resultados } = await api<{ resultados: typeof direcciones }>(`/ubicacion/buscar?q=${encodeURIComponent(i.texto)}`);
 				direcciones = resultados;
-				if (!resultados.length) avisoUbicacion = 'No encontramos esa dirección. Probá con calle, número y ciudad.';
+				sinCiudad = !i.texto.includes(',') && resultados.length > 1;
+				if (!resultados.length)
+					avisoUbicacion = 'No encontramos esa dirección. Probá con calle, número y ciudad ("Santa Fe 848, Río Gallegos"), o marcala en el mapa.';
 			}
 		} catch (e) {
 			avisoUbicacion = e instanceof ErrorApi ? e.message : 'No se pudo cargar la ubicación.';
 		} finally {
 			buscando = false;
 		}
+	}
+
+	/** Un resultado del buscador: se confirma (o se corrige) en el mapa. */
+	function elegirDireccion(d: (typeof direcciones)[number]) {
+		eligiendo = {
+			inicio: { lat: d.lat, lon: d.lon, zoom: d.exacta ? 18 : 16 },
+			ayuda: d.exacta
+				? 'Fijate que el pin quede justo en el lugar; si no, mové el mapa.'
+				: 'Esa calle no tiene las alturas en el mapa: mové el mapa hasta que el pin quede en el lugar.',
+			texto: `en ${d.nombre.split(' · ')[0]}`
+		};
 	}
 
 	function cambiarUbicacion() {
@@ -211,7 +231,15 @@
 				✍️ Escribirla
 			</button>
 		</div>
-		{#if aMano}
+		{#if eligiendo}
+			{@const e = eligiendo}
+			<ElegirEnMapa
+				inicio={e.inicio}
+				ayuda={e.ayuda}
+				onelegir={(p) => fijar(p, 20, 'manual', e.texto)}
+				oncancelar={() => (eligiendo = null)}
+			/>
+		{:else if aMano}
 			<form
 				class="a-mano"
 				onsubmit={(e) => {
@@ -237,12 +265,22 @@
 				<fieldset class="banios">
 					<legend>¿Cuál de estas?</legend>
 					{#each direcciones as d, i (i)}
-						<button type="button" class="banio direccion" onclick={() => fijar(d, 50, 'manual', `en ${d.nombre}`)}>
+						<button type="button" class="banio direccion" onclick={() => elegirDireccion(d)}>
 							<span class="nombre">{d.nombre}</span>
 						</button>
 					{/each}
 				</fieldset>
+				{#if sinCiudad}
+					<p class="u-ayuda">¿No es ninguna? Sumale la ciudad después de una coma: "Santa Fe 848, Río Gallegos".</p>
+				{/if}
 			{/if}
+			<button
+				type="button"
+				class="u-enlace en-mapa"
+				onclick={() => (eligiendo = { ayuda: 'Buscá el lugar y dejá el pin justo ahí.', texto: 'en el mapa' })}
+			>
+				🗺️ Marcarla en el mapa
+			</button>
 		{/if}
 		<p class="u-ayuda">
 			Opcional. Queda cifrada en tu historial: solo la ves vos.{#if aMano}
@@ -433,6 +471,10 @@
 	}
 	.a-mano .u-campo {
 		margin-bottom: 0;
+	}
+	.en-mapa {
+		display: block;
+		margin: 4px 0 8px;
 	}
 	.buscar {
 		margin-top: 8px;

@@ -49,9 +49,22 @@ describe('links', () => {
 		expect(interpretar('https://maps.app.goo.gl/AbC123xyz')).toEqual({ tipo: 'corto', url: 'https://maps.app.goo.gl/AbC123xyz' });
 	});
 
-	it('un link sin coordenadas: avisa', () => {
-		expect(interpretar('https://www.google.com/maps/place/Rio+Gallegos').tipo).toBe('invalido');
+	it('un link con la dirección pero sin coordenadas: se busca la dirección', () => {
+		expect(interpretar('https://maps.google.com/?q=Santa+Fe+848,+Z9400+R%C3%ADo+Gallegos,+Santa+Cruz&ftid=0x1:0x2&entry=gps')).toEqual({
+			tipo: 'direccion',
+			texto: 'Santa Fe 848, Z9400 Río Gallegos, Santa Cruz'
+		});
+		expect(interpretar('https://www.google.com/maps/place/Santa+Fe+848,+R%C3%ADo+Gallegos/data=!4m2')).toEqual({
+			tipo: 'direccion',
+			texto: 'Santa Fe 848, Río Gallegos'
+		});
+		expect(interpretar('https://www.google.com/maps/search/zapiola+50+rio+gallegos')).toEqual({ tipo: 'direccion', texto: 'zapiola 50 rio gallegos' });
+		expect(interpretar('https://maps.apple.com/?address=Zapiola%2050,%20R%C3%ADo%20Gallegos')).toEqual({ tipo: 'direccion', texto: 'Zapiola 50, Río Gallegos' });
+	});
+
+	it('un link sin coordenadas ni dirección: avisa', () => {
 		expect(interpretar('https://ejemplo.com/hola').tipo).toBe('invalido');
+		expect(interpretar('https://www.google.com/maps?cid=123456').tipo).toBe('invalido');
 	});
 });
 

@@ -11,7 +11,7 @@ export type Interpretacion =
 	| { tipo: 'punto'; punto: Punto; origen: 'coordenadas' | 'enlace' }
 	/** Link corto: hay que seguir la redirección (lo hace el servidor). */
 	| { tipo: 'corto'; url: string }
-	/** Ni coordenadas ni link: se busca como dirección. */
+	/** Ni coordenadas ni link, o un link que solo trae una dirección: se busca. */
 	| { tipo: 'direccion'; texto: string }
 	| { tipo: 'invalido'; motivo: string };
 
@@ -76,6 +76,28 @@ function deEnlace(u: URL): Punto | null {
 	return null;
 }
 
+/**
+ * Un link sin coordenadas pero con la dirección escrita (Google comparte así las
+ * direcciones: ?q=Santa+Fe+848,+Río+Gallegos o /maps/place/Santa+Fe+848/…).
+ */
+function direccionDeEnlace(u: URL): string | null {
+	const limpiar = (t: string) => t.replace(/\+/g, ' ').replace(/\s+/g, ' ').trim();
+	const conLetras = (t: string | null) => (t && /\p{L}{2,}/u.test(t) ? limpiar(t) : null);
+	const m = /\/maps\/(?:place|search)\/([^/@?]+)/.exec(u.pathname);
+	if (m) {
+		let t: string | null = null;
+		try {
+			t = decodeURIComponent(m[1].replace(/\+/g, ' '));
+		} catch {
+			// Mal codificado.
+		}
+		if (conLetras(t)) return conLetras(t);
+	}
+	for (const clave of ['q', 'query', 'address', 'daddr', 'destination'])
+		if (conLetras(u.searchParams.get(clave))) return conLetras(u.searchParams.get(clave));
+	return null;
+}
+
 export function interpretar(entrada: string): Interpretacion {
 	const t = entrada.trim().replace(/\s+/g, ' ');
 	if (!t) return { tipo: 'invalido', motivo: 'Escribí una dirección, unas coordenadas o pegá un link.' };
@@ -98,6 +120,8 @@ export function interpretar(entrada: string): Interpretacion {
 		const p = deEnlace(u);
 		if (p) return { tipo: 'punto', punto: p, origen: 'enlace' };
 		if (HOSTS_CORTOS.includes(u.hostname)) return { tipo: 'corto', url: u.href };
+		const texto = direccionDeEnlace(u);
+		if (texto) return { tipo: 'direccion', texto };
 		return { tipo: 'invalido', motivo: 'En ese link no encontramos coordenadas. Probá con el link de "Compartir" del mapa, o con las coordenadas.' };
 	}
 
